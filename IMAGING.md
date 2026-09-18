@@ -9,11 +9,19 @@ python run_imaging.py discover --raw-root /data/Images
 python run_imaging.py probe                      # acquisition parameters from the DICOMs
 python run_imaging.py validate                   # check the input contract
 python run_imaging.py run --dry-run              # plan
-python run_imaging.py run --cores 16             # execute
+python run_imaging.py run --execution-subset approved.csv --cores 16
 ```
 
 The first four steps are quick. The last is hours per cohort, which is why
 everything knowable in advance is checked before it starts.
+
+## The workflow will not run an unapproved cohort
+
+`run` requires `--execution-subset`: a human-approved subset of the manifest.
+The v2 route refuses to begin tractography on a cohort nobody has signed off,
+and it also refuses a `run_root` whose path does not contain `scforge_v2`, so a
+long run cannot scatter output somewhere unintended. Both are deliberate gates.
+`--dry-run` plans without an approved subset.
 
 ## Input layout
 

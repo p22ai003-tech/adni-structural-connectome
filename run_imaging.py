@@ -6,7 +6,11 @@
     python run_imaging.py probe                        # fill the acquisition fields
     python run_imaging.py validate                     # check the input contract
     python run_imaging.py run --dry-run                # plan the Snakemake DAG
-    python run_imaging.py run --cores 16               # execute
+    python run_imaging.py run --execution-subset approved.csv --cores 16
+
+The last step needs an approved execution subset. The v2 route will not start
+tractography on a cohort nobody has signed off, and says so rather than
+defaulting to "everything".
 
 The four steps before ``run`` are cheap and the last one is not: a full cohort
 is hours of tractography. They are separate commands so that everything
@@ -109,11 +113,27 @@ def cmd_run(args) -> int:
         raise SystemExit(f"manifest not found: {manifest}\nRun: python run_imaging.py discover")
 
     run_root = Path(args.run_root or (sc_config.paths().deriv_root / "scforge_v2_runs" / "run"))
+    # The v2 route will not process anyone without an approved execution
+    # subset. That is a human gate, not an oversight: the workflow refuses to
+    # start tractography on a cohort nobody has signed off. Without it the
+    # Snakefile stops on the literal placeholder REQUIRED_APPROVED_CANARY_SUBSET.
+    if not args.execution_subset and not args.dry_run:
+        raise SystemExit(
+            "no --execution-subset given.\n"
+            "The v2 workflow requires a human-approved subset of the manifest "
+            "before it will process anything.\n"
+            "Pass --execution-subset <csv>, or --dry-run to plan without one."
+        )
+
     cmd = [snakemake, "--snakefile", str(SNAKEFILE),
            "--configfile", str(args.workflow_config or DEFAULT_WORKFLOW_CONFIG),
            "--config", f"manifest_path={manifest}", f"run_root={run_root}",
            "--cores", str(args.cores),
            "--printshellcmds", "--rerun-incomplete"]
+    if args.execution_subset:
+        cmd[cmd.index("--config") + 1:cmd.index("--config") + 1] = [
+            f"execution_manifest_path={Path(args.execution_subset).resolve()}"
+        ]
     if args.dry_run:
         cmd.append("--dry-run")
     if args.until:
@@ -174,6 +194,8 @@ def main(argv=None) -> int:
     r.add_argument("--manifest", type=Path, default=None)
     r.add_argument("--run-root", type=Path, default=None)
     r.add_argument("--workflow-config", type=Path, default=None)
+    r.add_argument("--execution-subset", type=Path, default=None,
+                   help="human-approved subset of the manifest; required to execute")
     r.add_argument("--cores", type=int, default=1)
     r.add_argument("--dry-run", action="store_true", help="plan only")
     r.add_argument("--until", default=None, help="stop after this rule")
