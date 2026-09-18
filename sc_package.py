@@ -45,6 +45,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 DEFAULT_EXCLUDE = ("research_audit/", "scripts/hcp/")
 
+# Thesis presentations, reports and manuscripts. They are 72 MB of the tracked
+# tree and none of it is pipeline code, so a code package should not carry them.
+# Markdown under docs/ is kept: those are runbooks.
+DOCUMENT_SUFFIXES = {".pptx", ".docx", ".doc", ".ppt", ".pdf", ".xlsx", ".numbers", ".key"}
+
 # Anything matching these must not leave the machine.
 FORBIDDEN = [
     (re.compile(rb"\d{3}_S_\d{4,5}"), "ADNI participant identifier"),
@@ -109,6 +114,8 @@ def main(argv=None) -> int:
     ap.add_argument("--out-dir", type=Path, default=PROJECT_ROOT / "dist")
     ap.add_argument("--name", default="adni-sc-pipeline")
     ap.add_argument("--check", action="store_true", help="verify only; write nothing")
+    ap.add_argument("--include-documents", action="store_true",
+                    help="keep the thesis presentations and reports (adds ~72 MB)")
     ap.add_argument("--include-audit", action="store_true",
                     help="keep research_audit/ and scripts/hcp/ (internal hand-off)")
     ap.add_argument("--force", action="store_true",
@@ -133,6 +140,12 @@ def main(argv=None) -> int:
                 if target.exists():
                     removed += sum(1 for _ in target.rglob("*") if _.is_file())
                     shutil.rmtree(target)
+
+        if not args.include_documents:
+            for doc in list(tree.rglob("*")):
+                if doc.is_file() and doc.suffix.lower() in DOCUMENT_SUFFIXES:
+                    doc.unlink()
+                    removed += 1
 
         files = [p for p in tree.rglob("*") if p.is_file()]
         size = sum(p.stat().st_size for p in files)
