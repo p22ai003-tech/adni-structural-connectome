@@ -42,10 +42,23 @@ Service definition:
 /home/ec2-user/exp/deploy/connectome-dashboard.service
 ```
 
-Refresh helper:
+## Analysis + ML pipeline
+
+One command regenerates every number the thesis and the dashboard report.
+See `connectome_analysis/README.md` for the full runbook.
 
 ```bash
-/home/ec2-user/exp/apps/connectome_dashboard/refresh_connectome_dashboard_data.py
+python -m connectome_analysis.run_analysis --list          # the 37-stage graph
+python -m connectome_analysis.run_analysis --all --resume   # run what is missing or stale
+```
+
+Paths come from `sc_config.py` and the `SC_*` environment variables; run
+`python -c "import sc_config; print(sc_config.describe())"` to check them first.
+
+The older entry point still works and forwards to the runner:
+
+```bash
+apps/connectome_dashboard/refresh_connectome_dashboard_data.py --mode quick|full
 ```
 
 ## Run Safety
