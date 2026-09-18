@@ -22,9 +22,21 @@ import numpy as np
 import pandas as pd
 from scipy import stats as sps
 
-ANALYSIS = Path("/home/ec2-user/exp/data/derivatives/qc/analysis_cohort")
-OUT = Path("/home/ec2-user/exp/hcp_analysis")
-FUNC = ANALYSIS / "19_network_analysis/functional"
+# Paths resolve through sc_paths: project-relative, overridable with --out, and
+# defaulting to the analysis-tree section the dashboard actually reads. Writing
+# straight there is what removes the old manual copy step.
+try:
+    import sc_paths
+except ModuleNotFoundError:  # loose script run from outside hcp_analysis/
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import sc_paths
+
+_P = sc_paths.resolve_for_script("ml")
+
+ANALYSIS = _P.analysis
+OUT = _P.out
+FUNC = _P.func
 NETWORKS = ["Visual", "Somatomotor", "DorsalAttention", "Salience_VAN", "Limbic",
             "Frontoparietal", "DMN", "Subcortical", "Cerebellar", "Brainstem"]
 MEASURES = ["Strength", "Degree", "FA", "MD", "RD", "AxD"]
@@ -98,7 +110,7 @@ def a2_architecture() -> None:
     phase_col = "phase" if "phase" in master.columns else "Phase"
     phase = master.set_index("subject_id")[phase_col].astype(str)
 
-    lut = pd.read_csv("/home/ec2-user/exp/atlas/AAL/aal3_node_map_166.csv")
+    lut = pd.read_csv(_P.aal_node_map)
     true_name = dict(zip(lut["new_id"].astype(int), lut["name"]))
     mapping = pd.read_csv(ANALYSIS / "19_network_analysis/network_mapping_used.csv")
     idx2net = dict(zip(mapping["matrix_idx"].astype(int), mapping["functional_network"]))

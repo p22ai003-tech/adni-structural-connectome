@@ -1,0 +1,8 @@
+# Optional model backends. Each is imported lazily, inside the function that
+# uses it, so the pipeline runs without them -- only the corresponding
+# comparison stage becomes unavailable. None is needed to reproduce the
+# published headline results, which use scikit-learn's ExtraTrees.
+
+xgboost==2.1.4    # analysis_ml_diagnostics, clinical_outcome_search
+tabpfn==8.0.3    # analysis_ml_neural_benchmarks
+pytorch-tabnet==4.1.0    # analysis_ml_neural_benchmarks

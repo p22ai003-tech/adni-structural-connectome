@@ -34,9 +34,21 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-ANALYSIS = Path("/home/ec2-user/exp/data/derivatives/qc/analysis_cohort")
-OUT = Path("/home/ec2-user/exp/hcp_analysis")
-FUNC = ANALYSIS / "19_network_analysis/functional"
+# Paths resolve through sc_paths: project-relative, overridable with --out, and
+# defaulting to the analysis-tree section the dashboard actually reads. Writing
+# straight there is what removes the old manual copy step.
+try:
+    import sc_paths
+except ModuleNotFoundError:  # loose script run from outside hcp_analysis/
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import sc_paths
+
+_P = sc_paths.resolve_for_script("ml")
+
+ANALYSIS = _P.analysis
+OUT = _P.out
+FUNC = _P.func
 NETWORKS = ["Visual", "Somatomotor", "DorsalAttention", "Salience_VAN", "Limbic",
             "Frontoparietal", "DMN", "Subcortical", "Cerebellar", "Brainstem"]
 OUTLIER = {"003_S_4373"}
@@ -54,13 +66,13 @@ def build_targets() -> pd.DataFrame:
     phase_col = "phase" if "phase" in master.columns else "Phase"
     base = master.set_index("subject_id")[["group", "age", "sex", phase_col]].rename(columns={phase_col: "phase"})
 
-    scan = pd.read_csv("/home/ec2-user/exp/cohort/dti.csv", low_memory=False)
+    scan = pd.read_csv(_P.cohort / "dti.csv", low_memory=False)
     sc = [c for c in scan.columns if "subj" in c.lower()][0]
     scan_date = (scan.assign(_d=pd.to_datetime(scan["Study Date"], errors="coerce"))
                  .dropna(subset=["_d"]).groupby(sc)["_d"].min())
 
     visits = []
-    for f in ("/home/ec2-user/exp/cohort/mri_master.csv", "/home/ec2-user/exp/cohort/dti_master.csv"):
+    for f in (_P.cohort / "mri_master.csv", _P.cohort / "dti_master.csv"):
         d = pd.read_csv(f, low_memory=False)
         c = [x for x in d.columns if "subj" in x.lower()][0]
         d = d.rename(columns={c: "sid"})

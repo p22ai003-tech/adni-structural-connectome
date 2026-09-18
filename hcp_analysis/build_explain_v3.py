@@ -20,7 +20,19 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import average_precision_score, precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold
 
-OUT = Path("/home/ec2-user/exp/hcp_analysis")
+# Paths resolve through sc_paths: project-relative, overridable with --out, and
+# defaulting to the analysis-tree section the dashboard actually reads. Writing
+# straight there is what removes the old manual copy step.
+try:
+    import sc_paths
+except ModuleNotFoundError:  # loose script run from outside hcp_analysis/
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import sc_paths
+
+_P = sc_paths.resolve_for_script("ml")
+
+OUT = _P.out
 SEEDS = [11, 23, 37, 51, 73]
 
 

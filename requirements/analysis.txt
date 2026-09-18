@@ -1,0 +1,24 @@
+# Analysis + ML pipeline: the versions that produced the published results.
+#
+# Pinned from the environment the thesis numbers were computed in, read from
+# installed package metadata. The ML results are sensitive to the scikit-learn
+# version -- tree-ensemble split selection and the SHAP interface both changed
+# across minor releases -- so these are exact pins, not minimums.
+#
+#   python3.12 -m venv .venv
+#   .venv/bin/pip install -r requirements/analysis.txt
+#
+# Python 3.12 is required: the code uses PEP 604 unions and match statements.
+numpy==2.1.3
+pandas==2.3.2
+scipy==1.15.3
+scikit-learn==1.5.2    # tree ensembles; exact pin matters
+statsmodels==0.14.5    # mediation, ANCOVA
+networkx==3.5    # graph metrics
+nibabel==5.3.2    # reads the atlas volumes
+shap==0.51.0    # SHAP values
+matplotlib==3.9.4
+seaborn==0.13.2
+joblib==1.5.2
+PyYAML==6.0.2    # the config surface
+tqdm==4.67.1

@@ -1,0 +1,13 @@
+# Test and validation tooling. Install on top of analysis.txt.
+#   .venv/bin/pip install -r requirements/analysis.txt -r requirements/dev.txt
+#
+# With these installed the suite runs 270 tests. Without jsonschema the
+# manifest validator cannot run; without fastapi/httpx the 23
+# dashboard-parity tests fail to collect.
+
+pytest==9.1.1
+pytest-timeout==2.4.0
+jsonschema==4.25.1    # validates the acquisition manifest against the v2 schema
+fastapi==0.141.1    # the dashboard-parity tests import the API app
+httpx==0.28.1    # fastapi TestClient
+uvicorn==0.46.0    # serves the API

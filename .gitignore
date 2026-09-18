@@ -153,3 +153,8 @@ playwright-report/
 !atlas/AAL/AAL3v1_1mm.nii.gz
 !atlas/AAL/AAL3v1_1mm_166.nii.gz
 !atlas/Schaefer2018/*.nii.gz
+
+# Local subject-level exclusion lists. These name ADNI participants and are
+# restricted under the Data Use Agreement; they stay on the machine.
+configs/exclusions.local.yaml
+*.local.yaml

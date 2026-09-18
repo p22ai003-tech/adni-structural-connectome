@@ -1,0 +1,6 @@
+# Dashboard only. Not needed to run the analysis or reproduce any number.
+
+streamlit==1.57.0
+plotly==6.3.0
+altair==6.1.0
+scikit-image==0.25.2

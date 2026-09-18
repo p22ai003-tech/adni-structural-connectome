@@ -104,6 +104,36 @@ class Paths:
     def cohort_mri_csv(self) -> Path:
         return self.cohort_dir / "mri.csv"
 
+    # -- analysis-tree sections -----------------------------------------------
+    # The analysis tree is numbered by stage. These are the sections that the
+    # dashboard reads from and that the build_*.py scripts must therefore write
+    # to. Writing anywhere else is what used to require a manual copy step.
+    @property
+    def master_dir(self) -> Path:
+        return self.analysis_root / "00_master"
+
+    @property
+    def edr_exceptions_dir(self) -> Path:
+        return self.analysis_root / "17_edr_exceptions"
+
+    @property
+    def network_dir(self) -> Path:
+        return self.analysis_root / "19_network_analysis"
+
+    @property
+    def functional_network_dir(self) -> Path:
+        """Network-level tables, keyed on the AAL3 -> Yeo functional mapping."""
+        return self.network_dir / "functional"
+
+    @property
+    def exception_dir(self) -> Path:
+        """Exception-specificity and ML artifacts; the dashboard's ML section."""
+        return self.analysis_root / "20_exception_specificity"
+
+    @property
+    def figs_dir(self) -> Path:
+        return self.project_root / "docs" / "figs"
+
     @property
     def master_cohort_csv(self) -> Path:
         return self.analysis_root / "00_master" / "master_cohort.csv"

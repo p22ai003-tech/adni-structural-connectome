@@ -1,0 +1,135 @@
+# =============================================================================
+# Analysis + ML pipeline parameters.
+#
+#   python -m connectome_analysis.run_analysis --all --config configs/analysis.yaml
+#
+# Resolution order for any key: stages.<stage>.<key>, then defaults.<key>, then
+# the value hard-coded in the code. Anything not listed here keeps the value the
+# published results were produced with -- this file is a surface for changing
+# parameters, not a redefinition of them.
+#
+# Paths are NOT set here. They come from sc_config.py and the SC_* environment
+# variables, so that one mechanism controls them everywhere.
+# =============================================================================
+
+defaults:
+  # Random seeds. The ML results are seed-averaged on purpose: a single seed is
+  # a lottery. The SR / whole-brain DMN contrast, for example, reproduces in
+  # only 28.5% of 200 seeds, so a single-seed ranking would have supported a
+  # "dissociation" that the seed-averaged result does not.
+  seeds: [11, 23, 37, 51, 73]
+
+  # Permutations for the edge-wise null. 200 is the working value; the published
+  # edge-wise inference used this. Raising it costs time linearly.
+  edge_perms: 200
+
+  # Repeats for the brain-age cross-validation.
+  brain_age_repeats: 3
+
+  # Multiple-comparison control across families of tests.
+  fdr_alpha: 0.05
+  holm_alpha: 0.05
+
+stages:
+
+  analysis_snapshot:
+    # provisional = a working run; final = the frozen state behind a report.
+    snapshot_mode: provisional
+
+  data_completeness:
+    # When true a subject counts as complete only if the streamline count is
+    # genuine. This matters: in 477 of 530 subjects the `count` matrix equals
+    # `fd_sum` rather than an integer streamline count. Density-based uses are
+    # unaffected (the nonzero patterns are identical), but anything that treats
+    # `count` as a number of streamlines is not.
+    strict_tracks_count: false
+
+  # ---------------------------------------------------------------------------
+  # Two length splits coexist in this project. They are NOT interchangeable, and
+  # they are deliberately left separate because they answer different questions
+  # and are reported under different column names.
+  #
+  #   lr_sr (12_length_delay)     tertiles of the pooled length distribution,
+  #                               33.3 / 66.7 -> short / medium / long.
+  #                               Columns: short_w_mean, long_w_mean.
+  #
+  #   edr_exceptions (17_...)     quartiles of the pooled CN upper triangle,
+  #                               SR <= Q1 = 78.6856 mm, LR > Q3 = 171.021 mm.
+  #                               Columns: sr_*, lr_*.
+  #
+  # The thesis uses the CN-quartile definition. edr_exceptions derives its own
+  # thresholds and does not read anything from lr_sr, so changing one does not
+  # move the other. Unifying them would change published numbers; do that only
+  # deliberately.
+  # ---------------------------------------------------------------------------
+  lr_sr:
+    percentiles: [33.333, 66.667]
+
+  edr_exceptions:
+    # Source group for the length quartiles. CN is the reference distribution:
+    # using all groups would let disease-related length changes define the very
+    # bins used to detect them.
+    threshold_source_group: CN
+    percentiles: [25, 75]
+    # An edge is an exception when its weight exceeds the within-subject,
+    # within-length-bin mean by this many SDs (Chakraborty et al. 2025).
+    exception_sd: 3.0
+    # Minimum edges per adaptive length bin before a bin is usable.
+    min_bin_edges: 120
+    weight_type: fd_sum
+    length_type: len_mean
+
+  edgewise_fd_sum:
+    connectome_type: fd_sum
+
+  clinical_outcome_search:
+    # fast=true restricts the search space; the published search used it.
+    outcome_search_fast: true
+    outcome_search_jobs: 4
+
+  literature_retrieval:
+    # OpenAlex asks for a contact address in the polite pool. Set your own.
+    literature_mailto: ""
+
+  # ---------------------------------------------------------------------------
+  # The accepted final model. Changing anything here changes the headline AUCs.
+  #
+  #   in-fold median imputation
+  #   -> in-fold residualisation of the 103 connectome features on [1, age, sex]
+  #      (beta fit on the training fold only; age and sex stay in the design
+  #      matrix, raw, at columns 0 and 1)
+  #   -> ExtraTreesClassifier(400 trees, min_samples_leaf=5, balanced)
+  #   -> 5 seeds x StratifiedKFold(5), out-of-fold probabilities averaged.
+  #
+  # Sex is coded 1 = female, 0 = male. With ExtraTrees this is not cosmetic:
+  # flipping it mirrors the split thresholds and moves the AUCs in the third
+  # decimal.
+  # ---------------------------------------------------------------------------
+  build_simple_ml:
+    n_estimators: 400
+    min_samples_leaf: 5
+    class_weight: balanced
+    n_splits: 5
+    # MMSE tertile bands -> Low (impaired) / Mid / High (intact): 71 / 68 / 63.
+    # CDR three-level -> 0 / 0.5 / >=1: 106 / 67 / 29.
+    targets: [mmse_band, cdr_3level]
+    # Subject-level exclusions from the project's outlier audit (one subject,
+    # excluded for CSF-level mean diffusivity). The identifier is deliberately
+    # NOT listed here: ADNI participant identifiers are restricted under the
+    # Data Use Agreement and must not enter this repository. The exclusion is
+    # applied by the build scripts; to reproduce the published numbers, supply
+    # the list in a local file that is not tracked by git.
+    exclude_subjects_file: configs/exclusions.local.yaml
+
+  build_final_model_metrics:
+    # Bootstrap replicates for the class-wise confidence intervals.
+    bootstrap: 2000
+    # Below this many cases on either side, the interval spans most of the
+    # range and the estimate is not worth reporting.
+    min_per_side: 10
+    curve_points: 120
+
+  build_shap_overall:
+    # SHAP shares are computed over ALL features, not a top-k truncation.
+    # Truncating overstated the reported shares by 2.5-6x.
+    top_k: null
