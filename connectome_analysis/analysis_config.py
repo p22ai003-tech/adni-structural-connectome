@@ -14,23 +14,39 @@ GROUP_PALETTE: Dict[str, str] = {
 }
 
 
+def _sc_paths():
+    """Resolve project paths via the canonical resolver at the repository root.
+
+    Imported lazily and defensively: this module is also used from scripts that
+    run with a different working directory, and a missing resolver must not stop
+    the analysis package from importing.
+    """
+    try:
+        import sc_config  # noqa: PLC0415
+    except ModuleNotFoundError:  # pragma: no cover - fallback for odd sys.path
+        import sys
+
+        root = Path(__file__).resolve().parents[1]
+        if str(root) not in sys.path:
+            sys.path.insert(0, str(root))
+        import sc_config  # noqa: PLC0415
+    return sc_config.paths()
+
+
 def _resolve_default_cohort_csv(name: str) -> Path:
-    candidates = [
-        Path.cwd() / "cohort" / name,
-        Path("/Users/sabeesh/Desktop/exp/cohort") / name,
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[-1]
+    """Cohort CSV location. No foreign-machine fallback: SC_COHORT_DIR governs."""
+    return _sc_paths().cohort_dir / name
+
+
+def _default_deriv_root() -> Path:
+    """Derivatives root. SC_DERIV_ROOT still wins, as it always did."""
+    return _sc_paths().deriv_root
 
 
 @dataclass
 class AnalysisPaths:
     notebook_dir: Path
-    deriv_root: Path = Path(
-        os.environ.get("SC_DERIV_ROOT", "/Volumes/Seagate Hub/ADNI_Images/derivatives")
-    )
+    deriv_root: Path = field(default_factory=_default_deriv_root)
     cohort_dti_csv: Path = field(
         default_factory=lambda: _resolve_default_cohort_csv("dti.csv")
     )

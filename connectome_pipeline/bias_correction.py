@@ -75,7 +75,21 @@ except ModuleNotFoundError:
     sitk = None
 
 # ---------- DEFAULT CONFIG (can be overridden via CLI) ----------
-DEFAULT_DERIV           = Path("/Volumes/Seagate Hub/ADNI_Images/derivatives")
+def _default_deriv() -> Path:
+    """Derivatives root, from the canonical resolver (SC_DERIV_ROOT overrides)."""
+    try:
+        import sc_config  # noqa: PLC0415
+    except ModuleNotFoundError:  # pragma: no cover
+        import sys
+
+        root = Path(__file__).resolve().parents[1]
+        if str(root) not in sys.path:
+            sys.path.insert(0, str(root))
+        import sc_config  # noqa: PLC0415
+    return sc_config.paths().deriv_root
+
+
+DEFAULT_DERIV           = _default_deriv()
 DEFAULT_PROCESSES       = min(2, max(1, (os.cpu_count() or 4) // 3))  # parallel series
 DEFAULT_THREADS_PER_JOB = 1                                           # OpenMP threads per job
 DEFAULT_FORCE           = False                               # overwrite existing outputs if True
@@ -142,7 +156,8 @@ _ants_candidates = [
     str(Path.home() / ".local" / "bin" / "N4BiasFieldCorrection"),
     str(Path.home() / "miniconda3" / "bin" / "N4BiasFieldCorrection"),
     str(Path.home() / "miniconda3" / "envs" / "antsfix" / "bin" / "N4BiasFieldCorrection"),
-    str(Path("/opt/miniconda3/envs/antsfix/bin/N4BiasFieldCorrection")),
+    str(Path(os.environ["ANTSPATH"]) / "N4BiasFieldCorrection") if os.environ.get("ANTSPATH") else "",
+    shutil.which("N4BiasFieldCorrection") or "",
 ]
 _ants_hint = next((p for p in _ants_candidates if p), "")
 if _ants_hint:
