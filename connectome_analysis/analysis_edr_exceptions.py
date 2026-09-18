@@ -80,6 +80,33 @@ def _aligned_stacks(paths: AnalysisPaths, master: pd.DataFrame, weight_type: str
 
 
 def _aal_lookup(paths: AnalysisPaths, n_nodes: int) -> pd.DataFrame:
+    """Matrix index -> ROI name, using the LUT that is keyed on the matrix index.
+
+    This must NOT use atlas/AAL/AAL3_labels.csv. That table is keyed on the
+    original AAL3 atlas value, and AAL3v1 leaves values 35, 36, 81 and 82
+    unused. The 166-node matrix compacts the surviving regions, so matrix row 37
+    is atlas value 39, not 37. Reading names out of AAL3_labels.csv therefore
+    mislabels 132 of the 166 rows, shifting every name from row 37 onward --
+    what it calls Cingulate_Post_L is in fact Hippocampus_L.
+
+    aal3_node_map_166.csv is keyed on the matrix index and carries orig_value
+    alongside, so it is correct by construction.
+
+    Network-level results are unaffected either way: AAL3_network_mapping.csv is
+    keyed on matrix_idx and every consumer joins on the index, not the name.
+    """
+    label_path = paths.notebook_dir / "atlas" / "AAL" / "aal3_node_map_166.csv"
+    if label_path.exists():
+        m = pd.read_csv(label_path)
+        if {"new_id", "name", "node_name"}.issubset(m.columns):
+            labels = m.rename(columns={"new_id": "node", "name": "atlas_label"})[
+                ["node", "node_name", "atlas_label"]
+            ].copy()
+            labels["node"] = pd.to_numeric(labels["node"], errors="coerce").astype("Int64")
+            return labels[labels["node"].between(1, n_nodes)].copy()
+
+    # Legacy fallback, kept only so an old tree still resolves. Names from this
+    # path are shifted; prefer the map above.
     label_path = paths.notebook_dir / "atlas" / "AAL" / "AAL3_labels.csv"
     if label_path.exists():
         labels = pd.read_csv(label_path)
