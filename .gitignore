@@ -158,3 +158,6 @@ playwright-report/
 # restricted under the Data Use Agreement; they stay on the machine.
 configs/exclusions.local.yaml
 *.local.yaml
+
+# Machine-specific toolchain paths; env.sh.example is the tracked template.
+/env.sh
