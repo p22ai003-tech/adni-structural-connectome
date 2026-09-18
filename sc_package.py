@@ -45,6 +45,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 DEFAULT_EXCLUDE = ("research_audit/", "scripts/hcp/")
 
+# Files inside an excluded subtree that the workflow contract still requires.
+# The v2 contract's locked source manifest covers these, so a package without
+# them cannot satisfy its own contract. Both are checked to carry no participant
+# identifiers by the safety gate below, like everything else.
+KEEP_DESPITE_EXCLUDE = (
+    "research_audit/matrix_data_dictionary.md",
+    "research_audit/validate_connectome_v2_contract.py",
+)
+
 # Thesis presentations, reports and manuscripts. They are 72 MB of the tracked
 # tree and none of it is pipeline code, so a code package should not carry them.
 # Markdown under docs/ is kept: those are runbooks.
@@ -135,11 +144,21 @@ def main(argv=None) -> int:
 
         removed = 0
         if not args.include_audit:
+            keep: dict[str, bytes] = {}
+            for rel in KEEP_DESPITE_EXCLUDE:
+                src = tree / rel
+                if src.is_file():
+                    keep[rel] = src.read_bytes()
             for sub in DEFAULT_EXCLUDE:
                 target = tree / sub
                 if target.exists():
                     removed += sum(1 for _ in target.rglob("*") if _.is_file())
                     shutil.rmtree(target)
+            for rel, blob in keep.items():
+                dest = tree / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(blob)
+                removed -= 1
 
         if not args.include_documents:
             for doc in list(tree.rglob("*")):
