@@ -300,7 +300,14 @@ def required_source_set(snakefile: Path = DEFAULT_SNAKEFILE) -> set[Path]:
     to it and never added to the manifest, which failed the contract without
     anything having actually changed.
     """
-    rule_paths = sorted((snakefile.parent / "rules").glob("*.smk"))
+    # The rules the Snakefile actually includes, NOT every .smk on disk. The
+    # directory also holds one-off recovery and retry extensions from past
+    # incidents, which the canonical route never loads; globbing pulled those in
+    # and demanded that the lock cover code that does not run. The contract
+    # should cover what executes.
+    included = re.findall(r'include:\s*"rules/([^"]+)"',
+                          snakefile.read_text(encoding="utf-8"))
+    rule_paths = [snakefile.parent / "rules" / name for name in included]
     return {
         snakefile.resolve(),
         *(path.resolve() for path in rule_paths),

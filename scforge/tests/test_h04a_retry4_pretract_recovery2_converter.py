@@ -26,12 +26,36 @@ TRANSFORMCONVERT = Path("/home/ec2-user/mrtrix3/bin/transformconvert")
 ANTS_APPLY = ROOT / ".envs/ants-2.6.5/bin/antsApplyTransforms"
 ANTS_INFO = ROOT / ".envs/ants-2.6.5/bin/antsTransformInfo"
 EXPECTED_C3D_SHA256 = "ea5a0bdd79ea419ff37feccb202218cdc7c14c1f8adcdf099ce70dd273c937d6"
-DIVERSE_UNITS = (
-    "XXX_S_1002_I1124861",  # GE, single-NIfTI T1
-    "XXX_S_1003_I1075344",  # Siemens, single-NIfTI T1
-    "XXX_S_1004_I926924",  # Siemens, DICOM-series T1
-    "XXX_S_1005_I1439616",  # GE, DICOM-series T1
-)
+def _diverse_units(count: int = 4) -> tuple[str, ...]:
+    """Units to exercise the converter on.
+
+    The original selection was four units chosen for vendor and T1-format
+    diversity (GE and Siemens, single-NIfTI and DICOM-series T1). Those were
+    named by ADNI participant identifier, which cannot live in a tracked file,
+    so the list is taken from the gitignored local file when it is there and
+    otherwise discovered from the run root. The test needs units that exist and
+    carry the three inputs, not particular ones.
+    """
+    try:
+        import sc_exclusions
+        named = sc_exclusions.subject_list("recovery2_diverse_units")
+    except Exception:
+        named = ()
+    if named:
+        return tuple(named)
+    base = RUN_ROOT / "subjects"
+    if not base.is_dir():
+        return ()
+    found = [
+        d.name for d in sorted(base.iterdir())
+        if (d / "02_anat/t1_n4.nii.gz").is_file()
+        and (d / "03_spatial/b0_to_t1_bbr.mat").is_file()
+        and (d / "03_spatial/mean_b0.nii.gz").is_file()
+    ]
+    return tuple(found[:count])
+
+
+DIVERSE_UNITS = _diverse_units()
 
 
 def _sha256(path: Path) -> str:
@@ -83,6 +107,9 @@ def test_recovery2_converter_roundtrip_and_cross_backend_resampling() -> None:
             ),
         }
     )
+    if not DIVERSE_UNITS:
+        import pytest
+        pytest.skip("no processed units available under the recovery run root")
     metrics: list[dict[str, float | str]] = []
     for unit in DIVERSE_UNITS:
         subject = RUN_ROOT / "subjects" / unit
