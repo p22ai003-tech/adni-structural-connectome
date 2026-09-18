@@ -49,16 +49,15 @@ FIELDS = ("phase_encoding_direction", "phase_encoding_source",
 
 
 def find_dcm2niix() -> str:
-    """Prefer the version pinned in the repo over whatever is on PATH.
+    """Prefer the pinned release over whatever else is installed.
 
     The readout calculation is vendor-specific and has changed between
     dcm2niix releases, so which binary produced a value is part of its
-    provenance, not an implementation detail.
+    provenance. Order: the release vendored under tools/, then the pinned wheel
+    beside this interpreter (requirements/analysis.txt), then any other local
+    build, then PATH.
     """
     for cand in sorted((PROJECT_ROOT / "tools" / "dcm2niix").glob("v*/dcm2niix"), reverse=True):
-        if os.access(cand, os.X_OK):
-            return str(cand)
-    for cand in sorted((PROJECT_ROOT / ".envs").glob("dcm2niix-*/bin/dcm2niix"), reverse=True):
         if os.access(cand, os.X_OK):
             return str(cand)
     # `pip install dcm2niix` puts the binary beside the interpreter, which is
@@ -66,6 +65,9 @@ def find_dcm2niix() -> str:
     beside = Path(sys.executable).parent / "dcm2niix"
     if beside.exists() and os.access(beside, os.X_OK):
         return str(beside)
+    for cand in sorted((PROJECT_ROOT / ".envs").glob("dcm2niix-*/bin/dcm2niix"), reverse=True):
+        if os.access(cand, os.X_OK):
+            return str(cand)
     found = shutil.which("dcm2niix")
     if found:
         return found

@@ -25,8 +25,10 @@ tqdm==4.67.1
 
 # Discovery and acquisition probing (sc_discover.py, sc_probe_acquisition.py).
 # Without pydicom, discovery silently writes blank scanner metadata.
+pydicom==3.0.1
 # dcm2niix as a Python wheel: puts the binary in the venv's bin/. The release
 # zip from github.com/rordenlab/dcm2niix is an equivalent alternative.
+dcm2niix==1.0.20260416
 # The published ml_diagnostics results include XGBoost models; without it those
 # rows are skipped silently, so it is required to reproduce them.
 xgboost==2.1.4
