@@ -220,6 +220,15 @@ _BUILD = [
                     "19_network_analysis/functional/network_exception_measures_stats.csv",
                     "19_network_analysis/functional/network_exception_measures_subject.csv",
                     "19_network_analysis/functional/network_exception_range_stats.csv")),
+    # Recovered recipe: these three artifacts had no producing code anywhere in
+    # the repository. See the script's docstring.
+    Stage("build_consensus_core", "build",
+          "The consensus exception core, its loss across groups, and network-pair shares.",
+          needs=("edr_exceptions", "network_analysis"),
+          script="build_consensus_core.py",
+          produces=("20_exception_specificity/consensus_core_edges.csv",
+                    "20_exception_specificity/core_edge_loss.csv",
+                    "20_exception_specificity/exception_networkpair_shares.csv")),
     Stage("build_exception_specificity", "build",
           "Exception tier deltas and per-subject exception architecture.",
           needs=("build_range_restricted_networks",),
