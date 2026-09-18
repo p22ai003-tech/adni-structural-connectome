@@ -1,22 +1,80 @@
-# Structural Connectome Project
+# ADNI structural connectome
 
-This is the structural-connectome project root. It remains at `/home/ec2-user/exp` because active scripts, notebooks, tmux sessions, dashboard service files, and SC-Forge runners use absolute paths under this directory.
+Diffusion MRI to structural connectomes to the statistical and machine-learning
+results behind the thesis. Two pipelines, each with one entry point.
 
-## Main Entry Points
+```bash
+# imaging: a folder of T1 and DWI images -> connectome matrices
+source env.sh
+python run_imaging.py doctor
+python run_imaging.py discover --raw-root /data/Images
+python run_imaging.py probe
+python run_imaging.py run --cores 16
 
-- `research_audit/SUPERLIST.md` / `SUPERLIST.docx`: authoritative execution checklist and human gates (“superlist”).
-- `research_audit/objective1_audit_report.md` / `.docx`: decisive scientific/technical audit and corrective plan.
-- `structural_connectome_context.md` / `structural_connectome_context.docx`: current technical context and implementation summary.
-- `notebooks/structural_connectome_A.ipynb`: early DWI conversion, denoise/Gibbs, Eddy/B0 provenance.
-- `notebooks/structural_connectome_B.ipynb`: Step 7 T1/BBR, 5TT/GMWMI, FOD, tracks, parcellation, DTI, connectomes.
-- `notebooks/structural_connectome_QC.ipynb`: SC matrix QC and repair decision work.
-- `connectome_pipeline/`: reusable pipeline modules used by notebooks and command-line wrappers, including `connectome_step7.py`, DWI conversion/denoise/Eddy helpers, T1/BBR helpers, and shared path/status utilities.
-- `connectome_analysis/`: packaged analysis modules used by notebook C, dashboard refreshes, and SC matrix QC reports.
-- `scforge/`: contract-first SC-Forge package, configs, workflow rules, and tests.
-- `apps/connectome_dashboard/`: hosted Streamlit dashboard entrypoint, refresh loop, credentials note, and old app logs.
-- `scripts/`: runnable helpers organized by purpose: `scforge/`, `recovery/`, `preprocessing/`, `eddy/`, `s3/`, and `maintenance/`.
-- `run_scforge_v1_density_batch.py`: compatibility entry point for the historical SC-Forge v1 density batch.
-- `watch_scforge_v1_density_monitor.sh`: historical/resumable compact density-batch monitor. No active tractography or refresh process was found in the 2026-07-18 audit.
+# analysis: connectome matrices -> every table the thesis reports
+python -m connectome_analysis.run_analysis --all --resume
+```
+
+| | |
+|---|---|
+| `IMAGING.md` | imaging runbook: layout, manifest, stages, toolchain |
+| `connectome_analysis/README.md` | analysis runbook: the 37-stage graph, parameters, outputs |
+| `sc_config.py` | every path, from at most three `SC_*` roots |
+| `sc_doctor.py` | preflight: paths, toolchain, packages, input contract |
+| `configs/analysis.yaml` | statistical parameters |
+| `configs/connectome_v2.yaml` | imaging workflow parameters |
+
+## Install
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements/analysis.txt
+.venv/bin/pip install -r requirements/dev.txt        # to run the 270 tests
+cp env.sh.example env.sh                             # then edit the three tool paths
+python sc_doctor.py
+```
+
+Pins are exact, not minimums: the ML results move with the scikit-learn version.
+
+## Nothing here is tied to this machine
+
+Paths derive from at most three environment variables, resolved in
+`sc_config.py`; `python -c "import sc_config; print(sc_config.describe())"`
+prints what they resolve to and marks anything absent.
+
+## Data is not in this repository, and must not be
+
+ADNI imaging and clinical data are governed by a Data Use Agreement. Participant
+images, per-subject derivatives, cohort tables and acquisition manifests are all
+excluded by `.gitignore`. Obtain data from https://adni.loni.usc.edu/ under your
+own agreement. See `LICENSE`, which covers the source code only.
+
+## Two things a reader of the results should know
+
+**T1–DWI gap.** The median gap between the T1 and the DWI is 753 days, and 321
+of 530 pairs exceed 180 days. The AAL3 parcellation is carried from the T1 into
+DWI space, so for most subjects the anatomy defining the nodes predates the
+diffusion data. The strata are unbalanced across groups.
+
+**SMC.** The v2 manifest records 15 subjects as SMC and flags them
+`smc_retained_separately`; `master_cohort.csv` labels all 15 `MCI`. The MCI
+group of 201 is 186 MCI plus 15 SMC.
+
+## Historical entry points
+
+These predate the two runners above and are kept because the audit trail
+references them.
+
+- `research_audit/SUPERLIST.md`: execution checklist and human gates.
+- `research_audit/objective1_audit_report.md`: scientific and technical audit.
+- `structural_connectome_context.md`: technical context and implementation summary.
+- `notebooks/structural_connectome_A.ipynb`: DWI conversion, denoise/Gibbs, eddy provenance.
+- `notebooks/structural_connectome_B.ipynb`: T1/BBR, 5TT/GMWMI, FOD, tracks, connectomes.
+- `notebooks/structural_connectome_QC.ipynb`: SC matrix QC and repair decisions.
+- `connectome_pipeline/`: pipeline modules used by the notebooks and CLI wrappers.
+- `scforge/`: contract-first SC-Forge package, configs, workflow rules and tests.
+- `apps/connectome_dashboard/`: Streamlit dashboard and its refresh loop.
+- `scripts/`: helpers by purpose (`scforge/`, `recovery/`, `preprocessing/`, `eddy/`, `s3/`, `maintenance/`).
 
 ## Important Paths
 
