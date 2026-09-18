@@ -153,6 +153,46 @@ def check_packages() -> int:
     return problems
 
 
+def check_cohort() -> int:
+    print("\nCohort tables")
+    print("-" * 72)
+    folder = sc_config.paths().cohort_dir
+    try:
+        import sc_cohort
+    except Exception as exc:
+        _print(WARN, "sc_cohort", f"could not import: {exc}")
+        return 0
+    problems = 0
+    for name, cols in sc_cohort.REQUIRED.items():
+        path = folder / name
+        if not path.is_file():
+            _print(BAD, name, f"{path}   <- build with: python sc_cohort.py build --exports <folder>")
+            problems += 1
+            continue
+        try:
+            import pandas as pd
+            head = pd.read_csv(path, nrows=0).columns
+        except Exception as exc:
+            _print(BAD, name, f"unreadable: {exc}")
+            problems += 1
+            continue
+        missing = [c for c in cols if c not in head]
+        if missing:
+            _print(BAD, name, f"missing column(s): {', '.join(missing)}")
+            problems += 1
+        else:
+            _print(OK, name, str(path))
+    try:
+        import sc_exclusions
+        n = len(sc_exclusions.load())
+        _print(OK if n else WARN, "exclusions",
+               f"{n} subject(s) from {sc_exclusions.path()}" if n else
+               f"{sc_exclusions.path()} absent; the ML stages will not reproduce the published numbers")
+    except Exception:
+        pass
+    return problems
+
+
 def check_manifest() -> int:
     print("\nInput contract")
     print("-" * 72)
@@ -183,6 +223,7 @@ def main(argv=None) -> int:
     problems = check_paths()
     if both or args.analysis:
         problems += check_packages()
+        problems += check_cohort()
     if both or args.imaging:
         problems += check_tools(required=args.imaging or both)
         problems += check_manifest()

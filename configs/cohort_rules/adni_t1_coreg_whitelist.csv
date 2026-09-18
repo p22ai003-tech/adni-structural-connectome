@@ -1,0 +1,14 @@
+pattern,priority,examples,why_ok
+(?i)^MT1;.*GradWarp.*N3m,1,MT1; GradWarp; N3m ← MPRAGE | MT1; GradWarp; N3m ← IR-FSPGR,"3D T1 (MPRAGE/IR-FSPGR) with GradWarp + N3 bias correction, masked. Ideal for DTI↔T1 coreg (BBR/ANTs)."
+(?i)^MT1;.*N3m,2,MT1; N3m ← MPRAGE | MT1; N3m ← IR-FSPGR,"3D T1 with N3 bias correction, masked. Good for coreg."
+(?i)^MPR[- ]?R?;.*GradWarp.*N3(?!m),3,MPR-R; GradWarp; N3 ← MPRAGE Repeat | MPR-R; GradWarp; N3; Scaled ← MP-RAGE-REPEAT,MPRAGE with GradWarp + N3 (not masked). Skull-strip separately or use provided mask.
+(?i)^MPR[; ]+;?\s*N3(?!m),4,MPR; ; N3 ← ADNI MPRAGE | MPR; ; N3; Scaled ← MPRAGE,N3 bias-corrected MPRAGE (unmasked). Good after skull-strip.
+(?i)\b(3D\s*)?MPRAGE\b(?!.*Mask|.*brainmask),5,MPRAGE | 3D MPRAGE | MPRAGE Repeat,Plain native-space T1 structural; preferred when processed options absent.
+(?i)\bIR[-\s]?FSPGR\b(?!.*Mask),5,IR-FSPGR | Sag IR-FSPGR | Accelerated IR-FSPGR,GE's 3D T1 equivalent to MPRAGE; acceptable for coreg if native-space.
+(?i)\bMP[-\s]?RAGE\b(?!.*Mask),5,MP-RAGE | MP RAGE | MP-RAGE Repeat,Vendor/series naming variant of MPRAGE.
+(?i)^T1[-\s]?MPRAGE$,5,T1-MPRAGE,Explicit T1 MPRAGE naming.
+(?i)(ASO[-\s]?MPRAGE|MPRAGE[_\s]?ASO),6,ASO-MPRAGE | MPRAGE ASO repeat,Site-specific MPRAGE naming; acceptable if native-space.
+(?i)MPRAGE.*(SENSE|GRAPPA|ND|NO ANGLE|straight no angle),6,MPRAGE SENSE | MPRAGE GRAPPA2 | MPRAGE straight no angle,Acquisition variants of MPRAGE; still valid native T1.
+(?i)^MPR[- ]?R?;.*GradWarp(?!.*N3),7,MPR-R; GradWarp ← MPRAGE Repeat,GradWarp only; still OK (can run N4 later).
+(?i)^MPR[; ]+GradWarp,7,MPR; GradWarp ← MPRAGE,GradWarp only; still OK (can run N4 later).
+(?i)HHP.*AC[- ]?PC.*MPRAGE,8,HHP 6 DOF AC-PC registered MPRAGE ← MPRAGE Repeat,Rigid AC-PC reorientation in subject space; acceptable.

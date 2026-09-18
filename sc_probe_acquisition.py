@@ -61,10 +61,16 @@ def find_dcm2niix() -> str:
     for cand in sorted((PROJECT_ROOT / ".envs").glob("dcm2niix-*/bin/dcm2niix"), reverse=True):
         if os.access(cand, os.X_OK):
             return str(cand)
+    # `pip install dcm2niix` puts the binary beside the interpreter, which is
+    # not on PATH unless the venv is activated.
+    beside = Path(sys.executable).parent / "dcm2niix"
+    if beside.exists() and os.access(beside, os.X_OK):
+        return str(beside)
     found = shutil.which("dcm2niix")
     if found:
         return found
-    raise SystemExit("dcm2niix not found: install it, or vendor it under tools/dcm2niix/vX/")
+    raise SystemExit("dcm2niix not found: pip install -r requirements.txt, "
+                     "or put the release binary under tools/dcm2niix/vX/")
 
 
 def dcm2niix_version(binary: str) -> str:

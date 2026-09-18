@@ -81,6 +81,10 @@ class Runner:
         self.dry_run = dry_run
         self.python = python
         self.values: dict[str, Any] = {}     # in-memory results between stages
+        # Stages earlier in this run. In a dry run nothing is written, so their
+        # outputs count as available rather than reporting every later stage
+        # as blocked.
+        self.planned: set[str] = set()
         self.rows: list[dict[str, Any]] = []
         self.root = Path(paths.output_root)
 
@@ -108,6 +112,8 @@ class Runner:
     def check_inputs(self, stage: Stage) -> list[str]:
         missing = []
         for dep in stage.needs:
+            if self.dry_run and dep in self.planned:
+                continue
             for p in _stages.by_name(dep).produces:
                 if not (self.root / p).is_file():
                     missing.append(f"{p}  (from stage {dep})")
@@ -133,6 +139,7 @@ class Runner:
         if self.dry_run:
             print(f"  [dry]   {stage.name}  -> {len(stage.produces)} output(s)")
             self._record(stage, "dry-run", started)
+            self.planned.add(stage.name)
             return "dry-run"
 
         print(f"  [run]   {stage.name} ...", flush=True)
@@ -389,9 +396,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--list", action="store_true", help="print the DAG and exit")
     ap.add_argument("--python", default=sys.executable,
                     help="interpreter for the build_*.py subprocess stages")
-    ap.add_argument("--deriv-root", type=Path, default=None)
-    ap.add_argument("--cohort-dti-csv", type=Path, default=None)
-    ap.add_argument("--cohort-mri-csv", type=Path, default=None)
+    loc = ap.add_argument_group(
+        "data locations",
+        "Each flag sets the matching SC_* environment variable for this run, so the\n"
+        "in-process stages and the build_*.py subprocesses resolve the same tree.\n"
+        "Setting the variables yourself is equivalent.")
+    loc.add_argument("--deriv-root", type=Path, default=None,
+                     help="derivatives root holding connectomes/ and qc/ (SC_DERIV_ROOT)")
+    loc.add_argument("--connectomes-dir", type=Path, default=None,
+                     help="connectome matrices (SC_CONNECTOMES_DIR)")
+    loc.add_argument("--analysis-root", type=Path, default=None,
+                     help="where results are written (SC_ANALYSIS_ROOT)")
+    loc.add_argument("--cohort-dir", type=Path, default=None,
+                     help="folder with dti.csv, mri.csv, dti_master.csv, mri_master.csv (SC_COHORT_DIR)")
+    loc.add_argument("--exclusions", type=Path, default=None,
+                     help="subject exclusions YAML (SC_EXCLUSIONS)")
+    # Kept for the dashboard shim. They name files, but the build scripts read a
+    # folder, so they are converted to --cohort-dir.
+    loc.add_argument("--cohort-dti-csv", type=Path, default=None, help=argparse.SUPPRESS)
+    loc.add_argument("--cohort-mri-csv", type=Path, default=None, help=argparse.SUPPRESS)
     ap.add_argument("--lock-timeout-sec", type=int, default=5)
     return ap.parse_args(argv)
 
@@ -440,6 +463,33 @@ def select(args: argparse.Namespace) -> list[str]:
     return sorted(chosen)
 
 
+def apply_location_flags(args: argparse.Namespace) -> None:
+    """Turn --deriv-root and friends into SC_* variables, then reset sc_config."""
+    mapping = {
+        "SC_DERIV_ROOT": args.deriv_root,
+        "SC_CONNECTOMES_DIR": args.connectomes_dir,
+        "SC_ANALYSIS_ROOT": args.analysis_root,
+        "SC_COHORT_DIR": args.cohort_dir,
+        "SC_EXCLUSIONS": args.exclusions,
+    }
+    for legacy in (args.cohort_dti_csv, args.cohort_mri_csv):
+        if legacy is not None and mapping["SC_COHORT_DIR"] is None:
+            mapping["SC_COHORT_DIR"] = Path(legacy).resolve().parent
+    for name, value in mapping.items():
+        if value is not None:
+            os.environ[name] = str(Path(value).expanduser().resolve())
+    try:
+        import sc_config
+        sc_config.paths.cache_clear()
+    except Exception:
+        pass
+    try:
+        import sc_exclusions
+        sc_exclusions.load.cache_clear()
+    except Exception:
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.list:
@@ -449,17 +499,29 @@ def main(argv: list[str] | None = None) -> int:
     selected = select(args)
     plan = _stages.topo_order(selected)
 
+    apply_location_flags(args)
+
     from connectome_analysis.analysis_config import apply_plot_theme, get_analysis_paths
     apply_plot_theme()
-    kw: dict[str, Any] = {"notebook_dir": PROJECT_ROOT}
-    if args.deriv_root:
-        kw["deriv_root"] = args.deriv_root
-    if args.cohort_dti_csv:
-        kw["cohort_dti_csv"] = args.cohort_dti_csv
-    if args.cohort_mri_csv:
-        kw["cohort_mri_csv"] = args.cohort_mri_csv
-    paths = get_analysis_paths(**kw)
+    # No deriv_root is passed: every location comes from sc_config, which the
+    # flags above have just set. One mechanism, one tree.
+    paths = get_analysis_paths(notebook_dir=PROJECT_ROOT)
     paths.ensure()
+
+    import sc_config
+    p = sc_config.paths()
+    print(f"connectomes   : {p.connectomes_dir}")
+    print(f"cohort tables : {p.cohort_dir}")
+    try:
+        import sc_exclusions
+        excl = sc_exclusions.load()
+        print(f"exclusions    : {len(excl)} subject(s) from {sc_exclusions.path()}"
+              if excl else f"exclusions    : NONE ({sc_exclusions.path()} not found)")
+        if not excl:
+            print("                The published ML results exclude one subject. Without the\n"
+                  "                exclusions file, the ML stages will not reproduce them.")
+    except Exception:
+        pass
 
     print(f"analysis root : {paths.output_root}")
     print(f"config        : {args.config or DEFAULT_CONFIG}"

@@ -2,7 +2,11 @@
 # uses it, so the pipeline runs without them -- only the corresponding
 # comparison stage becomes unavailable. None is needed to reproduce the
 # published headline results, which use scikit-learn's ExtraTrees.
+#
+# WARNING: tabpfn and pytorch-tabnet pull in PyTorch, which by default downloads
+# about 6 GB of CUDA libraries. On a machine without a GPU install the CPU build
+# first:  pip install torch --index-url https://download.pytorch.org/whl/cpu
+# xgboost has moved to analysis.txt: the published results use it.
 
-xgboost==2.1.4    # analysis_ml_diagnostics, clinical_outcome_search
 tabpfn==8.0.3    # analysis_ml_neural_benchmarks
 pytorch-tabnet==4.1.0    # analysis_ml_neural_benchmarks

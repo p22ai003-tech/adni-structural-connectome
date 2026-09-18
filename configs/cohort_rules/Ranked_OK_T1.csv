@@ -1,0 +1,300 @@
+description,rank
+MT1; GradWarp; N3m <- ACCELERATED SAG IR-SPGR,1
+MT1; GradWarp; N3m <- Accelerated SAG IR-FSPGR,1
+MT1; GradWarp; N3m <- Accelerated SAG IR-SPGR,1
+MT1; GradWarp; N3m <- Accelerated SAG IR-SPGR REPEAT,1
+MT1; GradWarp; N3m <- Accelerated Sag IR-FSPGR,1
+MT1; GradWarp; N3m <- Accelerated Sag IR-SPGR,1
+MT1; GradWarp; N3m <- Accelerated Sagittal MPRAGE_ND,1
+MT1; GradWarp; N3m <- IR-FSPGR,1
+MT1; GradWarp; N3m <- IR-FSPGR (replaces MP-Rage),1
+MT1; GradWarp; N3m <- IR-FSPGR REPEAT,1
+MT1; GradWarp; N3m <- IR-FSPGR-Repeat,1
+MT1; GradWarp; N3m <- IR-SPGR,1
+MT1; GradWarp; N3m <- IR-SPGR w/acceleration,1
+MT1; GradWarp; N3m <- MP RAGE,1
+MT1; GradWarp; N3m <- MP RAGE SAGITTAL,1
+MT1; GradWarp; N3m <- MP RAGE SAGITTAL REPEAT,1
+MT1; GradWarp; N3m <- MP-RAGE,1
+MT1; GradWarp; N3m <- MP-RAGE #3,1
+MT1; GradWarp; N3m <- MP-RAGE REPEAT,1
+MT1; GradWarp; N3m <- MP-RAGE repeat,1
+MT1; GradWarp; N3m <- MP-RAGE-Repeat,1
+MT1; GradWarp; N3m <- MPRAGE,1
+MT1; GradWarp; N3m <- MPRAGE GRAPPA 2_ND,1
+MT1; GradWarp; N3m <- MPRAGE GRAPPA2,1
+MT1; GradWarp; N3m <- MPRAGE Repeat,1
+MT1; GradWarp; N3m <- MPRAGE Repeat rpt,1
+MT1; GradWarp; N3m <- MPRAGE rpt,1
+MT1; GradWarp; N3m <- MPRAGE_ NO ANGLE,1
+MT1; GradWarp; N3m <- MPRAGE_ NO ANGLE=,1
+MT1; GradWarp; N3m <- MPRAGE_ Sag  - NO ANGLE=,1
+MT1; GradWarp; N3m <- MPRAGE_GRAPPA2,1
+MT1; GradWarp; N3m <- MPRAGE_ND,1
+MT1; GradWarp; N3m <- MPRAGE_P2_NO ANGLE,1
+MT1; GradWarp; N3m <- MPRAGE_P2_NO ANGLE=,1
+MT1; GradWarp; N3m <- MPRAGE_S2_DIS2D,1
+MT1; GradWarp; N3m <- REPEAT SAG 3D MP RAGE,1
+MT1; GradWarp; N3m <- REPEAT SAG 3D MP RAGE NO ANGLE,1
+MT1; GradWarp; N3m <- SAG 3D MPRAGE,1
+MT1; GradWarp; N3m <- SAG 3D MPRAGE NO ANGLE,1
+MT1; GradWarp; N3m <- SAG IR-SPGR,1
+MT1; GradWarp; N3m <- SAG MPRAGE GRAPPA2 NO ANGLE,1
+MT1; GradWarp; N3m <- SAG MPRAGE NO ANGLE,1
+MT1; GradWarp; N3m <- Sag IR-FSPGR,1
+MT1; GradWarp; N3m <- Sag IR-SPGR,1
+MT1; GradWarp; N3m <- Sag IR-SPGR REPEAT,1
+MT1; GradWarp; N3m <- Sag IR-SPGR-REPEAT,1
+MT1; N3m <- ADNI SH    MPRAGE ASO,2
+MT1; N3m <- ADNI SH    MPRAGE ASOX2,2
+MT1; N3m <- ASO-MPRAGE,2
+MT1; N3m <- ASO-MPRAGE 2,2
+MT1; N3m <- Accelerated Sag IR-FSPGR,2
+MT1; N3m <- Accelerated Sag IR-SPGR,2
+MT1; N3m <- Accelerated Sagittal IR-FSPGR,2
+MT1; N3m <- Accelerated Sagittal MPRAGE,2
+MT1; N3m <- IGIV STUDY MPRAGE ASO S,2
+MT1; N3m <- IR-FSPGR,2
+MT1; N3m <- IR-FSPGR-Repeat,2
+MT1; N3m <- MP-RAGE,2
+MT1; N3m <- MP-RAGE REPEAT,2
+MT1; N3m <- MPRAGE,2
+MT1; N3m <- MPRAGE    straight no angle,2
+MT1; N3m <- MPRAGE GRAPPA 2,2
+MT1; N3m <- MPRAGE GRAPPA2,2
+MT1; N3m <- MPRAGE SENSE,2
+MT1; N3m <- MPRAGE SENSE2,2
+MT1; N3m <- MPRAGE SENSE2 SENSE,2
+MT1; N3m <- MPRAGE repeat,2
+MT1; N3m <- MPRAGEASO,2
+MT1; N3m <- MPRAGEREPEAT,2
+MT1; N3m <- MPRAGEREPEATASO,2
+MT1; N3m <- MPRAGE_ASO,2
+MT1; N3m <- MPRAGE_ASO_repeat,2
+MT1; N3m <- MPRAGE_GRAPPA2,2
+MT1; N3m <- MPRAGE_GRAPPA2          straight no angle,2
+MT1; N3m <- SAG IR-SPGR,2
+MT1; N3m <- Sag IR-FSPGR,2
+MT1; N3m <- Sag IR-FSPGR Repeat,2
+MT1; N3m <- Sag IR-SPGR,2
+MT1; N3m <- Sagittal 3D Accelerated MPRAGE,2
+MPR-R; GradWarp; B1 Correction; N3 <- MP-RAGE REPEAT,3
+MPR-R; GradWarp; B1 Correction; N3 <- MP-RAGE repeat,3
+MPR-R; GradWarp; B1 Correction; N3 <- MP-RAGE-REPEAT,3
+MPR-R; GradWarp; B1 Correction; N3 <- MPRAGE REPEAT,3
+MPR-R; GradWarp; B1 Correction; N3 <- MPRAGE Repeat,3
+MPR-R; GradWarp; B1 Correction; N3 <- REPEAT MP-RAGE,3
+MPR-R; GradWarp; B1 Correction; N3 <- REPEAT SAG 3D MPRAGE,3
+MPR-R; GradWarp; B1 Correction; N3 <- SAG MP-RAGE REPEAT,3
+MPR-R; GradWarp; B1 Correction; N3; Scaled <- MP-RAGE REPEAT,3
+MPR-R; GradWarp; B1 Correction; N3; Scaled <- MPRAGE Repeat,3
+MPR-R; GradWarp; B1 Correction; N3; Scaled <- REPEAT SAG 3D MPRAGE,3
+MPR-R; GradWarp; B1 Correction; N3; Scaled <- SAG MP-RAGE REPEAT,3
+MPR-R; GradWarp; B1 Correction; N3; Scaled_2 <- MPRAGE Repeat,3
+MPR-R; GradWarp; N3 <- MP RAGE REPEAT,3
+MPR-R; GradWarp; N3 <- MP-RAGE REPEAT,3
+MPR-R; GradWarp; N3 <- MP-RAGE-REPEAT,3
+MPR-R; GradWarp; N3 <- MP-RAGE-Repeat,3
+MPR-R; GradWarp; N3 <- MPRAGE Repeat,3
+MPR-R; GradWarp; N3; Scaled <- MP-RAGE REPEAT,3
+MPR-R; GradWarp; N3; Scaled <- MP-RAGE-Repeat,3
+MPR-R; GradWarp; N3; Scaled <- MPRAGE Repeat,3
+MPR-R; GradWarp; N3; Scaled_2 <- MP-RAGE-Repeat,3
+MPR; GradWarp; B1 Correction; N3 <- MP-RAGE,3
+MPR; GradWarp; B1 Correction; N3 <- MP-RAGE REPEAT,3
+MPR; GradWarp; B1 Correction; N3 <- MPRAGE,3
+MPR; GradWarp; B1 Correction; N3 <- SAG 3D MPRAGE,3
+MPR; GradWarp; B1 Correction; N3 <- SAG MP-RAGE,3
+MPR; GradWarp; B1 Correction; N3; Scaled <- MP-RAGE,3
+MPR; GradWarp; B1 Correction; N3; Scaled <- MP-RAGE REPEAT,3
+MPR; GradWarp; B1 Correction; N3; Scaled <- MPRAGE,3
+MPR; GradWarp; B1 Correction; N3; Scaled <- SAG 3D MPRAGE,3
+MPR; GradWarp; B1 Correction; N3; Scaled <- SAG MP-RAGE,3
+MPR; GradWarp; B1 Correction; N3; Scaled_2 <- MP-RAGE,3
+MPR; GradWarp; B1 Correction; N3; Scaled_2 <- MPRAGE,3
+MPR; GradWarp; N3 <- MP RAGE,3
+MPR; GradWarp; N3 <- MP-RAGE,3
+MPR; GradWarp; N3 <- MP-RAGE-,3
+MPR; GradWarp; N3 <- MPRAGE,3
+MPR; GradWarp; N3; Scaled <- MP RAGE,3
+MPR; GradWarp; N3; Scaled <- MP-RAGE,3
+MPR; GradWarp; N3; Scaled <- MP-RAGE-,3
+MPR; GradWarp; N3; Scaled <- MPRAGE,3
+MPR; GradWarp; N3; Scaled_2 <- MP-RAGE,3
+MPR; ; N3 <- ADNI       MPRAGE,4
+MPR; ; N3 <- ADNI       MPRAGE ASO,4
+MPR; ; N3 <- ADNI SH    MPRAGE ASO,4
+MPR; ; N3 <- ADNI SH    MPRAGE ASOX2,4
+MPR; ; N3 <- ADNI STUDY MPRAGE1,4
+MPR; ; N3 <- ADNI-R11   MPRAGE,4
+MPR; ; N3 <- ADNI-R11   MPRAGE-REPEA,4
+MPR; ; N3 <- ADNI_new   MPRAGE,4
+MPR; ; N3 <- ASO-MPRAGE,4
+MPR; ; N3 <- ASO-MPRAGE 2,4
+MPR; ; N3 <- MPRAGE,4
+MPR; ; N3 <- MPRAGE ASO,4
+MPR; ; N3 <- MPRAGE SENS,4
+MPR; ; N3 <- MPRAGE SENSE,4
+MPR; ; N3 <- MPRAGEASO,4
+MPR; ; N3 <- MPRAGE_ASO,4
+MPR; ; N3; Scaled <- ADNI       MPRAGE,4
+MPR; ; N3; Scaled <- ADNI SH    MPRAGE ASO,4
+MPR; ; N3; Scaled <- ADNI SH    MPRAGE ASOX2,4
+MPR; ; N3; Scaled <- ADNI STUDY MPRAGE1,4
+MPR; ; N3; Scaled <- ADNI-R11   MPRAGE,4
+MPR; ; N3; Scaled <- ADNI_new   MPRAGE,4
+MPR; ; N3; Scaled <- ASO-MPRAGE,4
+MPR; ; N3; Scaled <- MPRAGE,4
+MPR; ; N3; Scaled <- MPRAGE ASO,4
+MPR; ; N3; Scaled <- MPRAGE SENS,4
+MPR; ; N3; Scaled <- MPRAGE SENSE,4
+MPR; ; N3; Scaled <- MPRAGEASO,4
+MPR; ; N3; Scaled <- MPRAGE_ASO,4
+MPR; ; N3; Scaled_2 <- ADNI       MPRAGE,4
+MPR; ; N3; Scaled_2 <- MPRAGE,4
+MPR; ; N3; Scaled_2 <- MPRAGE SENS,4
+ADNI       MPRAGE,5
+ADNI       MPRAGE ASO,5
+ADNI SH    MPRAGE ASO,5
+ADNI SH    MPRAGE ASOX2,5
+ADNI-R11   MPRAGE,5
+ADNI-R11   MPRAGE-REPEA,5
+ADNI_new   MPRAGE,5
+ASO-MPRAGE,5
+ASO-MPRAGE (2),5
+ASO-MPRAGE 2,5
+Accelerated SAG IR-FSPGR,5
+Accelerated Sag IR-FSPGR,5
+Accelerated Sag IR-FSPGR (MSV21),5
+Accelerated Sagittal IR-FSPGR,5
+Accelerated Sagittal IR-FSPGR (MSV21),5
+Accelerated Sagittal IR-FSPGR (MSV21) RPT,5
+Accelerated Sagittal MPRAGE,5
+Accelerated Sagittal MPRAGE (MSV21),5
+Accelerated Sagittal MPRAGE (MSV22),5
+Accelerated Sagittal MPRAGE L>>R,5
+Accelerated Sagittal MPRAGE MSV21,5
+Accelerated Sagittal MPRAGE Phase A-P,5
+Accelerated Sagittal MPRAGE REPEAT,5
+Accelerated Sagittal MPRAGE repeat,5
+Accelerated Satittal MPRAGE,5
+BEaST normalized MPRAGE <- MP-RAGE,5
+BEaST normalized MPRAGE <- SAG MP-RAGE,5
+CS Sagittal MPRAGE (MSV22),5
+EPI current corrected image <- Sag IR-FSPGR,5
+Eddy current corrected image <- Sag IR-FSPGR,5
+HHP 6 DOF AC-PC registered MPRAGE <- ADNI       MPRAGE,5
+HHP 6 DOF AC-PC registered MPRAGE <- ADNI       MPRAGEREPEAT,5
+HHP 6 DOF AC-PC registered MPRAGE <- ASO-MPRAGE,5
+HHP 6 DOF AC-PC registered MPRAGE <- IR-SPGR,5
+HHP 6 DOF AC-PC registered MPRAGE <- MP-RAGE,5
+HHP 6 DOF AC-PC registered MPRAGE <- MP-RAGE REPEAT,5
+HHP 6 DOF AC-PC registered MPRAGE <- MPRAGE,5
+HHP 6 DOF AC-PC registered MPRAGE <- MPRAGE Repeat,5
+HHP 6 DOF AC-PC registered MPRAGE <- Sag IR-SPGR,5
+HS Sagittal MPRAGE (MSV22),5
+IGIV STUDY MPRAGE ASO S,5
+IR-FSPGR,5
+IR-FSPGR (replaces MP-Rage),5
+IR-FSPGR REPEAT,5
+IR-FSPGR-Repeat,5
+MP RAGE,5
+MP RAGE REPEAT,5
+MP RAGE SAGITTAL,5
+MP RAGE SAGITTAL REPEAT,5
+MP-RAGE,5
+MP-RAGE #3,5
+MP-RAGE REPEAT,5
+MP-RAGE repeat,5
+MP-RAGE-,5
+MP-RAGE-REPEAT,5
+MP-RAGE-Repeat,5
+MPR-R; ; N3 <- ADNI       MPRAGE,5
+MPR-R; ; N3 <- ADNI-R11   MPRAGE-REPEA,5
+MPR-R; ; N3 <- MPRAGE,5
+MPR-R; ; N3 <- MPRAGE REPEAT,5
+MPR-R; ; N3 <- MPRAGE SENSE repeat,5
+MPR-R; ; N3; Scaled <- MPRAGE,5
+MPR-R; ; N3; Scaled_2 <- MPRAGE,5
+MPR-R; GradWarp <- MP RAGE REPEAT,5
+MPR-R; GradWarp <- MP-RAGE REPEAT,5
+MPR-R; GradWarp <- MP-RAGE repeat,5
+MPR-R; GradWarp <- MP-RAGE-REPEAT,5
+MPR-R; GradWarp <- MP-RAGE-Repeat,5
+MPR-R; GradWarp <- MPRAGE REPEAT,5
+MPR-R; GradWarp <- MPRAGE Repeat,5
+MPR-R; GradWarp <- REPEAT MP-RAGE,5
+MPR-R; GradWarp <- REPEAT SAG 3D MPRAGE,5
+MPR-R; GradWarp <- SAG MP-RAGE REPEAT,5
+MPR-R; GradWarp; B1 Correction <- MP-RAGE REPEAT,5
+MPR-R; GradWarp; B1 Correction <- MP-RAGE repeat,5
+MPR-R; GradWarp; B1 Correction <- MP-RAGE-REPEAT,5
+MPR-R; GradWarp; B1 Correction <- MPRAGE REPEAT,5
+MPR-R; GradWarp; B1 Correction <- MPRAGE Repeat,5
+MPR-R; GradWarp; B1 Correction <- REPEAT MP-RAGE,5
+MPR-R; GradWarp; B1 Correction <- REPEAT SAG 3D MPRAGE,5
+MPR-R; GradWarp; B1 Correction <- SAG MP-RAGE REPEAT,5
+MPR; GradWarp <- MP RAGE,5
+MPR; GradWarp <- MP-RAGE,5
+MPR; GradWarp <- MP-RAGE REPEAT,5
+MPR; GradWarp <- MP-RAGE-,5
+MPR; GradWarp <- MPRAGE,5
+MPR; GradWarp <- SAG 3D MPRAGE,5
+MPR; GradWarp <- SAG MP-RAGE,5
+MPR; GradWarp; B1 Correction <- MP-RAGE,5
+MPR; GradWarp; B1 Correction <- MP-RAGE REPEAT,5
+MPR; GradWarp; B1 Correction <- MPRAGE,5
+MPR; GradWarp; B1 Correction <- SAG 3D MPRAGE,5
+MPR; GradWarp; B1 Correction <- SAG MP-RAGE,5
+MPRAGE,5
+MPRAGE    straight no angle,5
+MPRAGE ASO,5
+MPRAGE GRAPPA 2,5
+MPRAGE GRAPPA 2_ND,5
+MPRAGE GRAPPA2,5
+MPRAGE REPEAT,5
+MPRAGE Repeat,5
+MPRAGE Repeat rpt,5
+MPRAGE SAG,5
+MPRAGE SENS,5
+MPRAGE SENSE,5
+MPRAGE SENSE repeat,5
+MPRAGE SENSE2,5
+MPRAGE SENSE2 SENSE,5
+MPRAGE repeat,5
+MPRAGE rpt,5
+ORIG Accelerated Sag IR-FSPGR,5
+REPEAT Accelerated Sagittal MPRAGE,5
+REPEAT MP-RAGE,5
+REPEAT SAG 3D MP RAGE,5
+REPEAT SAG 3D MP RAGE NO ANGLE,5
+REPEAT SAG 3D MPRAGE,5
+Repeat_Accelerated Sagittal MPRAGE,5
+SAG 3D MPRAGE,5
+SAG 3D MPRAGE NO ANGLE,5
+SAG MP-RAGE,5
+SAG MP-RAGE REPEAT,5
+SAG MPRAGE GRAPPA2 NO ANGLE,5
+SAG MPRAGE NO ANGLE,5
+Sag Accel IR-FSPGR,5
+Sag IR-FSPGR,5
+Sag IR-FSPGR Repeat,5
+Sagittal 3D Accelerated 0 angle MPRAGE,5
+Sagittal 3D Accelerated MPRAGE,5
+Sagittal 3D Accelerated MPRAGE (MSV21),5
+VWIP Coronal 3D Accelerated MPRAGE,5
+corrected AD image <- Sag IR-FSPGR,5
+corrected FA image <- Sag IR-FSPGR,5
+Accelerated Sagittal MPRAGE_ND,6
+MPR-R; ; N3 <- MPRAGE_ASO_repeat,6
+MPRAGEASO,6
+MPRAGE_ NO ANGLE,6
+MPRAGE_ NO ANGLE=,6
+MPRAGE_ Sag  - NO ANGLE=,6
+MPRAGE_ASO,6
+MPRAGE_ASO_repeat,6
+MPRAGE_GRAPPA2,6
+MPRAGE_GRAPPA2          straight no angle,6
+MPRAGE_ND,6
+MPRAGE_P2_NO ANGLE,6
+MPRAGE_P2_NO ANGLE=,6

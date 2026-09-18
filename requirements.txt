@@ -1,0 +1,8 @@
+# Everything the analysis pipeline and the tests need, in one install:
+#
+#   python3.12 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+#
+# The imaging tools (MRtrix3, FSL, ANTs) are not Python packages; see README.md.
+-r requirements/analysis.txt
+-r requirements/dev.txt

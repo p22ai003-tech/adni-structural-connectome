@@ -54,14 +54,24 @@ class AnalysisPaths:
         default_factory=lambda: _resolve_default_cohort_csv("mri.csv")
     )
     analysis_root_name: str = "analysis_cohort"
+    # Explicit locations. When left as None they are derived from deriv_root,
+    # which is what notebooks that pass deriv_root expect. get_analysis_paths()
+    # fills them from sc_config when no deriv_root is passed, so SC_QC_ROOT,
+    # SC_CONNECTOMES_DIR and SC_ANALYSIS_ROOT are honoured. Before this, the
+    # analysis always wrote to <deriv_root>/qc/analysis_cohort whatever
+    # SC_ANALYSIS_ROOT said, while the build_*.py subprocesses followed
+    # sc_config -- two mechanisms that could point at different trees.
+    qc_root: Path | None = None
+    connectomes_root: Path | None = None
+    analysis_root: Path | None = None
 
     @property
     def qc_dir(self) -> Path:
-        return self.deriv_root / "qc"
+        return self.qc_root or self.deriv_root / "qc"
 
     @property
     def connectomes_dir(self) -> Path:
-        return self.deriv_root / "connectomes"
+        return self.connectomes_root or self.deriv_root / "connectomes"
 
     @property
     def legacy_analysis_dir(self) -> Path:
@@ -69,7 +79,7 @@ class AnalysisPaths:
 
     @property
     def output_root(self) -> Path:
-        return self.qc_dir / self.analysis_root_name
+        return self.analysis_root or self.qc_dir / self.analysis_root_name
 
     @property
     def figures_dir(self) -> Path:
@@ -129,7 +139,16 @@ def get_analysis_paths(
     notebook_dir = Path(notebook_dir) if notebook_dir else Path(__file__).resolve().parent.parent
     paths = AnalysisPaths(notebook_dir=notebook_dir)
     if deriv_root:
+        # An explicit derivatives root wins and everything is derived from it.
         paths.deriv_root = Path(deriv_root)
+    else:
+        # Otherwise take every location from sc_config, which honours the
+        # SC_* environment variables, so the in-process stages and the
+        # build_*.py subprocesses resolve exactly the same tree.
+        p = _sc_paths()
+        paths.qc_root = p.qc_root
+        paths.connectomes_root = p.connectomes_dir
+        paths.analysis_root = p.analysis_root
     if cohort_dti_csv:
         paths.cohort_dti_csv = Path(cohort_dti_csv)
     if cohort_mri_csv:

@@ -466,7 +466,7 @@ def run_data_completeness(
         tracks_dir = paths.deriv_root / "tracks" / sid
         dti_dir = paths.deriv_root / "dti" / sid
         parc_dir = paths.deriv_root / "parc" / sid
-        conn_dir = paths.deriv_root / "connectomes"
+        conn_dir = paths.connectomes_dir
         return {
             "sid": Path(sid),
             "DWI": dwi,
