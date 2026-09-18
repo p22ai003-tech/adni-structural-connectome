@@ -1044,7 +1044,7 @@ def network_exception_specificity() -> ApiEnvelope:
             "Part B (repeated 5x5-fold CV incremental ladder F0..F4 for "
             "nearest-visit MMSE regression and binary CDR, ElasticNet/Huber + "
             "HistGradientBoosting + ExtraTrees, permutation-tested; outlier "
-            "003_S_4373 excluded; no model is fitted at request time)"
+            "one outlier subject excluded; no model is fitted at request time)"
         ),
     )
 

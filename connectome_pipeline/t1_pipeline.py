@@ -6,7 +6,7 @@ Input:
   RAW_T1_ROOT = ~/exp/data/Images/mri
 
 ADNI-style tree (example):
-  Images/mri/002_S_0413/MT1__GradWarp__N3m/2010-05-06_12_37_46.0/I291872/  (DICOMs and/or NIfTI)
+  Images/mri/<SUBJECT>/MT1__GradWarp__N3m/2010-05-06_12_37_46.0/I291872/  (DICOMs and/or NIfTI)
 
 Outputs:
   derivatives/t1_anat:

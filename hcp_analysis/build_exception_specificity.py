@@ -32,6 +32,13 @@ except ModuleNotFoundError:  # loose script run from outside hcp_analysis/
     _sys.path.insert(0, str(Path(__file__).resolve().parent))
     import sc_paths
 
+try:
+    import sc_exclusions
+except ModuleNotFoundError:
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    import sc_exclusions
+
 _P = sc_paths.resolve_for_script("ml")
 
 ANALYSIS = _P.analysis
@@ -41,7 +48,8 @@ NETWORKS = ["Visual", "Somatomotor", "DorsalAttention", "Salience_VAN", "Limbic"
             "Frontoparietal", "DMN", "Subcortical", "Cerebellar", "Brainstem"]
 MEASURES = ["Strength", "Degree", "FA", "MD", "RD", "AxD"]
 CONTRASTS = (("cn_mci", "CN", "MCI"), ("cn_ad", "CN", "AD"), ("mci_ad", "MCI", "AD"))
-OUTLIER = {"003_S_4373"}  # CSF-level MD; project outlier audit
+# Loaded from a gitignored local file: the identifier is ADNI-restricted.
+OUTLIER = sc_exclusions.warn_if_empty(__file__.rsplit("/", 1)[-1])
 
 
 def cliffs(a, b):

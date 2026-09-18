@@ -4,7 +4,9 @@
 # 1x96 (user-approved fast config): fastest per-subject, count ticks one-by-one. Ordered closest-to-0.6 first.
 PY=/home/ec2-user/exp/.venv_connectome_app/bin/python
 cd /home/ec2-user/exp
-SUBS="941_S_5193_I860961 168_S_6815_I1233199 168_S_6591_I1378384 168_S_6873_I1318212 301_S_6508_I1032140 941_S_6017_I852757 305_S_6877_I1478941 301_S_6056_I1224048"
+SUBS="${SUBS:-}"   # space-separated <SUBJECT>_I<IMAGEID> list; supply at run time.
+# The worklist is not stored here: it names ADNI participants, which are
+# restricted under the Data Use Agreement. Export SUBS before running.
 RROOT=/data/derivatives/qc/sc_matrix_qc/freshreg_$(date -u +%m%dT%H%M%SZ)
 mkdir -p "$RROOT"; echo "$RROOT" > /tmp/lane5_mcicn_run_root.txt
 NUMEXPR_MAX_THREADS=96 NUMEXPR_NUM_THREADS=96 \

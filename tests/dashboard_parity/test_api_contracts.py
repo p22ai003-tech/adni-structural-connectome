@@ -139,16 +139,16 @@ def test_lr_sr_api_matches_requested_inference(client):
     )
 
 
-def test_matrix_endpoint_is_allow_listed(client):
+def test_matrix_endpoint_is_allow_listed(client, a_subject):
     valid = client.get(
-        "/api/v1/connectomes/002_S_0413/fd_sum/summary"
+        f"/api/v1/connectomes/{a_subject}/fd_sum/summary"
     )
     assert valid.status_code == 200
     summary = valid.json()["data"]["summary"]
     assert summary["positive_edges"] > 0
     assert 0 < summary["density"] <= 1
     invalid = client.get(
-        "/api/v1/connectomes/002_S_0413/arbitrary/summary"
+        f"/api/v1/connectomes/{a_subject}/arbitrary/summary"
     )
     assert invalid.status_code == 422
     unknown = client.get(

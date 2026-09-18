@@ -20,10 +20,10 @@ python bias_correction.py --force
 python bias_correction.py --b0-backfill-only
 
 # Restrict to specific series IDs
-python bias_correction.py --series 027_S_0074_I1401763 018_S_6207_I963728
+python bias_correction.py --series <SUBJECT>_I<IMAGEID> <SUBJECT>_I<IMAGEID>
 
 # Debug mode: run only failing series with verbose MRtrix/FSL output
-python bias_correction.py --debug --series 005_S_6093_I924231 021_S_5177_I1184860
+python bias_correction.py --debug --series <SUBJECT>_I<IMAGEID> <SUBJECT>_I<IMAGEID>
 
 You can also tune parallelism:
 python bias_correction.py --processes 4 --threads-per-job 2 --run-mode thread
@@ -1014,7 +1014,7 @@ def parse_args():
         default=None,
         help=(
             "Optional list of series IDs to process "
-            "(e.g. 027_S_0074_I1401763). Default: all series in eddy/."
+            "(e.g. <SUBJECT>_I<IMAGEID>). Default: all series in eddy/."
         ),
     )
     parser.add_argument(

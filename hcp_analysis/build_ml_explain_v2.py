@@ -144,7 +144,7 @@ def preprocessing_audit(feats, targets, covar):
              detail="Nearest-visit MMSE and Global CDR per subject; lag recorded (median 1184 d) and "
                     "reported as a limitation; CDR binarised at 0 vs >=0.5 (106/96)"),
         dict(order=2, step="Outlier removal", performed="yes",
-             detail="Subject 003_S_4373 excluded (CSF-level MD, ~10x normal, flagged in the project outlier audit). "
+             detail="One subject excluded (CSF-level MD, ~10x normal, flagged in the project outlier audit). "
                     f"Remaining per-feature outliers (|robust z|>4: {int(audit.outliers_gt4rz.sum())} values) retained; "
                     "tree models and rank metrics are robust to them"),
         dict(order=3, step="Distribution analysis", performed="yes",

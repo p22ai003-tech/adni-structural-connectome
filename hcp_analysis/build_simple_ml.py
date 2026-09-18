@@ -5,7 +5,8 @@ Design (user-locked): CDR binary 0 vs >=0.5; per-network FA + DIFF composite
 (mean robust-z of MD/RD/AxD); models = ElasticNet(+Huber) / HistGradientBoosting /
 ExtraTrees; repeated 5x5 CV; incremental ladder F0 -> +F1 -> +F2 -> +F3 -> +F4.
 
-Hygiene: outlier 003_S_4373 excluded; composites use target-independent robust
+Hygiene: one outlier subject excluded (see sc_exclusions.py); composites use
+target-independent robust
 scaling (median/IQR, documented); model-side imputation+scaling inside each fold;
 nearest-visit targets with lag recorded and a <=365d sensitivity; permutation test
 on the final rung.
@@ -44,6 +45,13 @@ except ModuleNotFoundError:  # loose script run from outside hcp_analysis/
     _sys.path.insert(0, str(Path(__file__).resolve().parent))
     import sc_paths
 
+try:
+    import sc_exclusions
+except ModuleNotFoundError:
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    import sc_exclusions
+
 _P = sc_paths.resolve_for_script("ml")
 
 ANALYSIS = _P.analysis
@@ -51,7 +59,8 @@ OUT = _P.out
 FUNC = _P.func
 NETWORKS = ["Visual", "Somatomotor", "DorsalAttention", "Salience_VAN", "Limbic",
             "Frontoparietal", "DMN", "Subcortical", "Cerebellar", "Brainstem"]
-OUTLIER = {"003_S_4373"}
+# Loaded from a gitignored local file: the identifier is ADNI-restricted.
+OUTLIER = sc_exclusions.warn_if_empty(__file__.rsplit("/", 1)[-1])
 SEEDS = [11, 23, 37, 51, 73]
 N_PERM = 200
 

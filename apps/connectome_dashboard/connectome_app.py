@@ -16931,7 +16931,7 @@ def render_group_summary() -> None:
     st.caption(
         "Analysis cohort = the dense connectomes (count-density ≥ 0.6). Every statistic, p-value and model "
         "below is computed on this set. Diffusivity tabs (Global/Local DTI, Coupling, Brain Age) use the "
-        "subset with FA/MD/AD/RD matrices (n=529; 168_S_6938 is structural-only — kept in graph analyses)."
+        "subset with FA/MD/AD/RD matrices (n=529; one subject is structural-only — kept in graph analyses)."
     )
     cols = st.columns(4)
     by_group = summary.set_index("group")

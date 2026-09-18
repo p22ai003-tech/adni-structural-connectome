@@ -68,3 +68,23 @@ def core_snapshot(settings):
 def client():
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture(scope="session")
+def a_subject():
+    """Any subject present in the connectome tree.
+
+    Discovered rather than hard-coded: an ADNI participant identifier is
+    restricted under the Data Use Agreement and does not belong in a tracked
+    test file. The test needs some subject that exists, not a specific one.
+    """
+    import re
+
+    import sc_config
+
+    pattern = re.compile(r"SC_AAL166_(\d{3}_S_\d{4,5})_I\d+_fd_sum\.csv$")
+    for path in sorted(sc_config.paths().connectomes_dir.glob("SC_AAL166_*_fd_sum.csv")):
+        m = pattern.search(path.name)
+        if m:
+            return m.group(1)
+    pytest.skip("no connectome matrices available to exercise the endpoint")
