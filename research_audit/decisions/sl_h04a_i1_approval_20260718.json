@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "decision_type": "h04a_unclosed_attempt_resolution_approval",
+  "decision_id": "SL-H04A-I1",
+  "status": "APPROVED",
+  "approved": true,
+  "approved_by": "project_user_via_codex_chat",
+  "approved_utc": "2026-07-18T15:47:28Z",
+  "user_response": "Approve SL-H04A-I1 and SL-H04A-R1",
+  "approved_resolution": "CLOSE_AS_INTERRUPTED_FAIL_PRESERVE_ALL_ARTIFACTS_NO_OLD_ROOT_RESTART",
+  "recommendation": {
+    "path": "/home/ec2-user/exp/research_audit/decisions/sl_h04a_i1_interruption_resolution_recommendation_20260718.json",
+    "sha256": "abde9058e5fcb84bd4284f0ed8a505d3e65d778743dc88b38177b333bd852ca7",
+    "size_bytes": 2559
+  },
+  "attempt_id": "20260718T132019.562821Z-response-calibration-phase-a-ba0c318b",
+  "authorized_actions": [
+    "write_one_immutable_failed_attempt_end_bound_to_the_exact_start_and_log",
+    "preserve_all_old_run_artifacts",
+    "mark_original_phase_a_scientifically_insufficient"
+  ],
+  "not_authorized": [
+    "delete_or_overwrite_old_run_artifacts",
+    "resume_in_old_run_root",
+    "fabricate_launcher_returncode",
+    "use_partial_outputs_for_biological_inference"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "gate": "SL-H01",
+  "decision": "APPROVED",
+  "recorded_utc": "2026-07-18T09:39:00Z",
+  "processing_denominator": 530,
+  "primary_cn_mci_ad_ceiling": 515,
+  "smc_separate": 15,
+  "low_quality_but_valid": "RETAIN",
+  "hard_invalid_outputs": "FAILURE_OR_NA_NOT_MEASUREMENT",
+  "full_cohort_role": "EXPLORATORY_AVAILABLE_DATA",
+  "required_sensitivities": [
+    "timing_le_90_days",
+    "timing_le_180_days",
+    "continuous_gap",
+    "protocol_site",
+    "quantitative_qc",
+    "processed_vs_original_t1"
+  ],
+  "claim_restrictions": [
+    "no_unqualified_same_visit_claim",
+    "no_causal_or_mechanistic_claim",
+    "no_validated_biomarker_claim",
+    "no_external_validation_claim"
+  ],
+  "authorizes": [
+    "SL-P0-09_CONTENT_HASH_LOCK",
+    "SL-P0-10_FIXED_DATA_FEASIBILITY"
+  ],
+  "does_not_authorize": [
+    "FULL_IMAGING_RERUN",
+    "DASHBOARD_INFERENCE_RELEASE"
+  ]
+}

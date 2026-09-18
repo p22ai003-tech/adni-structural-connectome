@@ -1,0 +1,85 @@
+digraph dual_track_research_plan {
+  graph [
+    rankdir=LR,
+    bgcolor="white",
+    pad="0.25",
+    nodesep="0.35",
+    ranksep="0.65",
+    splines=ortho,
+    fontname="Helvetica",
+    label="Structural Connectome Research Programme: Dual-Track Plan",
+    labelloc="t",
+    fontsize=18
+  ];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.12,0.08", color="#40576B", fillcolor="#F7FAFC"];
+  edge [fontname="Helvetica", fontsize=8, color="#5B6B7A", arrowsize=0.7];
+
+  local_data [shape=parallelogram, label="530 locked\nDTI-T1 pairs", fillcolor="#D8F3DC", color="#2D6A4F"];
+  project_audit [label="Code, dashboard,\nand history audit", fillcolor="#D8F3DC", color="#2D6A4F"];
+  exact_metadata [label="Exact dates, diagnosis,\nand acquisition metadata", fillcolor="#D8F3DC", color="#2D6A4F"];
+  source_lock [label="Source lock and\nheader-only preflight", fillcolor="#D8F3DC", color="#2D6A4F"];
+  design_gate [label="SL-H03 estimand and\nanalysis design", fillcolor="#D8F3DC", color="#2D6A4F"];
+  split [shape=diamond, label="Two parallel\nevidence streams", fillcolor="#FFE8A1", color="#F59F00"];
+
+  subgraph cluster_tomorrow {
+    label="TOMORROW: DEFENSIBLE SUBMISSION";
+    color="#3A86FF";
+    fillcolor="#EEF7FF";
+    style="rounded,filled";
+    fontname="Helvetica-Bold";
+    fontsize=11;
+    existing_outputs [label="Existing participant\noutputs", fillcolor="#FFF3BF", color="#E09F3E"];
+    exact_reanalysis [label="Exact-metadata\nreanalysis", fillcolor="#FFF3BF", color="#E09F3E"];
+    falsification [label="Candidate\nfalsification", fillcolor="#FFF3BF", color="#E09F3E"];
+    prior_art [label="Exact prior-art\naudit", fillcolor="#FFF3BF", color="#E09F3E"];
+    claim_lock [label="Conservative novelty\nclaim lock", fillcolor="#DCEEFF", color="#3A86FF"];
+    draft [label="Coherent manuscript\nand visuals", fillcolor="#DCEEFF", color="#3A86FF"];
+    final_audit [label="Statistics and\ncitation audit", fillcolor="#DCEEFF", color="#3A86FF"];
+    submission [shape=oval, label="Submission-ready V1", fillcolor="#DCEEFF", color="#3A86FF"];
+  }
+
+  subgraph cluster_long_term {
+    label="LONG TERM: CORRECTED CONFIRMATION";
+    color="#8338EC";
+    fillcolor="#F6F0FF";
+    style="rounded,filled";
+    fontname="Helvetica-Bold";
+    fontsize=11;
+    pipeline_repair [label="Input, DAG, QC, and\nprovenance repair", fillcolor="#EEE4FF", color="#8338EC"];
+    canary_plan [label="Blinded 12-24\nsubject canary", fillcolor="#EEE4FF", color="#8338EC"];
+    gate_a [shape=diamond, label="Approve\nSL-H04A?", fillcolor="#FFE8A1", color="#F59F00"];
+    phase_a [label="Response\ncalibration", fillcolor="#EEE4FF", color="#8338EC"];
+    pretract [label="Pre-tractography\nQC", fillcolor="#EEE4FF", color="#8338EC"];
+    gate_b [shape=diamond, label="Approve\nSL-H04B?", fillcolor="#FFE8A1", color="#F59F00"];
+    canary_matrices [label="Tractography and\nnine matrices", fillcolor="#EEE4FF", color="#8338EC"];
+    gate_full [shape=diamond, label="Approve\nSL-H04?", fillcolor="#FFE8A1", color="#F59F00"];
+    full_run [label="Corrected\n530-subject run", fillcolor="#EEE4FF", color="#8338EC"];
+    confirmatory [label="Locked confirmatory\nanalysis", fillcolor="#EEE4FF", color="#8338EC"];
+  }
+
+  merge [shape=hexagon, label="Reconcile discovery\nand confirmation", fillcolor="#D8F3DC", color="#1B7F5A"];
+  final_release [shape=oval, label="Validated final paper\nand dashboard", fillcolor="#D8F3DC", color="#1B7F5A"];
+
+  local_data -> exact_metadata;
+  project_audit -> exact_metadata;
+  exact_metadata -> source_lock -> design_gate -> split;
+
+  split -> existing_outputs;
+  existing_outputs -> exact_reanalysis -> falsification -> prior_art -> claim_lock -> draft -> final_audit -> submission;
+
+  split -> pipeline_repair;
+  pipeline_repair -> canary_plan -> gate_a;
+  gate_a -> phase_a [label="  Yes"];
+  phase_a -> pretract -> gate_b;
+  gate_b -> canary_matrices [label="  Yes"];
+  canary_matrices -> gate_full;
+  gate_full -> full_run [label="  Yes"];
+  full_run -> confirmatory;
+
+  pipeline_repair -> draft [style=dashed, color="#6C757D", label="  Methods evidence"];
+  exact_reanalysis -> canary_plan [style=dashed, color="#6C757D", label="  Directional hypotheses"];
+  prior_art -> confirmatory [style=dashed, color="#6C757D", label="  Claim boundaries"];
+  submission -> merge [style=dashed, color="#3A86FF", label="  Discovery baseline"];
+  confirmatory -> merge [penwidth=2.0, color="#8338EC", label="  Confirmation"];
+  merge -> final_release [penwidth=2.0, color="#1B7F5A"];
+}

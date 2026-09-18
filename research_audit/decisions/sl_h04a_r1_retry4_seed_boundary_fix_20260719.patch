@@ -1,0 +1,19 @@
+Subject: [SL-H04A-R1] Exclude continuation-owned paths from retry seed
+
+Failure observed in retry3:
+  retry seed file size differs: subjects/009_S_4324_I1186579/logs/05_select_fod_shells.log
+
+The retry3 seed copied the entire subject logs directory. The approved
+select_fod_shells rule then wrote to a copied 05_select_fod_shells.log file.
+Each Snakemake worker revalidated the seed and correctly detected that write as
+seed drift.
+
+Retry4 correction:
+  - seed only subjects/<unit>/00_inputs and subjects/<unit>/01_dwi;
+  - exclude logs, 05_model, attempts, contract, publication, and outcomes;
+  - require continuation_paths_excluded=true in the seed manifest;
+  - keep the exact three-rule allowlist and input/params rerun triggers;
+  - retain the 15-unit set, scientific parameters, and resource caps unchanged.
+
+This is an orchestration/provenance-boundary correction. It does not change
+imaging data, response-estimation parameters, diagnosis use, or analysis scope.

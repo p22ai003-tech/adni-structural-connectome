@@ -1,0 +1,64 @@
+digraph TwoAxisEvidence {
+  graph [
+    rankdir=LR,
+    bgcolor="white",
+    pad="0.25",
+    nodesep="0.38",
+    ranksep="0.62",
+    splines=ortho,
+    fontname="Arial",
+    fontsize=11,
+    label="Two parallel evidence streams and their convergence",
+    labelloc="t"
+  ];
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Arial",
+    fontsize=9.5,
+    color="#315B74",
+    penwidth=1.2,
+    fillcolor="#EEF5F8",
+    margin="0.12,0.08"
+  ];
+  edge [color="#607D8B", penwidth=1.2, arrowsize=0.7];
+
+  data [label="Available ADNI-derived data\n530 attempted pairs\n513 with paired AxD/RD systems", fillcolor="#E8F0F7"];
+
+  subgraph cluster_now {
+    label="Deadline discovery stream — historical connectomes";
+    color="#3C7A89";
+    penwidth=1.4;
+    style="rounded";
+    meta [label="Exact diagnosis/date/site join\nCN 251 | MCI 185 | AD 77\n51 site strata"];
+    tensor [label="LEVEL 1 — inferential spine\nAxD: MCI > CN | RD: AD > MCI\nfull + pair-common robust\nall-three borderline", fillcolor="#DDF2E5", color="#2E7D5B"];
+    systems [label="LEVEL 2 — systems context\n17 nonredundant summaries\nheterogeneity/selectivity\nnot robustly established", fillcolor="#FFF1D6", color="#B97800"];
+    transport [label="LEVEL 3 — coherence support\n51 LOSO direction checks\nsite-held-out late-RD AUC 0.630\nsecondary, not biomarker", fillcolor="#DDF2E5", color="#2E7D5B"];
+    boundary [label="Claim boundary\nnot spatially selective\nnot a cellular switch\nnot a validated biomarker", fillcolor="#FFF1D6", color="#B97800"];
+    paper [label="Biological manuscript v2.1\nstatistically qualified\ninternal discovery", fillcolor="#D9EAF7", color="#245B7A", penwidth=1.6];
+  }
+
+  subgraph cluster_later {
+    label="Confirmation stream — corrected processing";
+    color="#7B6AA2";
+    penwidth=1.4;
+    style="rounded";
+    canary [label="Phase-A canary\nconversion + gradient contract\nresponse calibration only", fillcolor="#F0ECF7", color="#6A568F"];
+    recovery [label="Active 15-unit Phase A\nCPU Eddy + response only\nno tractography/matrices", fillcolor="#FFF1D6", color="#B97800"];
+    pretrack [label="Pre-tractography QC\nblinded review + H04B gate", fillcolor="#F0ECF7", color="#6A568F"];
+    matrices [label="Corrected tractography\nand nine matrices\nthen locked v2 cohort", fillcolor="#F0ECF7", color="#6A568F"];
+    confirm [label="Locked replication of\nthe two primary endpoints", fillcolor="#F0ECF7", color="#6A568F"];
+  }
+
+  final [label="Final claim decision\nconfirm, qualify, or reject\nthen journal-final manuscript", fillcolor="#CFE8DB", color="#236548", penwidth=1.8];
+
+  data -> meta;
+  meta -> tensor -> systems -> transport -> boundary -> paper;
+  data -> canary;
+  canary -> pretrack;
+  canary -> recovery [label=" bounded recovery", fontname="Arial", fontsize=8, color="#B97800"];
+  recovery -> pretrack [style=dashed, label=" after terminal QC", fontname="Arial", fontsize=8, color="#B97800"];
+  pretrack -> matrices -> confirm;
+  paper -> final;
+  confirm -> final;
+}

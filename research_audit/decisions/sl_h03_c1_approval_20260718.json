@@ -1,0 +1,37 @@
+{
+  "gate": "SL-H03",
+  "option": "SL-H03-C1",
+  "decision": "APPROVED",
+  "approval_mode": "DESIGN_ONLY",
+  "approved_utc": "2026-07-18T10:28:28Z",
+  "user_response": "Approve SL-H03-C1",
+  "population": {
+    "processing_denominator": 530,
+    "primary_cn_mci_ad_ceiling": 515,
+    "CN": 251,
+    "MCI": 186,
+    "AD": 78,
+    "SMC_descriptive": 15
+  },
+  "primary_outcome": "mean(fa_mean[i,j] for i<j and count[i,j]>0)",
+  "primary_contrasts": ["CN_vs_MCI", "MCI_vs_AD", "CN_vs_AD"],
+  "authorizes": [
+    "FIXED_DATA_COHORT_AND_ESTIMAND_DESIGN",
+    "SL_P0_11_TO_14_IMPLEMENTATION",
+    "LATER_SAP_DEVELOPMENT"
+  ],
+  "does_not_authorize": [
+    "CANARY_IMAGING_EXECUTION",
+    "FULL_COHORT_IMAGING_EXECUTION",
+    "CORRECTED_BIOLOGICAL_RESULT_UNBLINDING_OR_RELEASE",
+    "FINAL_SAP_FREEZE",
+    "NOVELTY_OR_MANUSCRIPT_FINDING",
+    "DASHBOARD_INFERENCE_RELEASE"
+  ],
+  "evidence": {
+    "content_lock_validation_sha256": "70619a8c951c4c93416c9280de25b84ab62383119c26ddd39eaff201b89688d2",
+    "locked_pair_manifest_sha256": "1e47d263c70a8230ab0b39651b652333d03e31c63308c9f18dfa008f804689f5",
+    "feasibility_validation_sha256": "4fd319a3edc2897552a4f9e1415bbf95b06dc42bbfa9b1816850311940e6cdde",
+    "design_memo_v1_1_sha256": "03efdd6279edfef759444ef73c21f3c77165a634576f58ffd7d184bcbb584075"
+  }
+}

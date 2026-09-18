@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0.0",
+  "decision_type": "targeted_response_calibration_recovery_approval",
+  "decision_id": "SL-H04A-R1",
+  "status": "APPROVED",
+  "approved": true,
+  "approved_by": "project_user_via_codex_chat",
+  "approved_utc": "2026-07-18T15:47:28Z",
+  "user_response": "Approve SL-H04A-I1 and SL-H04A-R1",
+  "recommendation": {
+    "path": "/home/ec2-user/exp/research_audit/decisions/sl_h04a_r1_recovery_recommendation_20260718.json",
+    "sha256": "f3a66eb80511f1062636ce1655cc73bfff8ef03ee0f72a774acdc750ae467cde",
+    "size_bytes": 1410
+  },
+  "execution_scope": "targeted_response_calibration_recovery",
+  "proposed_run_root": "/data/derivatives/scforge_v2/h04a_r1_recovery_20260718_v1",
+  "approved_unit_count": 15,
+  "units": [
+    "003_S_4118_I1124861",
+    "007_S_5196_I390043",
+    "009_S_4324_I1186579",
+    "013_S_4268_I1075344",
+    "014_S_6087_I926924",
+    "016_S_4353_I295021",
+    "016_S_6816_I10309274",
+    "032_S_6804_I1230908",
+    "033_S_6889_I10988194",
+    "036_S_2380_I1023443",
+    "094_S_4737_I326938",
+    "126_S_6721_I1439616",
+    "129_S_6784_I1482244",
+    "135_S_6840_I1263427",
+    "168_S_6735_I1175371"
+  ],
+  "technical_strata": {
+    "manufacturer_family_counts": {
+      "GE": 8,
+      "SIEMENS": 7
+    },
+    "t1_source_class_counts": {
+      "dicom_series": 8,
+      "nifti_single": 7
+    }
+  },
+  "converter": {
+    "name": "dcm2niix",
+    "version": "v1.0.20260416",
+    "path": "/home/ec2-user/exp/tools/dcm2niix/v1.0.20260416/dcm2niix",
+    "sha256": "353acb3b370faade70b552f284e0a306214a146c076c9f449c5c555b9b148ebd",
+    "full_dicom_conversion_required": true,
+    "metadata_transplant_only_forbidden": true
+  },
+  "resource_caps": {
+    "maximum_cpu_cores": 32,
+    "maximum_wall_clock_hours": 24,
+    "maximum_additional_storage_gib": 100
+  },
+  "success_contract": {
+    "minimum_valid_response_calibration_units": 12,
+    "required_manufacturer_families": 2,
+    "required_t1_source_classes": 2
+  },
+  "allowed_terminal_stage": "response_calibration_phase_a_freeze_decision",
+  "forbidden": [
+    "fod_reconstruction",
+    "tensor_maps",
+    "tractography",
+    "sift2",
+    "connectome_matrices",
+    "statistical_analysis",
+    "dashboard_publication"
+  ],
+  "selection_locked": true,
+  "diagnosis_labels_used": false
+}

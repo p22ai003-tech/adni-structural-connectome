@@ -1,0 +1,75 @@
+project_root: /home/ec2-user/exp
+derivatives_root: /home/ec2-user/exp/data/derivatives/sc_forge_v1
+existing_derivatives_root: /home/ec2-user/exp/data/derivatives
+
+atlas:
+  name: AAL3
+  mni_image: /home/ec2-user/exp/atlas/AAL/AAL3v1_1mm.nii.gz
+  labels_csv: /home/ec2-user/exp/atlas/AAL/AAL3_labels.csv
+  max_original_label: 170
+  expected_gaps: [35, 36, 81, 82]
+  force_contiguous_nodes: true
+  required_labels: [7, 8]
+
+dwi:
+  prefer_original_axial: true
+  reject_derived: true
+  pe_dir_default: j-
+  eddy_options: "--slm=linear --data_is_shelled --repol"
+
+spatial_routes:
+  - name: ants_mni_t1_bbr_t1_b0
+    mni_to_t1: ants_syn
+    t1_to_b0: flirt_bbr
+    promote: true
+  - name: ants_mni_t1_flirt6_t1_b0
+    mni_to_t1: ants_syn
+    t1_to_b0: flirt_6dof
+    promote: true
+  - name: fs_synthseg_t1_b0
+    mni_to_t1: freesurfer_or_synthseg_assisted
+    t1_to_b0: rigid_bridge
+    promote: true
+  - name: direct_mni_b0
+    mni_to_b0: direct_or_composed
+    promote: false
+
+qc:
+  min_label_voxels_1mm: 50
+  required_valid_nodes: 166
+  density_fd_sum_min: 0.15
+  strict_zero_valid_rows: 0
+  warn_valid_zero_rows: 0
+  min_endpoint_assignment_frac: 0.85
+  min_label_inside_mask_frac: 0.80
+  min_5tt_mask_dice: 0.70
+  candidate_pass:
+    density_fd_sum_min: 0.15
+    valid_zero_rows_max: 5
+    missing_valid_labels_max: 0
+    unique_assigned_nodes_min: 120
+    top5_endpoint_fraction_max: 0.50
+  publication_pass:
+    density_fd_sum_min: 0.15
+    valid_zero_rows_max: 0
+    missing_valid_labels_max: 0
+    unique_assigned_nodes_min: 140
+    top5_endpoint_fraction_max: 0.35
+
+tractography:
+  preflight_streamlines: 500000
+  full_streamlines: 10000000
+  algorithm: iFOD2
+  maxlength: 250
+  cutoff: 0.06
+  assignment_ladder:
+    - radial2
+    - radial4
+    - radial8
+    - reverse20
+    - forward40
+
+publication:
+  overwrite_existing: false
+  publish_warn: false
+  analysis_ready_statuses: [PASS]

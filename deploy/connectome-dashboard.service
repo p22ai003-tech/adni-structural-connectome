@@ -1,0 +1,19 @@
+[Unit]
+Description=Connectome C Streamlit dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/exp
+Environment=CONNECTOME_ANALYSIS_ROOT=/home/ec2-user/exp/data/derivatives/qc/analysis_cohort
+Environment=STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+ExecStart=/home/ec2-user/exp/.venv_connectome_app/bin/streamlit run /home/ec2-user/exp/apps/connectome_dashboard/connectome_app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true --browser.gatherUsageStats false --server.enableXsrfProtection true
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

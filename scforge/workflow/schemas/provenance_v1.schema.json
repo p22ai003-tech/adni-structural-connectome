@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structural-connectome.local/schemas/provenance-v1.json",
+  "title": "Structural connectome immutable per-subject provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "generated_utc",
+    "recipe_id",
+    "run_id",
+    "unit",
+    "source_identity",
+    "source_files",
+    "contract_files",
+    "intermediate_files",
+    "outputs",
+    "execution",
+    "processing_contract",
+    "qc",
+    "safety"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "status": {"const": "PASS"},
+    "generated_utc": {"type": "string", "format": "date-time"},
+    "recipe_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+    "unit": {"type": "string", "minLength": 1},
+    "source_identity": {
+      "type": "object",
+      "required": [
+        "subject_id", "diagnosis_at_dti", "dti_image_id", "dti_series_uid",
+        "dti_study_date", "t1_image_id", "t1_series_uid", "t1_study_date",
+        "abs_pair_gap_days", "phase", "site", "manufacturer", "scanner_model",
+        "field_strength_t", "protocol"
+      ],
+      "additionalProperties": true
+    },
+    "source_files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dwi_nifti", "dwi_bvec", "dwi_bval", "dwi_json", "t1_nifti"],
+      "properties": {
+        "dwi_nifti": {"$ref": "#/$defs/fileRecord"},
+        "dwi_bvec": {"$ref": "#/$defs/fileRecord"},
+        "dwi_bval": {"$ref": "#/$defs/fileRecord"},
+        "dwi_json": {"$ref": "#/$defs/fileRecord"},
+        "t1_nifti": {"$ref": "#/$defs/fileRecord"}
+      }
+    },
+    "contract_files": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"},
+      "required": [
+        "manifest", "normative_config", "resolved_run_config", "environment",
+        "workflow_source_manifest", "execution_preflight", "run_context",
+        "attempt_context", "workflow_requirements_lock", "wheel_artifact_manifest",
+        "matrix_dictionary", "mni_template", "provenance_schema"
+      ]
+    },
+    "intermediate_files": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"},
+      "required": [
+        "b0_to_t1_fsl", "t1_to_b0_fsl", "t1_to_b0_itk", "mni_to_t1_affine",
+        "mni_to_t1_warp", "atlas_dwi", "five_tt_dwi", "wm_fod_norm", "tensor"
+      ]
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tracks", "sift2_weights", "sift2_mu", "count", "fd_sum",
+        "count_invnodevol", "len_mean", "invlen_mean", "fa_mean", "md_mean",
+        "rd_mean", "ad_mean"
+      ],
+      "properties": {
+        "tracks": {"$ref": "#/$defs/fileRecord"},
+        "sift2_weights": {"$ref": "#/$defs/fileRecord"},
+        "sift2_mu": {"$ref": "#/$defs/fileRecord"},
+        "count": {"$ref": "#/$defs/fileRecord"},
+        "fd_sum": {"$ref": "#/$defs/fileRecord"},
+        "count_invnodevol": {"$ref": "#/$defs/fileRecord"},
+        "len_mean": {"$ref": "#/$defs/fileRecord"},
+        "invlen_mean": {"$ref": "#/$defs/fileRecord"},
+        "fa_mean": {"$ref": "#/$defs/fileRecord"},
+        "md_mean": {"$ref": "#/$defs/fileRecord"},
+        "rd_mean": {"$ref": "#/$defs/fileRecord"},
+        "ad_mean": {"$ref": "#/$defs/fileRecord"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_started_utc", "host", "tool_versions", "snakemake_invocation",
+        "command_capture", "command_logs", "internal_commands"
+      ],
+      "properties": {
+        "run_started_utc": {"type": "string", "format": "date-time"},
+        "host": {"type": "object"},
+        "tool_versions": {"type": "object"},
+        "snakemake_invocation": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "command_capture": {
+          "type": "object",
+          "required": ["mode", "printshellcmds", "final_log_hash_in_run_completion"],
+          "properties": {
+            "mode": {"const": "snakemake_printshellcmds_combined_log"},
+            "printshellcmds": {"const": true},
+            "final_log_hash_in_run_completion": {"const": true}
+          }
+        },
+        "command_logs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/fileRecord"}},
+        "internal_commands": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "processing_contract": {
+      "type": "object",
+      "required": ["registration", "atlas", "fod", "tensor", "tractography", "sift2", "assignment"],
+      "properties": {
+        "registration": {"type": "object"},
+        "atlas": {"type": "object"},
+        "fod": {"type": "object"},
+        "tensor": {"type": "object"},
+        "tractography": {"type": "object"},
+        "sift2": {"type": "object"},
+        "assignment": {"type": "object"}
+      }
+    },
+    "qc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gradient", "atlas", "matrix", "spatial", "preflight"],
+      "properties": {
+        "gradient": {"$ref": "#/$defs/passRecord"},
+        "atlas": {"$ref": "#/$defs/passRecord"},
+        "matrix": {"$ref": "#/$defs/passRecord"},
+        "spatial": {"$ref": "#/$defs/passRecord"},
+        "preflight": {"$ref": "#/$defs/passRecord"}
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production_overwrite", "automatic_fallbacks", "density_route_selection"],
+      "properties": {
+        "production_overwrite": {"const": false},
+        "automatic_fallbacks": {"const": false},
+        "density_route_selection": {"const": false}
+      }
+    }
+  },
+  "$defs": {
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "passRecord": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {"status": {"const": "PASS"}},
+      "additionalProperties": true
+    }
+  }
+}

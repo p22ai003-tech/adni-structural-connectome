@@ -1,0 +1,39 @@
+{
+  "approval_mode": "H04A_BOUNDED_CANARY",
+  "approved_by": "project_user_via_codex_chat",
+  "approved_unit_count": 24,
+  "approved_utc": "2026-07-18T13:19:25Z",
+  "authorized_modes": [
+    "response-calibration-phase-a",
+    "pre-tractography-canary"
+  ],
+  "authorized_through": "pre_tractography_review_bundle_only",
+  "decision_type": "connectome_canary_execution_subset_approval",
+  "diagnosis_labels_used": false,
+  "environment_contract_sha256": "474a7127bdee3045ee67412ec48cf623f00c51bb1bc09509a07f985f2f55b7ae",
+  "execution_scope": "canary",
+  "execution_subset_manifest_sha256": "fe0c93af9801abe096ad439c29e1ea81e72e957f7c1b3b34cee4e8437ad437eb",
+  "full_cohort_authorized": false,
+  "h04a_storage_stop_gb": 150,
+  "h04a_wall_clock_stop_hours": 72,
+  "matrix_generation_authorized": false,
+  "maximum_cores": 4,
+  "minimum_valid_manufacturer_families": 2,
+  "minimum_valid_response_calibration_units": 12,
+  "minimum_valid_t1_source_classes": 2,
+  "normative_config_sha256": "c5ab5149f6bec85cfddec961426a337fcd1815191365497da40df25220f27a25",
+  "note": "Explicit SL-H04A approval authorizes only the exact bounded Phase A and pre-tractography canary described by the hash-bound decision package. It does not authorize tractography, matrices, or full-cohort processing.",
+  "parent_acquisition_manifest_sha256": "377a75ba5b93a511bcd0facf94bc1cb30c896449af3cfa087bd6125c1624a55a",
+  "proposed_run_root": "/data/derivatives/scforge_v2/h04a_canary_20260718_v1",
+  "recipe_id": "connectome-v2.1.0-closed-world-canary-candidate",
+  "required_valid_t1_source_classes": [
+    "dicom_series",
+    "nifti_single"
+  ],
+  "schema_version": "2.0.0",
+  "selection_locked": true,
+  "status": "APPROVED",
+  "tractography_authorized": false,
+  "user_response": "Approve",
+  "workflow_source_manifest_sha256": "1e27facda8d0cafefada24fb04a9d4ee628cb296cbf10e303680d2a4244a7a36"
+}

@@ -1,0 +1,4 @@
+"""Recovery4-manifest diagnosis-blind HCP379 Phase-B stability canary."""
+
+include: "Snakefile_h04a_r1_retry4_pretract_v5"
+include: "extensions/h04a_r1_retry4_phase_b_hcp379/07_hcp379_stability.smk"

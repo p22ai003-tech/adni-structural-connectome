@@ -1,0 +1,15 @@
+{
+  "decision_id": "SL-D01",
+  "decision_state": "APPROVED",
+  "recorded_utc": "2026-07-18T09:14:00Z",
+  "scope": "LOCALLY_AVAILABLE_IMAGES_ONLY",
+  "external_replacement_acquisition": "NOT_PURSUED",
+  "selected_pair_count": 530,
+  "timing_strata": {
+    "within_90_days": 194,
+    "within_180_days": 197,
+    "over_180_days": 333
+  },
+  "minimum_validity_rule": "attempt all local inputs; do not promote mathematically or technically invalid outputs as biological measurements",
+  "claim_boundary": "available-data exploratory observational analysis; not an unqualified same-visit multimodal biomarker study"
+}

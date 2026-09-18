@@ -1,0 +1,16 @@
+"""Recovery2 wrapper for the bounded retry4 pre-tractography DAG.
+
+The immutable V3 workflow remains untouched.  V4 changes only the executable
+used to serialize the already-defined inverse FSL BBR affine into an ITK
+transform.  Recovery2's launcher separately binds and validates this override
+before Snakemake is allowed to execute.
+"""
+
+include: "Snakefile_h04a_r1_retry4_pretract_v3"
+
+RECOVERY2_C3D_AFFINE_TOOL = Path(
+    "/home/ec2-user/exp/.envs/convert3d-1.3.0-recovery2/bin/c3d_affine_tool"
+).resolve()
+if not RECOVERY2_C3D_AFFINE_TOOL.is_file():
+    raise FileNotFoundError(RECOVERY2_C3D_AFFINE_TOOL)
+C3D_AFFINE_TOOL = RECOVERY2_C3D_AFFINE_TOOL

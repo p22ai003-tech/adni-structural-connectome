@@ -1,0 +1,167 @@
+matrix_idx,atlas_value,atlas_label,functional_network,anatomical_system,rationale
+1,1,Precentral_L,Somatomotor,Frontal,peri-Rolandic / SMA sensorimotor cortex
+2,2,Precentral_R,Somatomotor,Frontal,peri-Rolandic / SMA sensorimotor cortex
+3,3,Frontal_Sup_2_L,DorsalAttention,Frontal,dorsal superior frontal (FEF-adjacent)
+4,4,Frontal_Sup_2_R,DorsalAttention,Frontal,dorsal superior frontal (FEF-adjacent)
+5,5,Frontal_Mid_2_L,Frontoparietal,Frontal,DLPFC / inferior-frontal control
+6,6,Frontal_Mid_2_R,Frontoparietal,Frontal,DLPFC / inferior-frontal control
+7,7,Frontal_Inf_Oper_L,Frontoparietal,Frontal,DLPFC / inferior-frontal control
+8,8,Frontal_Inf_Oper_R,Frontoparietal,Frontal,DLPFC / inferior-frontal control
+9,9,Frontal_Inf_Tri_L,Frontoparietal,Frontal,DLPFC / inferior-frontal control
+10,10,Frontal_Inf_Tri_R,Frontoparietal,Frontal,DLPFC / inferior-frontal control
+11,11,Frontal_Inf_Orb_2_L,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+12,12,Frontal_Inf_Orb_2_R,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+13,13,Rolandic_Oper_L,Somatomotor,Frontal,peri-Rolandic / SMA sensorimotor cortex
+14,14,Rolandic_Oper_R,Somatomotor,Frontal,peri-Rolandic / SMA sensorimotor cortex
+15,15,Supp_Motor_Area_L,Somatomotor,Frontal,peri-Rolandic / SMA sensorimotor cortex
+16,16,Supp_Motor_Area_R,Somatomotor,Frontal,peri-Rolandic / SMA sensorimotor cortex
+17,17,Olfactory_L,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+18,18,Olfactory_R,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+19,19,Frontal_Sup_Medial_L,DMN,Frontal,(ventro)medial prefrontal — DMN
+20,20,Frontal_Sup_Medial_R,DMN,Frontal,(ventro)medial prefrontal — DMN
+21,21,Frontal_Med_Orb_L,DMN,Frontal,(ventro)medial prefrontal — DMN
+22,22,Frontal_Med_Orb_R,DMN,Frontal,(ventro)medial prefrontal — DMN
+23,23,Rectus_L,DMN,Frontal,(ventro)medial prefrontal — DMN
+24,24,Rectus_R,DMN,Frontal,(ventro)medial prefrontal — DMN
+25,25,OFCmed_L,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+26,26,OFCmed_R,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+27,27,OFCant_L,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+28,28,OFCant_R,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+29,29,OFCpost_L,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+30,30,OFCpost_R,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+31,31,OFClat_L,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+32,32,OFClat_R,Limbic,Frontal,orbitofrontal cortex — Yeo limbic
+33,33,Insula_L,Salience_VAN,Limbic,anterior insula — salience core
+34,34,Insula_R,Salience_VAN,Limbic,anterior insula — salience core
+35,37,Cingulate_Mid_L,Salience_VAN,Limbic,mid-cingulate — cingulo-opercular/salience
+36,38,Cingulate_Mid_R,Salience_VAN,Limbic,mid-cingulate — cingulo-opercular/salience
+37,39,Cingulate_Post_L,DMN,Limbic,posterior cingulate — DMN core
+38,40,Cingulate_Post_R,DMN,Limbic,posterior cingulate — DMN core
+39,41,Hippocampus_L,DMN,Limbic,medial-temporal DMN subsystem
+40,42,Hippocampus_R,DMN,Limbic,medial-temporal DMN subsystem
+41,43,ParaHippocampal_L,DMN,Limbic,medial-temporal DMN subsystem
+42,44,ParaHippocampal_R,DMN,Limbic,medial-temporal DMN subsystem
+43,45,Amygdala_L,Limbic,Limbic,amygdala — limbic
+44,46,Amygdala_R,Limbic,Limbic,amygdala — limbic
+45,47,Calcarine_L,Visual,Occipital,occipital visual cortex
+46,48,Calcarine_R,Visual,Occipital,occipital visual cortex
+47,49,Cuneus_L,Visual,Occipital,occipital visual cortex
+48,50,Cuneus_R,Visual,Occipital,occipital visual cortex
+49,51,Lingual_L,Visual,Occipital,occipital visual cortex
+50,52,Lingual_R,Visual,Occipital,occipital visual cortex
+51,53,Occipital_Sup_L,Visual,Occipital,occipital visual cortex
+52,54,Occipital_Sup_R,Visual,Occipital,occipital visual cortex
+53,55,Occipital_Mid_L,Visual,Occipital,occipital visual cortex
+54,56,Occipital_Mid_R,Visual,Occipital,occipital visual cortex
+55,57,Occipital_Inf_L,Visual,Occipital,occipital visual cortex
+56,58,Occipital_Inf_R,Visual,Occipital,occipital visual cortex
+57,59,Fusiform_L,Visual,Temporal,ventral visual stream (occipito-temporal)
+58,60,Fusiform_R,Visual,Temporal,ventral visual stream (occipito-temporal)
+59,61,Postcentral_L,Somatomotor,Parietal,peri-Rolandic / SMA sensorimotor cortex
+60,62,Postcentral_R,Somatomotor,Parietal,peri-Rolandic / SMA sensorimotor cortex
+61,63,Parietal_Sup_L,DorsalAttention,Parietal,superior parietal / IPS — dorsal attention
+62,64,Parietal_Sup_R,DorsalAttention,Parietal,superior parietal / IPS — dorsal attention
+63,65,Parietal_Inf_L,Frontoparietal,Parietal,inferior parietal control node
+64,66,Parietal_Inf_R,Frontoparietal,Parietal,inferior parietal control node
+65,67,SupraMarginal_L,Salience_VAN,Parietal,TPJ — ventral attention
+66,68,SupraMarginal_R,Salience_VAN,Parietal,TPJ — ventral attention
+67,69,Angular_L,DMN,Parietal,angular gyrus — DMN
+68,70,Angular_R,DMN,Parietal,angular gyrus — DMN
+69,71,Precuneus_L,DMN,Parietal,precuneus — DMN core
+70,72,Precuneus_R,DMN,Parietal,precuneus — DMN core
+71,73,Paracentral_Lobule_L,Somatomotor,Parietal,peri-Rolandic / SMA sensorimotor cortex
+72,74,Paracentral_Lobule_R,Somatomotor,Parietal,peri-Rolandic / SMA sensorimotor cortex
+73,75,Caudate_L,Subcortical,BasalGanglia,striatum/pallidum
+74,76,Caudate_R,Subcortical,BasalGanglia,striatum/pallidum
+75,77,Putamen_L,Subcortical,BasalGanglia,striatum/pallidum
+76,78,Putamen_R,Subcortical,BasalGanglia,striatum/pallidum
+77,79,Pallidum_L,Subcortical,BasalGanglia,striatum/pallidum
+78,80,Pallidum_R,Subcortical,BasalGanglia,striatum/pallidum
+79,83,Heschl_L,Somatomotor,Temporal,primary auditory cortex (Yeo lumps auditory with somatomotor)
+80,84,Heschl_R,Somatomotor,Temporal,primary auditory cortex (Yeo lumps auditory with somatomotor)
+81,85,Temporal_Sup_L,Salience_VAN,Temporal,superior temporal / TPJ — ventral attention (alt: auditory)
+82,86,Temporal_Sup_R,Salience_VAN,Temporal,superior temporal / TPJ — ventral attention (alt: auditory)
+83,87,Temporal_Pole_Sup_L,Limbic,Temporal,temporal pole — Yeo limbic
+84,88,Temporal_Pole_Sup_R,Limbic,Temporal,temporal pole — Yeo limbic
+85,89,Temporal_Mid_L,DMN,Temporal,lateral temporal — DMN (Temporal_Inf alt: Visual)
+86,90,Temporal_Mid_R,DMN,Temporal,lateral temporal — DMN (Temporal_Inf alt: Visual)
+87,91,Temporal_Pole_Mid_L,Limbic,Temporal,temporal pole — Yeo limbic
+88,92,Temporal_Pole_Mid_R,Limbic,Temporal,temporal pole — Yeo limbic
+89,93,Temporal_Inf_L,DMN,Temporal,lateral temporal — DMN (Temporal_Inf alt: Visual)
+90,94,Temporal_Inf_R,DMN,Temporal,lateral temporal — DMN (Temporal_Inf alt: Visual)
+91,95,Cerebellum_Crus1_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+92,96,Cerebellum_Crus1_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+93,97,Cerebellum_Crus2_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+94,98,Cerebellum_Crus2_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+95,99,Cerebellum_3_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+96,100,Cerebellum_3_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+97,101,Cerebellum_4_5_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+98,102,Cerebellum_4_5_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+99,103,Cerebellum_6_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+100,104,Cerebellum_6_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+101,105,Cerebellum_7b_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+102,106,Cerebellum_7b_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+103,107,Cerebellum_8_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+104,108,Cerebellum_8_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+105,109,Cerebellum_9_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+106,110,Cerebellum_9_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+107,111,Cerebellum_10_L,Cerebellar,Cerebellum,cerebellar cortex / vermis
+108,112,Cerebellum_10_R,Cerebellar,Cerebellum,cerebellar cortex / vermis
+109,113,Vermis_1_2,Cerebellar,Cerebellum,cerebellar cortex / vermis
+110,114,Vermis_3,Cerebellar,Cerebellum,cerebellar cortex / vermis
+111,115,Vermis_4_5,Cerebellar,Cerebellum,cerebellar cortex / vermis
+112,116,Vermis_6,Cerebellar,Cerebellum,cerebellar cortex / vermis
+113,117,Vermis_7,Cerebellar,Cerebellum,cerebellar cortex / vermis
+114,118,Vermis_8,Cerebellar,Cerebellum,cerebellar cortex / vermis
+115,119,Vermis_9,Cerebellar,Cerebellum,cerebellar cortex / vermis
+116,120,Vermis_10,Cerebellar,Cerebellum,cerebellar cortex / vermis
+117,121,Thal_AV_L,Subcortical,Thalamus,thalamic nucleus
+118,122,Thal_AV_R,Subcortical,Thalamus,thalamic nucleus
+119,123,Thal_LP_L,Subcortical,Thalamus,thalamic nucleus
+120,124,Thal_LP_R,Subcortical,Thalamus,thalamic nucleus
+121,125,Thal_VA_L,Subcortical,Thalamus,thalamic nucleus
+122,126,Thal_VA_R,Subcortical,Thalamus,thalamic nucleus
+123,127,Thal_VL_L,Subcortical,Thalamus,thalamic nucleus
+124,128,Thal_VL_R,Subcortical,Thalamus,thalamic nucleus
+125,129,Thal_VPL_L,Subcortical,Thalamus,thalamic nucleus
+126,130,Thal_VPL_R,Subcortical,Thalamus,thalamic nucleus
+127,131,Thal_IL_L,Subcortical,Thalamus,thalamic nucleus
+128,132,Thal_IL_R,Subcortical,Thalamus,thalamic nucleus
+129,133,Thal_Re_L,Subcortical,Thalamus,thalamic nucleus
+130,134,Thal_Re_R,Subcortical,Thalamus,thalamic nucleus
+131,135,Thal_MDm_L,Subcortical,Thalamus,thalamic nucleus
+132,136,Thal_MDm_R,Subcortical,Thalamus,thalamic nucleus
+133,137,Thal_MDl_L,Subcortical,Thalamus,thalamic nucleus
+134,138,Thal_MDl_R,Subcortical,Thalamus,thalamic nucleus
+135,139,Thal_LGN_L,Subcortical,Thalamus,thalamic nucleus
+136,140,Thal_LGN_R,Subcortical,Thalamus,thalamic nucleus
+137,141,Thal_MGN_L,Subcortical,Thalamus,thalamic nucleus
+138,142,Thal_MGN_R,Subcortical,Thalamus,thalamic nucleus
+139,143,Thal_PuI_L,Subcortical,Thalamus,thalamic nucleus
+140,144,Thal_PuI_R,Subcortical,Thalamus,thalamic nucleus
+141,145,Thal_PuM_L,Subcortical,Thalamus,thalamic nucleus
+142,146,Thal_PuM_R,Subcortical,Thalamus,thalamic nucleus
+143,147,Thal_PuA_L,Subcortical,Thalamus,thalamic nucleus
+144,148,Thal_PuA_R,Subcortical,Thalamus,thalamic nucleus
+145,149,Thal_PuL_L,Subcortical,Thalamus,thalamic nucleus
+146,150,Thal_PuL_R,Subcortical,Thalamus,thalamic nucleus
+147,151,ACC_sub_L,Salience_VAN,Limbic,anterior cingulate — salience (pregenual ACC_pre alt: DMN)
+148,152,ACC_sub_R,Salience_VAN,Limbic,anterior cingulate — salience (pregenual ACC_pre alt: DMN)
+149,153,ACC_pre_L,Salience_VAN,Limbic,anterior cingulate — salience (pregenual ACC_pre alt: DMN)
+150,154,ACC_pre_R,Salience_VAN,Limbic,anterior cingulate — salience (pregenual ACC_pre alt: DMN)
+151,155,ACC_sup_L,Salience_VAN,Limbic,anterior cingulate — salience (pregenual ACC_pre alt: DMN)
+152,156,ACC_sup_R,Salience_VAN,Limbic,anterior cingulate — salience (pregenual ACC_pre alt: DMN)
+153,157,N_Acc_L,Subcortical,BasalGanglia,nucleus accumbens (ventral striatum)
+154,158,N_Acc_R,Subcortical,BasalGanglia,nucleus accumbens (ventral striatum)
+155,159,VTA_L,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+156,160,VTA_R,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+157,161,SN_pc_L,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+158,162,SN_pc_R,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+159,163,SN_pr_L,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+160,164,SN_pr_R,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+161,165,Red_N_L,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+162,166,Red_N_R,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+163,167,LC_L,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+164,168,LC_R,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+165,169,Raphe_D,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)
+166,170,Raphe_M,Brainstem,Brainstem,midbrain/pontine neuromodulatory nucleus (low edge support expected)

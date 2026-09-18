@@ -1,0 +1,255 @@
+# Exact host-side execution contract for the connectome v2 blinded canary.
+# Every run hashes this file. A changed executable, dependency lock, or executor
+# policy requires a new recipe ID and a recorded decision.
+
+schema_version: "2.0.0"
+generated_utc: null
+recipe_id: "connectome-v2.1.0-closed-world-canary-candidate"
+host:
+  os: "Amazon Linux 2023.6.20250317"
+  architecture: "x86_64"
+  kernel: "6.1.130-139.222.amzn2023.x86_64"
+  gpu_driver_available: false
+  gpu_probe: "nvidia-smi failed because it could not communicate with the NVIDIA driver"
+
+execution_policy:
+  fail_closed: true
+  automatic_tool_or_algorithm_fallback: false
+  overwrite_existing_derivatives: false
+  eddy_executor: "/home/ec2-user/fsl/bin/eddy_cpu"
+  eddy_executor_scope: "same explicit CPU executable for every subject in this recipe"
+  cuda_executor_allowed: false
+  cuda_change_policy: "new recipe ID plus canary equivalence review"
+  normal_tool_path_order:
+    - "/home/ec2-user/mrtrix3/bin"
+    - "/usr/bin"
+    - "/home/ec2-user/fsl/bin"
+    - "/home/ec2-user/exp/.envs/ants-2.6.5/bin"
+    - "/home/ec2-user/exp/.envs/convert3d-1.4.2/bin"
+  mrtrix3tissue_global_path_allowed: false
+  mrtrix_script_python:
+    path: "/usr/bin/python3.9"
+    version: "3.9.21"
+    sha256: "00c93ba5d4752ae3e4c7edfbe43fc7a21bd36d5861a4cdcb0e6798cea30c05fd"
+  ss3t_invocation:
+    python: "/usr/bin/python3.9"
+    script: "/home/ec2-user/MRtrix3Tissue/bin/ss3t_csd_beta1"
+    path_prefix:
+      - "/home/ec2-user/MRtrix3Tissue/bin"
+      - "/home/ec2-user/mrtrix3/bin"
+      - "/home/ec2-user/fsl/bin"
+
+workflow:
+  python:
+    path: "/home/ec2-user/exp/.venv_connectome_workflow/bin/python"
+    version: "3.12.2"
+    sha256: "2dafac2b7c9dfdba5474cd112a4df6a292cbe7c0005b99f561768c8d74b55df9"
+  snakemake:
+    path: "/home/ec2-user/exp/.venv_connectome_workflow/bin/snakemake"
+    version: "9.23.1"
+    sha256: "3a2dcbde7e2cd1a27db9b2285293f513b4b1851ab4ebdc90ed790bd9b761f439"
+  requirements_lock:
+    path: "/home/ec2-user/exp/scforge/workflow/requirements.lock.txt"
+    sha256: "bf5836c99e3f97af2ea8da5bf320bf4998e70987e52b8b67fda7f2ba406ba342"
+  wheel_artifact_manifest:
+    path: "/home/ec2-user/exp/scforge/workflow/wheel_artifacts.cp312-linux-x86_64.tsv"
+    sha256: "333e5d86874524f1e798ae546b53f30f697605ae59d2c9066359e1a353a4b612"
+    target: "CPython 3.12, Linux x86_64"
+    index: "configured package index plus the verified local pip cache for connection_pool 0.0.3"
+  source_manifest:
+    path: "/home/ec2-user/exp/scforge/workflow/workflow_source_manifest.tsv"
+    sha256: "1e27facda8d0cafefada24fb04a9d4ee628cb296cbf10e303680d2a4244a7a36"
+    rows: 29
+    policy: "every listed source file is rehashed by execution_preflight before imaging"
+  runtime_packages:
+    numpy: "2.5.1"
+    nibabel: "5.4.2"
+    pandas: "3.0.3"
+
+mrtrix3:
+  prefix: "/home/ec2-user/mrtrix3"
+  version: "3.0.7"
+  git_commit: "863441d0b420993bc3c82f2491c7d6ff64f25c59"
+  worktree_clean: false
+  declared_local_patch: "dwifslpreproc supports an explicit CPU-only route and can disable automatic CUDA-to-CPU fallback"
+  git_diff_sha256: "d9a816768a35c22267e3c6dc744568904b1d4c2ba36ae4cf17bfb4843a1186ae"
+  binaries:
+    5tt2gmwmi:
+      path: "/home/ec2-user/mrtrix3/bin/5tt2gmwmi"
+      sha256: "7144b7b4e61baf196c2899c6354e8e3cb887ab13216a2515f2b4cb8eff4da717"
+    5ttcheck:
+      path: "/home/ec2-user/mrtrix3/bin/5ttcheck"
+      sha256: "057ff765cd3b4fb8f42b4450234880980efeb6da7c897693cd242ed0f48e48b6"
+    5ttgen:
+      path: "/home/ec2-user/mrtrix3/bin/5ttgen"
+      sha256: "d7ef31c5854d5f01fa1ba07e8a3f7d52dc99558457108137d2e1f3797c94768f"
+    dwi2mask:
+      path: "/home/ec2-user/mrtrix3/bin/dwi2mask"
+      sha256: "b59cf5b62747e2f0cf891dd8fba1dd9dd621124eb792a43b7b43c62a19a9d691"
+    dwi2response:
+      path: "/home/ec2-user/mrtrix3/bin/dwi2response"
+      sha256: "25b16e967600852fa169659d590f0a254c56dbf28cbce8aa26833b86c8b7ffa5"
+    dwi2tensor:
+      path: "/home/ec2-user/mrtrix3/bin/dwi2tensor"
+      sha256: "4d2b6f4934688793c25f56c91889e3fba988cb42b451c115124889d5e05764e7"
+    dwibiascorrect:
+      path: "/home/ec2-user/mrtrix3/bin/dwibiascorrect"
+      sha256: "65de4118f4189baeb8bae520ba308b13d922cc881d0b7752f655e61a04943eb4"
+    dwidenoise:
+      path: "/home/ec2-user/mrtrix3/bin/dwidenoise"
+      sha256: "d23cb89446aa876383b41caee364b940388f6df1dea7e42cc334d2de82f5dbf6"
+    dwiextract:
+      path: "/home/ec2-user/mrtrix3/bin/dwiextract"
+      sha256: "23f4657beeff545a262d21a1327243908542463c8007e8624d118b85d6cf934a"
+    tck2connectome:
+      path: "/home/ec2-user/mrtrix3/bin/tck2connectome"
+      sha256: "ba01dcde31d7697fc7d175c84e799aef230463a105883766935ab0ed0a9c22ea"
+    tckgen:
+      path: "/home/ec2-user/mrtrix3/bin/tckgen"
+      sha256: "ed02c46d14835c6f5e275fba78d01a6257192d1c753e260dd4eb6a332a7c1737"
+    tcksift2:
+      path: "/home/ec2-user/mrtrix3/bin/tcksift2"
+      sha256: "bc2474cdd052ee306e8f97728009b82e679d798ee781865ec408b13188ac7bb7"
+    dwifslpreproc:
+      path: "/home/ec2-user/mrtrix3/bin/dwifslpreproc"
+      sha256: "3c6ea38b3b6dff42dfa25410d3a9a8084aa112e6ffbcadaed96dee8d29031a77"
+      required_environment:
+        DWIFSLPREPROC_FORCE_CPU: "1"
+        DWIFSLPREPROC_NO_CPU_FALLBACK: "1"
+    mrconvert:
+      path: "/home/ec2-user/mrtrix3/bin/mrconvert"
+      sha256: "4596398795bf09c5e9c0f77133ef19c551a4135c85dd60ad4dac36842483baa7"
+    mrdegibbs:
+      path: "/home/ec2-user/mrtrix3/bin/mrdegibbs"
+      sha256: "2b40680e30c524f6a547c045373497645be97ef3cb4d78edfd113b2e9a891f16"
+    mrgrid:
+      path: "/home/ec2-user/mrtrix3/bin/mrgrid"
+      sha256: "c2fd6ac2e9b5c1530a342e5d233fc475b50bfa403479f799da8eb6a666164163"
+    mrinfo:
+      path: "/home/ec2-user/mrtrix3/bin/mrinfo"
+      sha256: "7bea9b2e3d083de309ac38e5f7c6263fb553b077c96efdf9e11447b74614c0a6"
+    mrmath:
+      path: "/home/ec2-user/mrtrix3/bin/mrmath"
+      sha256: "a1882635d773d6c832ee7f2c531949021ef71c71ffe6a66211a914dbbbae0afd"
+    mrtransform:
+      path: "/home/ec2-user/mrtrix3/bin/mrtransform"
+      sha256: "b13d6f0fc130fc7cbdb762676efacdab5abddc03bcebd06a2c4b7d36cde7c248"
+    mtnormalise:
+      path: "/home/ec2-user/mrtrix3/bin/mtnormalise"
+      sha256: "00bb104033a679cc5a5c38cd19d5b1f02e1219b307bbeb71bbf54ffca6cd3f17"
+    responsemean:
+      path: "/home/ec2-user/mrtrix3/bin/responsemean"
+      sha256: "2e4059800a0565184192d0d3e5ddfb29161af42a6fb5b579970a744cd5f1e788"
+    tcksample:
+      path: "/home/ec2-user/mrtrix3/bin/tcksample"
+      sha256: "42ef6b5a94b28482498f824620ba402c980f277f805ff27ff9a4ff2a9118f2e3"
+    tensor2metric:
+      path: "/home/ec2-user/mrtrix3/bin/tensor2metric"
+      sha256: "77520028d8173c6b1cbd1bb03070200b00223b0662d6d6f485887e4205bd554d"
+
+mrtrix3tissue:
+  prefix: "/home/ec2-user/MRtrix3Tissue"
+  version: "3Tissue_v5.2.9"
+  git_commit: "f8ba0e3fa17cb3b6bb51bcc4939cde83243b8f4c"
+  worktree_clean: false
+  declared_local_patch: "ss3t_csd_beta1 accepts and enforces an explicit even WM-FOD lmax so the frozen lmax=6 model matches the 30-direction eligibility floor"
+  git_diff_sha256: "1eb8587657dae2c3599f107e17065f35dbd96afa02a122bcde6f76fc9fb33c90"
+  python_runtime:
+    path: "/usr/bin/python3.9"
+    version: "3.9.21"
+    reason: "the legacy 3Tissue Python framework imports imp, which is removed in Python 3.12"
+  binaries:
+    ss3t_csd_beta1:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/ss3t_csd_beta1"
+      sha256: "f0609b0451f34eea4d5411a7bad21b6b6c82d030ddc68c088f60eefe2452df61"
+    mrconvert:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/mrconvert"
+      sha256: "55b4dd26d22766c62c0cab47ff3894a9616bd970ba7ddc6c18eb91ea9d99df2f"
+    dwi2fod:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/dwi2fod"
+      sha256: "4a5d03283ab541c52c439fad3d2d43bd77ca4e43341fd79f299f28a1f6817171"
+    mtnormalise:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/mtnormalise"
+      sha256: "bafd75c3a74e8c300e96ca0b4180434f4c5d640ff41923dc7d5d42d6c28798c2"
+    dwiextract:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/dwiextract"
+      sha256: "ffc5991ed99985ee51e7a33784a1bbe846d9f86a68d85643a292f343abaa3d02"
+    mrcalc:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/mrcalc"
+      sha256: "e2ea282a0c35e941292d553fb5f1897ad4f2ae7d3e653dfc93bccf9e66b8195d"
+    mrcat:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/mrcat"
+      sha256: "f2ed4e40c590567b2e4a0b9b56c1002d8eede5bb40919526d408b210a73cd607"
+    mrinfo:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/mrinfo"
+      sha256: "f6ae106a9128fa0f0cd0c114d6a32dc7f27722aa9df900d07aea3d17c0432c73"
+    sh2amp:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/sh2amp"
+      sha256: "a75dbf6c61b1ab74844e400d972a9b519cf920237333ab0e58e7ccbf9a343d8a"
+    shconv:
+      path: "/home/ec2-user/MRtrix3Tissue/bin/shconv"
+      sha256: "fba90883105c5193768eb065e8e045700c565664b265b96be8ab75516d7ba85e"
+
+fsl:
+  prefix: "/home/ec2-user/fsl"
+  version: "6.0.7.18"
+  binaries:
+    eddy_cpu:
+      path: "/home/ec2-user/fsl/bin/eddy_cpu"
+      sha256: "fc46aa0662368465487aaf94957d33f47605b62554a4310a2b074dafd98e3ef5"
+    eddy_cuda11_0:
+      path: "/home/ec2-user/fsl/bin/eddy_cuda11.0"
+      sha256: "1f50f832edd011c7fd3283514cd7ca76f53b22b03b56acea9259d758b7882d99"
+      allowed_by_recipe: false
+    topup:
+      path: "/home/ec2-user/fsl/bin/topup"
+      sha256: "807abc89ac82390f35c5aa984296c6df943e2f896ec83531225f1af04732f148"
+    fast:
+      path: "/home/ec2-user/fsl/bin/fast"
+      sha256: "1b4c8fd421d79170dabc7661fbf4e5a53f6aa1423701e3ce75e2fe0967ac5904"
+    epi_reg:
+      path: "/home/ec2-user/fsl/bin/epi_reg"
+      sha256: "b9a0ffb627f675407aad52cb7ea22e21b760e476c62683a43a44ab1f58a3a8ac"
+    flirt:
+      path: "/home/ec2-user/fsl/bin/flirt"
+      sha256: "976dab46e527fa91733646bb58249a21fd7e7c9275ad15b651724904454d2051"
+    bet:
+      path: "/home/ec2-user/fsl/bin/bet"
+      sha256: "16b852dc6c5b256fc059c4dd46ecad16550742d80b13a1fac91ed8982ab275b1"
+    convert_xfm:
+      path: "/home/ec2-user/fsl/bin/convert_xfm"
+      sha256: "47fafdb2fc76d17b58996f0befee493ee1570640f24fd6e7df33059fea7fb062"
+    slices:
+      path: "/home/ec2-user/fsl/bin/slices"
+      sha256: "e962a2d1f0880fff29d0c965eda3d07f675b949a1d6dad7f2be0e78b832012ac"
+
+ants:
+  prefix: "/home/ec2-user/exp/.envs/ants-2.6.5"
+  version: "2.6.5.dev1-g89fa5be"
+  explicit_conda_lock:
+    path: "/home/ec2-user/exp/scforge/workflow/locks/ants-2.6.5-linux-64.explicit.txt"
+    sha256: "5c3392c179f8d81ad825ea4b85d9f89842180d060f0ab6f14bd44880e596e632"
+  binaries:
+    antsRegistration:
+      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/antsRegistration"
+      sha256: "92324b160447e6dc18093622810b60610ea60851e68697ffea33e98f8f2f4800"
+    antsApplyTransforms:
+      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/antsApplyTransforms"
+      sha256: "d02a01a82928512cba18b9232ec6ad3ebaae8adb7a1ed2dd7e927fa1e670692f"
+    antsRegistrationSyN_sh:
+      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/antsRegistrationSyN.sh"
+      sha256: "1b183b5365bc89821b5ec794090151cab4c8a305e262223041083a8aaf288819"
+    N4BiasFieldCorrection:
+      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/N4BiasFieldCorrection"
+      sha256: "532ef9b1fd1b9071547a1d9e9ee4d438577fc5c2b0cf0458d2a3f27f7ee1ea57"
+
+convert3d:
+  prefix: "/home/ec2-user/exp/.envs/convert3d-1.4.2"
+  version: "1.4.2"
+  explicit_conda_lock:
+    path: "/home/ec2-user/exp/scforge/workflow/locks/convert3d-1.4.2-linux-64.explicit.txt"
+    sha256: "0ced82a6c4504388cce072814b884c9e8a26b425b01e2dcd30735234708de7db"
+  binaries:
+    c3d_affine_tool:
+      path: "/home/ec2-user/exp/.envs/convert3d-1.4.2/bin/c3d_affine_tool"
+      sha256: "fd67488a4f92cb3389695ce67e2deef948009626f863ad17f730a5300641815e"

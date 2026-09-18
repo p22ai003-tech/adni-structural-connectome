@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structural-connectome.local/schemas/run-ledger-v2.json",
+  "title": "Structural connectome complete mixed-terminal-state run ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_type",
+    "status",
+    "run_outcome",
+    "generated_utc",
+    "run_id",
+    "recipe_id",
+    "run_context",
+    "expected_units",
+    "summary",
+    "run_ledger",
+    "analysis_ready_manifest",
+    "outcome_validity_manifest",
+    "subject_terminal_records",
+    "terminal_statuses",
+    "analysis_ready_statuses",
+    "external_digest_anchor_required_for_release"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "ledger_type": {"const": "connectome_run_ledger"},
+    "status": {"const": "COMPLETE"},
+    "run_outcome": {"enum": ["PASS", "PARTIAL", "FAIL"]},
+    "generated_utc": {"type": "string", "format": "date-time"},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+    "recipe_id": {"type": "string", "minLength": 1},
+    "run_context": {"$ref": "#/$defs/fileRecord"},
+    "expected_units": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected",
+        "terminal",
+        "pass",
+        "partial",
+        "fail",
+        "analysis_ready",
+        "outcome_valid_rows"
+      ],
+      "properties": {
+        "expected": {"type": "integer", "minimum": 1},
+        "terminal": {"type": "integer", "minimum": 1},
+        "pass": {"type": "integer", "minimum": 0},
+        "partial": {"type": "integer", "minimum": 0},
+        "fail": {"type": "integer", "minimum": 0},
+        "analysis_ready": {"type": "integer", "minimum": 0},
+        "outcome_valid_rows": {"type": "integer", "minimum": 0}
+      }
+    },
+    "run_ledger": {"$ref": "#/$defs/fileRecord"},
+    "analysis_ready_manifest": {"$ref": "#/$defs/fileRecord"},
+    "outcome_validity_manifest": {"$ref": "#/$defs/fileRecord"},
+    "subject_terminal_records": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"}
+    },
+    "terminal_statuses": {"const": ["PASS", "PARTIAL", "FAIL"]},
+    "analysis_ready_statuses": {"const": ["PASS"]},
+    "external_digest_anchor_required_for_release": {"const": true}
+  },
+  "$defs": {
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

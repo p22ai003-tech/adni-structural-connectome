@@ -1,0 +1,103 @@
+digraph dual_track_research_plan_journal {
+  graph [
+    rankdir=TB,
+    newrank=true,
+    compound=true,
+    bgcolor="white",
+    pad="0.28",
+    nodesep="0.48",
+    ranksep="0.58",
+    splines=ortho,
+    fontname="Helvetica",
+    label="Acquisition-aware structural-connectome study design",
+    labelloc="t",
+    fontsize=20
+  ];
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Helvetica",
+    fontsize=11,
+    margin="0.15,0.10",
+    width=2.35,
+    color="#40576B",
+    fillcolor="#F7FAFC"
+  ];
+  edge [fontname="Helvetica", fontsize=9, color="#5B6B7A", arrowsize=0.72];
+
+  local_data [shape=parallelogram, label="530 locked DTI-T1 pairs", fillcolor="#D8F3DC", color="#2D6A4F"];
+  project_audit [label="Code, output, and\nprovenance audit", fillcolor="#D8F3DC", color="#2D6A4F"];
+  exact_metadata [label="Exact diagnosis, dates, and\nacquisition metadata", fillcolor="#D8F3DC", color="#2D6A4F"];
+  source_lock [label="Source lock and\nheader-only preflight", fillcolor="#D8F3DC", color="#2D6A4F"];
+  design_gate [label="Cohort, estimand, and\nanalysis design", fillcolor="#D8F3DC", color="#2D6A4F"];
+  split [shape=diamond, width=2.15, label="Parallel evidence\nstreams", fillcolor="#FFE8A1", color="#F59F00"];
+
+  { rank=same; local_data; project_audit; }
+
+  subgraph cluster_exploratory {
+    label="EXPLORATORY EXISTING-OUTPUT STREAM";
+    color="#3A86FF";
+    fillcolor="#EEF7FF";
+    style="rounded,filled";
+    fontname="Helvetica-Bold";
+    fontsize=12;
+
+    existing_outputs [label="Frozen historical\nparticipant-level outputs", fillcolor="#FFF3BF", color="#E09F3E"];
+    exact_reanalysis [label="Exact-metadata models and\ncommon-support restrictions", fillcolor="#FFF3BF", color="#E09F3E"];
+    falsification [label="Technical falsification and\nsite-sensitivity analyses", fillcolor="#FFF3BF", color="#E09F3E"];
+    prior_art [label="Claim-level prior-art and\ncontradiction review", fillcolor="#FFF3BF", color="#E09F3E"];
+    claim_lock [label="Bounded claim and\nlimitations lock", fillcolor="#DCEEFF", color="#3A86FF"];
+    draft [label="Exploratory manuscript,\ntables, and figures", fillcolor="#DCEEFF", color="#3A86FF"];
+    final_audit [label="Numerical, statistical, and\ncitation audit", fillcolor="#DCEEFF", color="#3A86FF"];
+    submission [shape=oval, label="Submission draft", fillcolor="#DCEEFF", color="#3A86FF"];
+
+    existing_outputs -> exact_reanalysis -> falsification -> prior_art -> claim_lock -> draft -> final_audit -> submission;
+  }
+
+  subgraph cluster_confirmation {
+    label="CORRECTED CONFIRMATION STREAM";
+    color="#8338EC";
+    fillcolor="#F6F0FF";
+    style="rounded,filled";
+    fontname="Helvetica-Bold";
+    fontsize=12;
+
+    pipeline_repair [label="Input, workflow, QC, and\nprovenance repair", fillcolor="#EEE4FF", color="#8338EC"];
+    canary_plan [label="Diagnosis-blind technical\ncanary selection", fillcolor="#EEE4FF", color="#8338EC"];
+    gate_a [shape=diamond, width=2.15, label="Approve bounded\ncanary start?", fillcolor="#FFE8A1", color="#F59F00"];
+    phase_a [label="Conversion and response\ncalibration", fillcolor="#EEE4FF", color="#8338EC"];
+    pretract [label="Pre-tractography processing,\nQC, and blinded review", fillcolor="#EEE4FF", color="#8338EC"];
+    gate_b [shape=diamond, width=2.15, label="Approve\ncontinuation?", fillcolor="#FFE8A1", color="#F59F00"];
+    canary_matrices [label="Canary tractography and\nvalidated matrices", fillcolor="#EEE4FF", color="#8338EC"];
+    gate_full [shape=diamond, width=2.15, label="Approve full\nprocessing?", fillcolor="#FFE8A1", color="#F59F00"];
+    full_run [label="Recipe-locked full-cohort\nprocessing", fillcolor="#EEE4FF", color="#8338EC"];
+    confirmatory [label="Locked confirmatory\nanalysis", fillcolor="#EEE4FF", color="#8338EC"];
+
+    pipeline_repair -> canary_plan -> gate_a;
+    gate_a -> phase_a;
+    phase_a -> pretract -> gate_b;
+    gate_b -> canary_matrices;
+    canary_matrices -> gate_full;
+    gate_full -> full_run;
+    full_run -> confirmatory;
+  }
+
+  merge [shape=hexagon, width=2.65, label="Reconcile exploratory and\ncorrected estimates", fillcolor="#D8F3DC", color="#1B7F5A"];
+  final_release [shape=oval, width=2.65, label="Validated final report and\nversioned dashboard", fillcolor="#D8F3DC", color="#1B7F5A"];
+
+  local_data -> exact_metadata;
+  project_audit -> exact_metadata;
+  exact_metadata -> source_lock -> design_gate -> split;
+  split -> existing_outputs [lhead=cluster_exploratory];
+  split -> pipeline_repair [lhead=cluster_confirmation];
+
+  { rank=same; existing_outputs; pipeline_repair; }
+
+  pipeline_repair -> draft [style=dashed, color="#6C757D", constraint=false];
+  exact_reanalysis -> canary_plan [style=dashed, color="#6C757D", constraint=false];
+  prior_art -> confirmatory [style=dashed, color="#6C757D", constraint=false];
+
+  submission -> merge [style=dashed, color="#3A86FF"];
+  confirmatory -> merge [penwidth=2.0, color="#8338EC"];
+  merge -> final_release [penwidth=2.0, color="#1B7F5A"];
+}

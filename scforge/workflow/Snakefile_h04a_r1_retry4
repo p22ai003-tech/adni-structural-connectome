@@ -1,0 +1,16 @@
+"""Retry4 wrapper: bind the retry3 scientific workflow to retry4 provenance."""
+
+import sys
+from pathlib import Path
+
+
+_RETRY4_WORKFLOW_DIR = Path(workflow.basedir).resolve()
+_RETRY4_PROJECT_ROOT = _RETRY4_WORKFLOW_DIR.parents[1]
+sys.path.insert(0, str((_RETRY4_PROJECT_ROOT / "scforge").resolve()))
+
+from scforge import h04a_r1_retry4 as _retry4_compatibility
+
+
+sys.modules["scforge.h04a_r1_retry3"] = _retry4_compatibility
+
+include: "Snakefile_h04a_r1_retry3"

@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structural-connectome.local/schemas/provenance-v2.json",
+  "title": "Structural connectome immutable per-unit terminal-state provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "status",
+    "generated_utc",
+    "started_utc",
+    "ended_utc",
+    "recipe_id",
+    "run_id",
+    "unit",
+    "terminal_stage",
+    "primary_failure_reason",
+    "secondary_flags",
+    "source_identity",
+    "source_identity_hashes",
+    "staged_input_hashes",
+    "source_files",
+    "contract_files",
+    "intermediate_files",
+    "outputs",
+    "outcome_validity",
+    "execution",
+    "processing_contract",
+    "qc",
+    "safety"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "record_type": {"const": "connectome_subject_terminal_state"},
+    "status": {"enum": ["PASS", "PARTIAL", "FAIL"]},
+    "generated_utc": {"type": "string", "format": "date-time"},
+    "started_utc": {"type": "string", "format": "date-time"},
+    "ended_utc": {"type": "string", "format": "date-time"},
+    "recipe_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+    "unit": {"type": "string", "minLength": 1},
+    "terminal_stage": {
+      "enum": [
+        "source_normalization",
+        "dwi_preprocessing",
+        "anatomical_preprocessing",
+        "registration",
+        "atlas_warp",
+        "fod_tensor",
+        "tractography_preflight",
+        "tractography",
+        "connectome",
+        "matrix_qc",
+        "visual_qc",
+        "publication",
+        "workflow_orchestration",
+        "complete"
+      ]
+    },
+    "primary_failure_reason": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "minLength": 1}
+      ]
+    },
+    "secondary_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "source_identity": {
+      "type": "object",
+      "required": [
+        "subject_id",
+        "diagnosis_at_dti",
+        "dti_image_id",
+        "t1_image_id",
+        "abs_pair_gap_days"
+      ],
+      "additionalProperties": true
+    },
+    "source_identity_hashes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
+    },
+    "staged_input_hashes": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
+    },
+    "source_files": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"}
+    },
+    "contract_files": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"}
+    },
+    "intermediate_files": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"}
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"}
+    },
+    "outcome_validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "processing",
+        "tensor",
+        "tractography",
+        "matrices",
+        "biological_inference",
+        "count",
+        "fd_sum",
+        "count_invnodevol",
+        "len_mean",
+        "invlen_mean",
+        "fa_mean",
+        "md_mean",
+        "rd_mean",
+        "ad_mean"
+      ],
+      "properties": {
+        "processing": {"$ref": "#/$defs/outcomeValidity"},
+        "tensor": {"$ref": "#/$defs/outcomeValidity"},
+        "tractography": {"$ref": "#/$defs/outcomeValidity"},
+        "matrices": {"$ref": "#/$defs/outcomeValidity"},
+        "biological_inference": {"$ref": "#/$defs/outcomeValidity"},
+        "count": {"$ref": "#/$defs/outcomeValidity"},
+        "fd_sum": {"$ref": "#/$defs/outcomeValidity"},
+        "count_invnodevol": {"$ref": "#/$defs/outcomeValidity"},
+        "len_mean": {"$ref": "#/$defs/outcomeValidity"},
+        "invlen_mean": {"$ref": "#/$defs/outcomeValidity"},
+        "fa_mean": {"$ref": "#/$defs/outcomeValidity"},
+        "md_mean": {"$ref": "#/$defs/outcomeValidity"},
+        "rd_mean": {"$ref": "#/$defs/outcomeValidity"},
+        "ad_mean": {"$ref": "#/$defs/outcomeValidity"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "attempt_started_utc",
+        "terminal_utc",
+        "command_logs",
+        "internal_commands"
+      ],
+      "properties": {
+        "attempt_started_utc": {"type": "string", "format": "date-time"},
+        "terminal_utc": {"type": "string", "format": "date-time"},
+        "command_logs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/fileRecord"}
+        },
+        "internal_commands": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "processing_contract": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "registration",
+        "atlas",
+        "fod",
+        "tensor",
+        "tractography",
+        "sift2",
+        "assignment"
+      ]
+    },
+    "qc": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "production_overwrite",
+        "automatic_fallbacks",
+        "density_route_selection",
+        "invalid_values_replaced"
+      ],
+      "properties": {
+        "production_overwrite": {"const": false},
+        "automatic_fallbacks": {"const": false},
+        "density_route_selection": {"const": false},
+        "invalid_values_replaced": {"const": false}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "PASS"}}},
+      "then": {
+        "properties": {
+          "terminal_stage": {"const": "complete"},
+          "primary_failure_reason": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["PARTIAL", "FAIL"]}}},
+      "then": {
+        "properties": {
+          "terminal_stage": {"not": {"const": "complete"}},
+          "primary_failure_reason": {"type": "string", "minLength": 1},
+          "outcome_validity": {
+            "properties": {
+              "biological_inference": {
+                "properties": {"status": {"const": "NA"}}
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "outcomeValidity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": {"enum": ["VALID", "NA"]},
+        "reason": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "artifact": {"$ref": "#/$defs/fileRecord"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "VALID"}}},
+          "then": {"properties": {"reason": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "NA"}}},
+          "then": {
+            "properties": {"reason": {"type": "string", "minLength": 1}},
+            "not": {"required": ["artifact"]}
+          }
+        }
+      ]
+    }
+  }
+}

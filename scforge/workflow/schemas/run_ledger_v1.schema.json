@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structural-connectome.local/schemas/run-ledger-v1.json",
+  "title": "Structural connectome completed-run ledger manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "ledger_type", "status", "generated_utc", "run_id",
+    "recipe_id", "run_context", "expected_units", "summary", "run_ledger",
+    "analysis_ready_manifest", "subject_provenance", "publish_only_statuses",
+    "external_digest_anchor_required_for_release"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "ledger_type": {"const": "connectome_run_ledger"},
+    "status": {"const": "COMPLETE"},
+    "generated_utc": {"type": "string", "format": "date-time"},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+    "recipe_id": {"type": "string", "minLength": 1},
+    "run_context": {"$ref": "#/$defs/fileRecord"},
+    "expected_units": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected", "pass", "fail", "excluded"],
+      "properties": {
+        "expected": {"type": "integer", "minimum": 1},
+        "pass": {"type": "integer", "minimum": 0},
+        "fail": {"const": 0},
+        "excluded": {"const": 0}
+      }
+    },
+    "run_ledger": {"$ref": "#/$defs/fileRecord"},
+    "analysis_ready_manifest": {"$ref": "#/$defs/fileRecord"},
+    "subject_provenance": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/fileRecord"}
+    },
+    "publish_only_statuses": {"const": ["PASS"]},
+    "external_digest_anchor_required_for_release": {"const": true}
+  },
+  "$defs": {
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

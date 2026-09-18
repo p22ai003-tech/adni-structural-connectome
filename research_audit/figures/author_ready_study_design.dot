@@ -1,0 +1,92 @@
+digraph StudyDesign {
+  graph [
+    rankdir=TB,
+    bgcolor="white",
+    pad="0.28",
+    nodesep="0.34",
+    ranksep="0.58",
+    splines=polyline,
+    fontname="Helvetica",
+    fontsize=22,
+    label="Study design and inferential sequence",
+    labelloc=t,
+    labeljust=c
+  ];
+  node [
+    shape=box,
+    style="rounded,filled",
+    color="#536878",
+    penwidth=1.4,
+    fontname="Helvetica",
+    fontsize=12,
+    margin="0.16,0.10"
+  ];
+  edge [color="#647786", penwidth=1.6, arrowsize=0.72];
+
+  subgraph cluster_cohort {
+    label="a  Cohort construction";
+    color="#9FB8C8";
+    penwidth=1.4;
+    style="rounded";
+    fontsize=14;
+    local [label="530 participants with\nlocally paired DTI and T1", fillcolor="#EAF2F7"];
+    smc [label="15 SMC excluded from\nCN/MCI/AD inference", fillcolor="#F7F7F7", color="#9A9A9A"];
+    paired [label="513 with paired AxD/RD\nsystem summaries\n251 CN | 185 MCI | 77 AD", fillcolor="#DDECF5"];
+    {rank=same; local; paired; smc}
+    local -> paired [label="  2 lacked paired outputs", fontsize=10];
+    local -> smc [style=dashed, arrowhead=none, color="#999999"];
+  }
+
+  subgraph cluster_processing {
+    label="b  Image-to-connectome representation";
+    color="#A9C5B7";
+    penwidth=1.4;
+    style="rounded";
+    fontsize=14;
+    dwi [label="DWI preprocessing\ndenoise | de-Gibbs | eddy | bias", fillcolor="#EAF5EF"];
+    model [label="Tensor and FOD models\nFA | MD | AxD | RD", fillcolor="#EAF5EF"];
+    conn [label="AAL3 tractography\n166 nodes | SIFT2 weighting", fillcolor="#EAF5EF"];
+    systems [label="17 nonduplicate systems\n9 anatomical | 8 functional", fillcolor="#DDF0E5"];
+    {rank=same; dwi; model; conn; systems}
+    dwi -> model -> conn -> systems;
+  }
+
+  subgraph cluster_primary {
+    label="c  Joint adjacent-stage estimand";
+    color="#C7A4B5";
+    penwidth=1.4;
+    style="rounded";
+    fontsize=14;
+    axial [label="AxD burden\nMCI minus CN", fillcolor="#E5F0F8", color="#2E6F9E"];
+    radial [label="RD burden\nAD minus MCI", fillcolor="#F8E6F0", color="#B7357B"];
+    family [label="One two-endpoint family\npaired availability | Holm control", fillcolor="#F2EAF0"];
+    {rank=same; axial; radial; family}
+    axial -> family;
+    radial -> family;
+  }
+
+  subgraph cluster_validation {
+    label="d  Robustness and interpretation";
+    color="#C5B57F";
+    penwidth=1.4;
+    style="rounded";
+    fontsize=14;
+    support [label="Site support\nfull | pair-common | all-three", fillcolor="#FBF6E7"];
+    inference [label="Finite-cluster inference\nwild bootstrap | site deletion", fillcolor="#FBF6E7"];
+    falsify [label="Direct alternatives\nselectivity | topology | architecture", fillcolor="#FBF6E7"];
+    transport [label="Nested site-held-out\nclassification", fillcolor="#FBF6E7"];
+    claim [label="Distributed, statistically qualified\ntwo-axis phenotype", fillcolor="#F6ECCB", penwidth=2.0];
+    {rank=same; support; inference}
+    {rank=same; falsify; transport}
+    support -> inference -> claim;
+    falsify -> claim;
+    transport -> claim;
+  }
+
+  paired -> dwi;
+  systems -> axial;
+  systems -> radial;
+  family -> support;
+  family -> falsify;
+  family -> transport;
+}

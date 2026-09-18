@@ -1,0 +1,78 @@
+digraph dual_track_research_plan_journal_compact {
+  graph [
+    rankdir=TB,
+    newrank=true,
+    compound=true,
+    bgcolor="white",
+    pad="0.24",
+    nodesep="0.55",
+    ranksep="0.52",
+    splines=ortho,
+    fontname="Helvetica",
+    label="Acquisition-aware structural-connectome study design",
+    labelloc="t",
+    fontsize=20
+  ];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11,
+        margin="0.16,0.11", width=2.7, color="#40576B", fillcolor="#F7FAFC"];
+  edge [fontname="Helvetica", fontsize=9, color="#5B6B7A", arrowsize=0.72];
+
+  sources [shape=parallelogram, label="530 locked DTI-T1 pairs", fillcolor="#D8F3DC", color="#2D6A4F"];
+  audit [label="Code, output, source, and\nprovenance audit", fillcolor="#D8F3DC", color="#2D6A4F"];
+  metadata [label="Exact diagnosis, dates, acquisition\nmetadata, cohort, and estimands", fillcolor="#D8F3DC", color="#2D6A4F"];
+  split [shape=diamond, width=2.4, label="Parallel evidence\nstreams", fillcolor="#FFE8A1", color="#F59F00"];
+
+  { rank=same; sources; audit; }
+  sources -> metadata;
+  audit -> metadata;
+  metadata -> split;
+
+  subgraph cluster_exploratory {
+    label="EXPLORATORY EXISTING-OUTPUT STREAM";
+    color="#3A86FF";
+    fillcolor="#EEF7FF";
+    style="rounded,filled";
+    fontname="Helvetica-Bold";
+    fontsize=12;
+
+    hist [label="Frozen historical\nparticipant-level outputs", fillcolor="#FFF3BF", color="#E09F3E"];
+    stress [label="Exact-metadata models,\nsite/common-support stress tests", fillcolor="#FFF3BF", color="#E09F3E"];
+    falsify [label="Technical falsification and\nclaim-level prior-art review", fillcolor="#FFF3BF", color="#E09F3E"];
+    bounded [label="Bounded interpretation, manuscript,\ntables, and figures", fillcolor="#DCEEFF", color="#3A86FF"];
+    subaudit [label="Numerical, statistical, citation,\nand overclaim audit", fillcolor="#DCEEFF", color="#3A86FF"];
+    submission [shape=oval, label="Exploratory submission draft", fillcolor="#DCEEFF", color="#3A86FF"];
+
+    hist -> stress -> falsify -> bounded -> subaudit -> submission;
+  }
+
+  subgraph cluster_confirmation {
+    label="CORRECTED CONFIRMATION STREAM";
+    color="#8338EC";
+    fillcolor="#F6F0FF";
+    style="rounded,filled";
+    fontname="Helvetica-Bold";
+    fontsize=12;
+
+    repair [label="Input, workflow, QC, and\nprovenance repair", fillcolor="#EEE4FF", color="#8338EC"];
+    canary [label="Gate 1: bounded technical canary\nconversion, calibration, and pre-QC", fillcolor="#FFE8A1", color="#F59F00"];
+    matrices [label="Gate 2: blinded-review continuation\nto tractography and matrices", fillcolor="#FFE8A1", color="#F59F00"];
+    full [label="Gate 3: recipe-locked\nfull-cohort processing", fillcolor="#FFE8A1", color="#F59F00"];
+    confirm [label="Locked confirmatory analysis", fillcolor="#EEE4FF", color="#8338EC"];
+
+    repair -> canary -> matrices -> full -> confirm;
+  }
+
+  split -> hist [lhead=cluster_exploratory];
+  split -> repair [lhead=cluster_confirmation];
+  { rank=same; hist; repair; }
+
+  repair -> bounded [style=dashed, color="#6C757D", constraint=false];
+  stress -> canary [style=dashed, color="#6C757D", constraint=false];
+  falsify -> confirm [style=dashed, color="#6C757D", constraint=false];
+
+  reconcile [shape=hexagon, width=2.9, label="Reconcile exploratory and\ncorrected estimates", fillcolor="#D8F3DC", color="#1B7F5A"];
+  release [shape=oval, width=2.9, label="Validated final report and\nversioned dashboard", fillcolor="#D8F3DC", color="#1B7F5A"];
+  submission -> reconcile [style=dashed, color="#3A86FF"];
+  confirm -> reconcile [penwidth=2.0, color="#8338EC"];
+  reconcile -> release [penwidth=2.0, color="#1B7F5A"];
+}

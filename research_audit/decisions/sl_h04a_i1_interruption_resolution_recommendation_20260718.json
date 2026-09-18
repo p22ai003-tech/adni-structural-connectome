@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "decision_type": "h04a_unclosed_attempt_resolution_recommendation",
+  "decision_id": "SL-H04A-I1",
+  "status": "PENDING_USER_DECISION",
+  "prepared_utc": "2026-07-18T15:40:18Z",
+  "approved": false,
+  "recommendation": "CLOSE_AS_INTERRUPTED_FAIL_PRESERVE_ALL_ARTIFACTS_NO_OLD_ROOT_RESTART",
+  "attempt": {
+    "attempt_id": "20260718T132019.562821Z-response-calibration-phase-a-ba0c318b",
+    "launcher_mode": "response-calibration-phase-a",
+    "started_utc": "2026-07-18T13:20:19.586744+00:00",
+    "attempt_start_path": "/data/derivatives/scforge_v2/h04a_canary_20260718_v1/attempts/20260718T132019.562821Z-response-calibration-phase-a-ba0c318b.start.json",
+    "attempt_start_sha256": "1d42f1420b7c9d80a807f126d64a60ccfd80add77d693548cc1b4b0dadb6d706",
+    "combined_log_path": "/data/derivatives/scforge_v2/h04a_canary_20260718_v1/attempts/20260718T132019.562821Z-response-calibration-phase-a-ba0c318b.snakemake.log",
+    "combined_log_sha256": "1388e9309a6fcf512e7a02d996f0f151ce1b48acae211c59ab508bf48b758277",
+    "immutable_end_present": false,
+    "active_process_present_at_2026_07_18T15_40_18Z": false,
+    "signed_h04a_decision_sha256": "1be4529aa482c73a79f105e6f37ec4fdc9032f0a8894d525f8a53c79dc52ccb4"
+  },
+  "last_artifact": {
+    "path": "/data/derivatives/scforge_v2/h04a_canary_20260718_v1/subjects/168_S_6735_I1175371/01_dwi/dwi_preproc.mif",
+    "sha256": "dc7a3ceb92d0f245fd8db1f6c237a6772ea20b8c0c612a75fcdca38c4eed1ade",
+    "size_bytes": 236831204,
+    "modified_utc": "2026-07-18T15:29:56.101816+00:00"
+  },
+  "aggregate_state": {
+    "t1_normalized": 24,
+    "dwi_normalized": 8,
+    "dwi_normalization_failed": 16,
+    "gradient_contract_passed": 7,
+    "denoised": 4,
+    "degibbs_complete": 3,
+    "eddy_motion_complete": 1,
+    "response_outcome_complete": 0,
+    "phase_a_completion": 0,
+    "run_root_gib": 8.123
+  },
+  "resource_accounting": {
+    "lower_bound_seconds_through_last_artifact": 7776.515072,
+    "recommended_conservative_duration_seconds": 8398.413256,
+    "duration_end_utc": "2026-07-18T15:40:18Z"
+  },
+  "authorized_if_approved": [
+    "write_one_immutable_failed_attempt_end_bound_to_the_exact_start_and_log",
+    "preserve_all_old_run_artifacts",
+    "mark_original_phase_a_scientifically_insufficient"
+  ],
+  "not_authorized": [
+    "delete_or_overwrite_old_run_artifacts",
+    "resume_in_old_run_root",
+    "launch_sl_h04a_r1_without_separate_approval",
+    "fod",
+    "tractography",
+    "matrix_generation",
+    "dashboard_refresh",
+    "full_cohort_processing"
+  ]
+}

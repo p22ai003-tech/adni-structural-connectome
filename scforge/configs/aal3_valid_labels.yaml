@@ -1,0 +1,9 @@
+atlas: AAL3
+max_original_label: 170
+expected_gaps: [35, 36, 81, 82]
+required_labels:
+  - 7
+  - 8
+notes:
+  - AAL_007 and AAL_008 are valid frontal inferior opercular labels.
+  - Expected AAL3 gaps must not be counted as failed nodes.

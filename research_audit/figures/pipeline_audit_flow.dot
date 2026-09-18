@@ -1,0 +1,60 @@
+digraph ConnectomeAudit {
+  graph [
+    rankdir=LR,
+    bgcolor="white",
+    pad="0.25",
+    nodesep="0.38",
+    ranksep="0.55",
+    fontname="Helvetica",
+    fontsize=11,
+    label="Structural-connectome workflow, release gates, and SL-D01 evidence path",
+    labelloc=t
+  ];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9,
+        color="#355070", fillcolor="#eef4f8", margin="0.10,0.07"];
+  edge [color="#5c677d", arrowsize=0.7, penwidth=1.2];
+
+  subgraph cluster_current {
+    label="Current workflow";
+    color="#adb5bd";
+    style="rounded";
+    dwi [label="ADNI DWI\nseries"];
+    t1 [label="T1 selected\nby subject", fillcolor="#ffe5e5", color="#c1121f"];
+    pre [label="MRtrix/FSL\npreprocessing"];
+    reg [label="T1–B0 registration\n5TT / atlas", fillcolor="#ffe5e5", color="#c1121f"];
+    tract [label="CSD tractography\n3M/10M; ACT/noACT"];
+    conn [label="AAL166 matrices\nradial 2/4 mm", fillcolor="#ffe5e5", color="#c1121f"];
+    qc [label="Density >= 0.6\nlegacy QC attached", fillcolor="#ffe5e5", color="#c1121f"];
+    stats [label="Graph / DTI / ML\nnetwork screens", fillcolor="#fff3cd", color="#b08900"];
+    dash [label="Provisional\ndashboard"];
+
+    dwi -> pre;
+    t1 -> reg;
+    pre -> reg -> tract -> conn -> qc -> stats -> dash;
+  }
+
+  b1 [shape=note, label="196/530 phase-mismatched\nmedian gap 2.1 y", fillcolor="#ffd6d6", color="#c1121f"];
+  b2 [shape=note, label="477/530 count = fd_sum\nraw-count semantics invalid", fillcolor="#ffd6d6", color="#c1121f"];
+  b3 [shape=note, label="363/530 legacy excludes\nQC predates repair", fillcolor="#ffd6d6", color="#c1121f"];
+  t1 -> b1 [style=dashed, color="#c1121f", arrowhead=none];
+  conn -> b2 [style=dashed, color="#c1121f", arrowhead=none];
+  qc -> b3 [style=dashed, color="#c1121f", arrowhead=none];
+
+  subgraph cluster_corrected {
+    label="Corrected available-data path";
+    color="#2a9d8f";
+    style="rounded";
+    pair [label="Locked 530-pair manifest\nexact interval + limitation flags", fillcolor="#ddf3ef", color="#2a9d8f"];
+    recipe [label="One locked recipe\n+ immutable provenance", fillcolor="#ddf3ef", color="#2a9d8f"];
+    matrices [label="Distinct raw count\nand SIFT2 fd_sum", fillcolor="#ddf3ef", color="#2a9d8f"];
+    newqc [label="Minimum validity + spatial /\nphysical / matrix QC", fillcolor="#ddf3ef", color="#2a9d8f"];
+    primary [label="Prespecified primary\nhypothesis family", fillcolor="#ddf3ef", color="#2a9d8f"];
+    multilevel [label="Tissue -> edge ->\ntopology -> clinical", fillcolor="#ddf3ef", color="#2a9d8f"];
+    validate [label="Timing / QC / protocol /\nsite / atlas sensitivities", fillcolor="#ddf3ef", color="#2a9d8f"];
+    novelty [label="Exact-claim\nnovelty confirmation", fillcolor="#ddf3ef", color="#2a9d8f"];
+
+    pair -> recipe -> matrices -> newqc -> primary -> multilevel -> validate -> novelty;
+  }
+
+  qc -> pair [label=" stop claim; rebuild ", color="#c1121f", fontcolor="#c1121f", penwidth=2];
+}

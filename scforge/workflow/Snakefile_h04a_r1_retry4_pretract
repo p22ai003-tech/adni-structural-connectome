@@ -1,0 +1,40 @@
+"""Bounded retry4 pre-tractography target.
+
+The locked retry4 workflow remains unchanged.  This wrapper adds one target
+that closes the pre-tractography derivative set by requiring the WM
+segmentation and GMWMI seed in addition to the existing automated-QC and
+visual-review products.  The launcher/dry-run rule allowlist is the execution
+boundary; this file does not grant authority by itself.
+"""
+
+include: "Snakefile_h04a_r1_retry4"
+
+
+rule retry4_pre_tractography_canary:
+    input:
+        expand(
+            run_path(
+                "subjects",
+                "{unit}",
+                "06_preflight",
+                "automated_pre_tractography_qc.json",
+            ),
+            unit=UNITS,
+        ),
+        expand(
+            run_path(
+                "subjects",
+                "{unit}",
+                "06_preflight",
+                "visual_review_index.csv",
+            ),
+            unit=UNITS,
+        ),
+        expand(
+            run_path("subjects", "{unit}", "05_model", "5tt_wmseg.nii.gz"),
+            unit=UNITS,
+        ),
+        expand(
+            run_path("subjects", "{unit}", "05_model", "gmwmi_dwi.mif"),
+            unit=UNITS,
+        ),

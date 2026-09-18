@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "record_type": "bounded_pretract_known_defect_early_stop_decision",
+  "status": "EXECUTION_STOP_AUTHORIZED_CONSERVATIVELY",
+  "decided_utc": "2026-07-19T12:54:10Z",
+  "service": "scforge-h04a-r1-pretract-retry4.service",
+  "attempt_id": "20260719T121203.754603Z-pre-tractography-cb930ab7",
+  "snakemake_process_group": 27502,
+  "observed_progress": "167 of 394 steps (42%) done",
+  "completed_reusable_families": {
+    "tensor_fit_and_metrics": "15/15",
+    "five_tt_t1_and_wmseg": "15/15"
+  },
+  "confirmed_failure_counts": {
+    "ss3t_csd": 15,
+    "b0_to_t1_bbr": 14,
+    "mni_to_t1_nonlinear": 1
+  },
+  "root_cause_scope": "post-execution command/output contracts only",
+  "remaining_active_work": "two ANTs registrations whose declared warped-image name has already failed live and is contradicted by the native ANTs output contract",
+  "reason": "stop duplicate deterministic failures after all useful independent upstream outputs completed; preserve time and compute for the versioned minimal recovery",
+  "action": "send SIGTERM to the Snakemake process group only and leave the parent launcher running to publish immutable terminal evidence",
+  "data_deletion_authorized": false,
+  "source_mutation_authorized": false,
+  "tractography_authorized": false,
+  "matrix_generation_authorized": false,
+  "full_cohort_authorized": false
+}

@@ -1,0 +1,65 @@
+flowchart LR
+  localData[/"530 locked DTI-T1 pairs"/]
+  projectAudit["Code, dashboard, and history audit"]
+  exactMetadata["Exact dates, diagnosis, and acquisition metadata"]
+  sourceLock["Source lock and header-only preflight"]
+  designGate["SL-H03 estimand and analysis design"]
+  split{"Two parallel evidence streams"}
+
+  subgraph tomorrowTrack ["Tomorrow: defensible submission"]
+    direction TB
+    existingOutputs["Existing participant outputs"]
+    exactReanalysis["Exact-metadata reanalysis"]
+    falsification["Candidate falsification"]
+    priorArt["Exact prior-art audit"]
+    claimLock["Conservative novelty claim lock"]
+    draft["Coherent manuscript and visuals"]
+    finalAudit["Statistics and citation audit"]
+    submissionDraft(["Submission-ready V1"])
+  end
+
+  subgraph longTrack ["Long term: corrected confirmation"]
+    direction TB
+    pipelineRepair["Input, DAG, QC, and provenance repair"]
+    canaryPlan["Blinded 12-24 subject canary"]
+    gateA{"Approve SL-H04A?"}
+    phaseA["Response calibration"]
+    pretract["Pre-tractography QC"]
+    gateB{"Approve SL-H04B?"}
+    canaryMatrices["Tractography and nine matrices"]
+    gateFull{"Approve SL-H04?"}
+    fullRun["Corrected 530-subject run"]
+    confirmatory["Locked confirmatory analysis"]
+  end
+
+  mergePoint{{"Reconcile discovery and confirmation"}}
+  finalRelease(["Validated final paper and dashboard"])
+
+  localData --> exactMetadata
+  projectAudit --> exactMetadata
+  exactMetadata --> sourceLock --> designGate --> split
+  split --> existingOutputs --> exactReanalysis --> falsification --> priorArt --> claimLock --> draft --> finalAudit --> submissionDraft
+  split --> pipelineRepair --> canaryPlan --> gateA
+  gateA -->|"Yes"| phaseA --> pretract --> gateB
+  gateB -->|"Yes"| canaryMatrices --> gateFull
+  gateFull -->|"Yes"| fullRun --> confirmatory
+  pipelineRepair -.->|"Methods evidence"| draft
+  exactReanalysis -.->|"Directional hypotheses"| canaryPlan
+  priorArt -.->|"Claim boundaries"| confirmatory
+  submissionDraft -.->|"Discovery baseline"| mergePoint
+  confirmatory ==>|"Confirmation"| mergePoint
+  mergePoint ==> finalRelease
+
+  classDef complete fill:#D8F3DC,stroke:#2D6A4F,color:#1B4332
+  classDef active fill:#FFF3BF,stroke:#E09F3E,color:#5F370E
+  classDef tomorrow fill:#DCEEFF,stroke:#3A86FF,color:#173B57
+  classDef longterm fill:#EEE4FF,stroke:#8338EC,color:#3C096C
+  classDef decision fill:#FFE8A1,stroke:#F59F00,color:#5F3B00
+  classDef release fill:#D8F3DC,stroke:#1B7F5A,color:#113D2E
+
+  class localData,projectAudit,exactMetadata,sourceLock,designGate complete
+  class existingOutputs,exactReanalysis,falsification,priorArt active
+  class claimLock,draft,finalAudit,submissionDraft tomorrow
+  class pipelineRepair,canaryPlan,phaseA,pretract,canaryMatrices,fullRun,confirmatory longterm
+  class split,gateA,gateB,gateFull decision
+  class mergePoint,finalRelease release

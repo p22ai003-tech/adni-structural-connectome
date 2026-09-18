@@ -1,0 +1,435 @@
+"""Fail-closed SL-H04A-R1 Phase-A response-recovery workflow.
+
+This workflow is intentionally manifest driven.  It writes only beneath a
+dedicated ``scforge_v2`` run root and never promotes data into the historical
+production derivative tree.  A run is publishable only after every automated
+gate and the external blinded visual-QC gate pass.
+"""
+
+import csv
+import hashlib
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+import yaml
+
+
+_SNAKEFILE_DIR = Path(workflow.basedir).resolve()
+configfile: str(_SNAKEFILE_DIR.parents[1] / "configs" / "connectome_v2.yaml")
+
+
+WORKFLOW_DIR = Path(workflow.basedir).resolve()
+PROJECT_ROOT = WORKFLOW_DIR.parents[1]
+sys.path.insert(0, str((PROJECT_ROOT / "scforge").resolve()))
+
+from scforge.input_contract import (  # noqa: E402
+    assess_atlas_label_support,
+    assess_pre_tractography_image_ranges,
+    build_runtime_inventory_slices,
+    load_acquisition_manifest,
+    raw_source_paths,
+    require_eddy_metadata,
+    select_model_shells,
+    sha256_file as _source_sha256,
+    source_phase_encoding_token,
+    staged_hashes,
+    tensor_design_diagnostics,
+    validate_execution_subset,
+    verify_runtime_source_inventory,
+    write_normalization_failure_marker,
+)
+from scforge.h04a_r1 import (  # noqa: E402
+    validate_h04a_r1_resolved_runtime_config as validate_resolved_runtime_config,
+    validate_recovery_extension_binding,
+)
+from scforge.response_calibration import (  # noqa: E402
+    assess_response_calibration_candidate,
+    validate_frozen_response_calibration,
+    write_failed_response_calibration_outcome,
+    write_pass_response_calibration_outcome,
+)
+
+NORMATIVE_CONFIG = (PROJECT_ROOT / "configs" / "connectome_v2.yaml").resolve()
+MATRIX_DICTIONARY = (PROJECT_ROOT / "research_audit" / "matrix_data_dictionary.md").resolve()
+ENVIRONMENT_CONTRACT = Path(
+    config["environment"]["locked_paths"]["environment_contract"]
+).resolve()
+with ENVIRONMENT_CONTRACT.open(encoding="utf-8") as _environment_handle:
+    ENVIRONMENT_LOCK = yaml.safe_load(_environment_handle)
+WORKFLOW_SOURCE_MANIFEST = Path(
+    ENVIRONMENT_LOCK["workflow"]["source_manifest"]["path"]
+).resolve()
+ACQUISITION_SCHEMA = Path(config["inputs"]["acquisition_schema"]["path"]).resolve()
+LOCKED_SOURCE_INVENTORY = Path(
+    config["inputs"]["locked_file_inventory"]["path"]
+).resolve()
+SOURCE_METADATA_PROJECTION = Path(
+    config["inputs"]["source_metadata_projection"]["path"]
+).resolve()
+SOURCE_METADATA_PROJECTION_VALIDATION = Path(
+    config["inputs"]["source_metadata_projection"]["validation_path"]
+).resolve()
+PROVENANCE_SCHEMA = (WORKFLOW_DIR / "schemas" / "provenance_v2.schema.json").resolve()
+RUN_LEDGER_SCHEMA = (WORKFLOW_DIR / "schemas" / "run_ledger_v2.schema.json").resolve()
+
+RECIPE_ID = str(config["contract"]["recipe_id"])
+MANIFEST_PATH = Path(
+    config.get("manifest_path", config["inputs"]["approved_pair_manifest"]["path"])
+).expanduser().resolve()
+EXECUTION_MANIFEST_PATH = Path(
+    config.get("execution_manifest_path", "REQUIRED_APPROVED_CANARY_SUBSET")
+).expanduser().resolve()
+RUN_ROOT = Path(
+    config.get("run_root", PROJECT_ROOT / "scforge_v2_runs" / RECIPE_ID)
+).expanduser().resolve()
+HUMAN_QC_MANIFEST = Path(
+    config.get("human_qc_manifest", RUN_ROOT / "review" / "human_visual_qc.csv")
+).expanduser().resolve()
+RESOLVED_RUN_CONFIG = Path(
+    config.get("resolved_run_config_path", NORMATIVE_CONFIG)
+).expanduser().resolve()
+RUN_CONTEXT_PATH = Path(
+    config.get("run_context_path", RUN_ROOT / "contract" / "run_context.json")
+).expanduser().resolve()
+ATTEMPT_CONTEXT_PATH = Path(
+    config.get("attempt_context_path", RUN_ROOT / "contract" / "attempt_context.json")
+).expanduser().resolve()
+
+MRTRIX_BIN = (Path(ENVIRONMENT_LOCK["mrtrix3"]["prefix"]) / "bin").resolve()
+MRTRIX3TISSUE_BIN = (Path(ENVIRONMENT_LOCK["mrtrix3tissue"]["prefix"]) / "bin").resolve()
+FSL_BIN = (Path(ENVIRONMENT_LOCK["fsl"]["prefix"]) / "bin").resolve()
+ANTS_BIN = Path(ENVIRONMENT_LOCK["ants"]["prefix"]).resolve() / "bin"
+SS3T_PYTHON = Path(ENVIRONMENT_LOCK["execution_policy"]["ss3t_invocation"]["python"]).resolve()
+SS3T_SCRIPT = Path(ENVIRONMENT_LOCK["execution_policy"]["ss3t_invocation"]["script"]).resolve()
+EDDY_CPU = Path(ENVIRONMENT_LOCK["execution_policy"]["eddy_executor"]).resolve()
+C3D_AFFINE_TOOL = Path(
+    ENVIRONMENT_LOCK["convert3d"]["binaries"]["c3d_affine_tool"]["path"]
+).resolve()
+C3D_LOCK = Path(
+    ENVIRONMENT_LOCK["convert3d"]["explicit_conda_lock"]["path"]
+).resolve()
+MNI_TEMPLATE = Path(config["registration"]["mni_to_t1"]["template"]).resolve()
+TOOL_PATH = ":".join(
+    ENVIRONMENT_LOCK["execution_policy"]["normal_tool_path_order"]
+)
+
+RECOVERY_EXTENSION_BINDING = validate_recovery_extension_binding(
+    config.get("recovery_extension_binding"),
+    expected_run_root=RUN_ROOT,
+)
+DCM2NIIX = Path(
+    RECOVERY_EXTENSION_BINDING["converter"]["path"]
+).expanduser().resolve()
+SS3T_TOOL_PATH = ":".join(
+    ENVIRONMENT_LOCK["execution_policy"]["ss3t_invocation"]["path_prefix"]
+)
+
+ATLAS_IMAGE = Path(config["atlas"]["contiguous_source_image"]).resolve()
+ATLAS_NODE_TABLE = Path(config["atlas"]["node_table"]).resolve()
+ATLAS_NODE_MAP = Path(config["atlas"]["node_map"]).resolve()
+
+EXPECTED_MATRICES = tuple(item["name"] for item in config["connectome"]["required_matrices"])
+TENSOR_METRICS = ("fa", "md", "rd", "ad")
+MEAN_MATRICES = ("len_mean", "invlen_mean", "fa_mean", "md_mean", "rd_mean", "ad_mean")
+RESPONSE_CALIBRATION = config["fod"]["response_estimation"]["calibration"]
+BZERO_THRESHOLD = float(
+    config["dwi_preprocessing"]["registration_reference"][
+        "b0_threshold_s_per_mm2"
+    ]
+)
+FROZEN_RESPONSE_MANIFEST = Path(
+    RESPONSE_CALIBRATION["frozen_manifest"]["path"]
+).expanduser().resolve()
+FROZEN_RESPONSE_PATHS = {
+    tissue: Path(RESPONSE_CALIBRATION["pooled_responses"][tissue]["path"])
+    .expanduser()
+    .resolve()
+    for tissue in ("wm", "gm", "csf")
+}
+
+WORKFLOW_REQUIRED_SOURCE_PATHS = {
+    (WORKFLOW_DIR / "Snakefile").resolve(),
+    *((
+        path.resolve()
+        for path in sorted((WORKFLOW_DIR / "rules").glob("*.smk"))
+        if not path.name.endswith("_h04a_r1.smk")
+    )),
+    (WORKFLOW_DIR / "validate_environment_contract.py").resolve(),
+    (WORKFLOW_DIR / "smoke_dryrun.py").resolve(),
+    (WORKFLOW_DIR / "run_connectome_v2.py").resolve(),
+    (WORKFLOW_DIR / "freeze_response_calibration.py").resolve(),
+    ACQUISITION_SCHEMA,
+    PROVENANCE_SCHEMA,
+    RUN_LEDGER_SCHEMA,
+    (PROJECT_ROOT / "configs" / "connectome_v2.yaml").resolve(),
+    (PROJECT_ROOT / "research_audit" / "matrix_data_dictionary.md").resolve(),
+    (PROJECT_ROOT / "research_audit" / "validate_connectome_v2_contract.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "__init__.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "qc.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "connectome.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "config.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "input_contract.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "provenance.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "response_calibration.py").resolve(),
+    (PROJECT_ROOT / "scforge" / "scforge" / "tractography.py").resolve(),
+}
+
+def _sha256(path):
+    return _source_sha256(path)
+
+
+def _is_relative_to(path, parent):
+    try:
+        Path(path).resolve().relative_to(Path(parent).resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def _validate_static_contract():
+    contract = config["contract"]
+    if (
+        contract.get("status") != "implementation_candidate_pending_validation"
+        or contract.get("imaging_execution_authorized") is not False
+        or contract.get("current_human_gate") != "SL-H03-C1"
+        or contract.get("authorization_scope") != "design_only_no_imaging"
+        or contract.get("next_execution_gate") != "SL-H04A"
+    ):
+        raise ValueError(
+            "current recipe must remain an SL-H03-C1 design-only implementation "
+            "candidate pending a separate SL-H04A imaging decision"
+        )
+    if config["contract"].get("failure_policy") != "fail_closed":
+        raise ValueError("connectome_v2 contract must remain fail_closed")
+    if config["contract"].get("silent_fallbacks_allowed") is not False:
+        raise ValueError("Silent fallbacks are forbidden")
+    if config["contract"].get("select_route_by_connectome_density") is not False:
+        raise ValueError("Density-based route selection is forbidden")
+    if config["qc"]["matrix"].get("density_used_as_inclusion_gate") is not False:
+        raise ValueError("Density cannot be an inclusion gate")
+    if EXPECTED_MATRICES != (
+        "count",
+        "fd_sum",
+        "count_invnodevol",
+        "len_mean",
+        "invlen_mean",
+        "fa_mean",
+        "md_mean",
+        "rd_mean",
+        "ad_mean",
+    ):
+        raise ValueError(f"Unexpected required matrix contract: {EXPECTED_MATRICES}")
+    if config["connectome"]["assignment"].get("method") != "radial_search":
+        raise ValueError("Only the frozen radial_search assignment is permitted")
+    if int(config["connectome"]["assignment"].get("radius_mm")) != 4:
+        raise ValueError("The primary recipe requires one uniform 4-mm radius")
+    pairing = config["inputs"]["pairing"]
+    if pairing.get("processing_rejection_by_abs_gap_allowed") is not False:
+        raise ValueError("DTI/T1 gap must be an analysis stratum, not a processing rejection")
+    if pairing.get("processing_rejection_by_diagnosis_allowed") is not False:
+        raise ValueError("Diagnosis must not select or reject the processing route")
+    if pairing.get("processing_rejection_by_t1_source_kind_allowed") is not False:
+        raise ValueError("DICOM versus NIfTI T1 source kind must not reject processing")
+    if config["inputs"]["source_normalization"].get("missing_phase_encoding_or_readout") != "per_unit_FAIL_no_default_no_imputation":
+        raise ValueError("Missing PE/readout metadata must fail closed per unit")
+    if int(config["inputs"]["approved_pair_manifest"].get("required_row_count", 0)) != 530:
+        raise ValueError("SL-D01 processing denominator must remain exactly 530 rows")
+
+    forbidden = (
+        Path("/data/derivatives/connectomes"),
+        Path("/data/derivatives/qc/sc_matrix_qc"),
+        PROJECT_ROOT / "research_audit" / "snapshots",
+    )
+    if "scforge_v2" not in str(RUN_ROOT):
+        raise ValueError(
+            f"run_root must contain the safety token 'scforge_v2': {RUN_ROOT}"
+        )
+    if any(_is_relative_to(RUN_ROOT, path) or _is_relative_to(path, RUN_ROOT) for path in forbidden):
+        raise ValueError(f"run_root overlaps a protected historical/production tree: {RUN_ROOT}")
+    if RUN_ROOT in (PROJECT_ROOT, Path("/")):
+        raise ValueError(f"Unsafe run_root: {RUN_ROOT}")
+    for label, path in (
+        ("resolved_run_config", RESOLVED_RUN_CONFIG),
+        ("run_context", RUN_CONTEXT_PATH),
+        ("attempt_context", ATTEMPT_CONTEXT_PATH),
+    ):
+        if path != NORMATIVE_CONFIG and not _is_relative_to(path, RUN_ROOT):
+            raise ValueError(f"{label} must be inside run_root: {path}")
+_validate_static_contract()
+MANIFEST_ROWS = load_acquisition_manifest(
+    MANIFEST_PATH,
+    ACQUISITION_SCHEMA,
+    run_root=RUN_ROOT,
+    expected_rows=int(config["inputs"]["approved_pair_manifest"]["required_row_count"]),
+)
+EXECUTION_ROWS = validate_execution_subset(
+    MANIFEST_ROWS,
+    load_acquisition_manifest(
+        EXECUTION_MANIFEST_PATH,
+        ACQUISITION_SCHEMA,
+        run_root=RUN_ROOT,
+    ),
+)
+ROW_BY_UNIT = {row["unit"]: row for row in EXECUTION_ROWS}
+EXECUTION_UNITS = tuple(sorted(ROW_BY_UNIT))
+EXECUTION_BINDING = config.get("execution_binding")
+if not isinstance(EXECUTION_BINDING, dict):
+    raise ValueError("supported execution requires an immutable canary subset binding")
+_expected_execution_records = {
+    "parent_acquisition_manifest": MANIFEST_PATH,
+    "execution_subset_manifest": EXECUTION_MANIFEST_PATH,
+}
+for _name, _path in _expected_execution_records.items():
+    _record = EXECUTION_BINDING.get(_name, {})
+    if (
+        Path(str(_record.get("path", ""))).resolve() != _path
+        or _record.get("sha256") != _sha256(_path)
+        or _record.get("size_bytes") != _path.stat().st_size
+    ):
+        raise ValueError(f"canary execution binding differs at {_name}")
+_decision_record = EXECUTION_BINDING.get("execution_subset_decision", {})
+_decision_path = Path(str(_decision_record.get("path", ""))).resolve()
+if (
+    EXECUTION_BINDING.get("schema_version") != "2.0.0"
+    or EXECUTION_BINDING.get("binding_type")
+    != "connectome_execution_subset_binding"
+    or EXECUTION_BINDING.get("execution_scope") != "canary"
+    or EXECUTION_BINDING.get("recipe_id") != RECIPE_ID
+    or EXECUTION_BINDING.get("approved_unit_count") != len(EXECUTION_UNITS)
+    or EXECUTION_BINDING.get("units") != list(EXECUTION_UNITS)
+    or EXECUTION_BINDING.get("diagnosis_labels_used") is not False
+    or EXECUTION_BINDING.get("selection_locked") is not True
+    or not _decision_path.is_file()
+    or _decision_record.get("sha256") != _sha256(_decision_path)
+    or _decision_record.get("size_bytes") != _decision_path.stat().st_size
+):
+    raise ValueError("canary execution binding semantics or decision evidence differ")
+
+LAUNCHER_MODE = str(config.get("launcher_mode", ""))
+TRACTOGRAPHY_CONTINUATION_BINDING = config.get(
+    "tractography_continuation_binding"
+)
+if LAUNCHER_MODE == "phase-b":
+    if not isinstance(TRACTOGRAPHY_CONTINUATION_BINDING, dict):
+        raise ValueError("phase B requires an immutable tractography continuation binding")
+    _approved_units = TRACTOGRAPHY_CONTINUATION_BINDING.get("approved_units")
+    if (
+        TRACTOGRAPHY_CONTINUATION_BINDING.get("schema_version") != "2.0.0"
+        or TRACTOGRAPHY_CONTINUATION_BINDING.get("binding_type")
+        != "tractography_continuation_binding"
+        or TRACTOGRAPHY_CONTINUATION_BINDING.get("execution_scope") != "canary"
+        or TRACTOGRAPHY_CONTINUATION_BINDING.get("recipe_id") != RECIPE_ID
+        or TRACTOGRAPHY_CONTINUATION_BINDING.get("execution_subset_manifest")
+        != EXECUTION_BINDING.get("execution_subset_manifest")
+        or TRACTOGRAPHY_CONTINUATION_BINDING.get("diagnosis_labels_used") is not False
+        or not isinstance(_approved_units, list)
+        or not _approved_units
+        or any(not isinstance(unit, str) or not unit for unit in _approved_units)
+        or _approved_units != sorted(set(_approved_units))
+        or not set(_approved_units).issubset(EXECUTION_UNITS)
+        or TRACTOGRAPHY_CONTINUATION_BINDING.get("approved_unit_count")
+        != len(_approved_units)
+    ):
+        raise ValueError("phase-B approved units differ from the canary continuation binding")
+    PHASE_B_UNITS = tuple(_approved_units)
+else:
+    if TRACTOGRAPHY_CONTINUATION_BINDING is not None:
+        raise ValueError("pre-tractography modes cannot carry a continuation binding")
+    PHASE_B_UNITS = EXECUTION_UNITS
+
+# ``EXECUTION_UNITS`` remains the expected canary denominator.  ``UNITS`` is
+# deliberately the scheduled DAG set, which is the human-approved subset in
+# phase B so preflight failures are never sent into tractography.
+UNITS = PHASE_B_UNITS if LAUNCHER_MODE == "phase-b" else EXECUTION_UNITS
+
+
+def row_value(wildcards, key):
+    return ROW_BY_UNIT[str(wildcards.unit)][key]
+
+
+def source_input(key):
+    return lambda wildcards: row_value(wildcards, key)
+
+
+def raw_modality_input(modality):
+    return lambda wildcards: [
+        ancient(str(path))
+        for path in raw_source_paths(ROW_BY_UNIT[str(wildcards.unit)], modality)
+    ]
+
+
+def subject_path(unit, *parts):
+    return str(RUN_ROOT / "subjects" / str(unit) / Path(*parts))
+
+
+def run_path(*parts):
+    return str(RUN_ROOT / Path(*parts))
+
+
+def subject_log(unit, name):
+    return subject_path(unit, "logs", name)
+
+
+def matrix_path(unit, metric):
+    return subject_path(unit, "07_connectome", "matrices", f"{metric}.csv")
+
+
+def all_matrix_paths(unit):
+    return [matrix_path(unit, metric) for metric in EXPECTED_MATRICES]
+
+
+wildcard_constraints:
+    unit="|".join(re.escape(unit) for unit in UNITS),
+    metric="fa|md|rd|ad"
+
+
+localrules: all, pre_tractography_canary, phase_b_subject_terminal_records, freeze_manifest, execution_preflight, gradient_contract, atlas_contract_qc, spatial_quantitative_qc, tractography_preflight, count_invnodevol, matrix_qc, provenance_sidecar, publish_manifest
+
+
+rule pre_tractography_canary:
+    input:
+        expand(
+            run_path(
+                "subjects",
+                "{unit}",
+                "06_preflight",
+                "automated_pre_tractography_qc.json",
+            ),
+            unit=UNITS,
+        ),
+        expand(
+            run_path("subjects", "{unit}", "06_preflight", "visual_review_index.csv"),
+            unit=UNITS,
+        ),
+
+
+rule phase_b_subject_terminal_records:
+    input:
+        expand(
+            run_path("subjects", "{unit}", "08_qc", "terminal_record.json"),
+            unit=PHASE_B_UNITS,
+        ),
+
+
+rule all:
+    input:
+        run_path("publication", "analysis_ready_manifest.csv"),
+        run_path("publication", "run_ledger.jsonl"),
+        run_path("publication", "run_ledger_manifest.json"),
+        run_path("publication", "outcome_validity_manifest.csv"),
+        expand(run_path("subjects", "{unit}", "08_qc", "terminal_record.json"), unit=UNITS),
+
+
+include: "extensions/h04a_r1/00_manifest.smk"
+include: "extensions/h04a_r1/00_inputs.smk"
+include: "rules/01_dwi_preproc.smk"
+include: "rules/02_anat.smk"
+include: "rules/03_spatial_contract.smk"
+include: "rules/04_atlas.smk"
+include: "rules/05_5tt_fod.smk"
+include: "rules/06_preflight.smk"
+include: "rules/07_tracks_connectome.smk"
+include: "rules/08_qc_publish.smk"

@@ -1,0 +1,524 @@
+# Normative candidate recipe for the blinded structural-connectome v2 canary.
+# Any material edit requires a new recipe_id. The SHA-256 of this file is
+# recorded by the run manifest; it is deliberately not embedded in this file.
+
+contract:
+  schema_version: "2.0.0"
+  recipe_id: "connectome-v2.1.0-closed-world-canary-candidate"
+  status: "implementation_candidate_pending_validation"
+  imaging_execution_authorized: false
+  current_human_gate: "SL-H03-C1"
+  authorization_scope: "design_only_no_imaging"
+  next_execution_gate: "SL-H04A"
+  frozen_utc: null
+  matrix_dictionary: "/home/ec2-user/exp/research_audit/matrix_data_dictionary.md"
+  hash_policy: "sha256_of_exact_file_bytes"
+  change_policy: "new_recipe_id_and_decision_log_entry"
+  failure_policy: "fail_closed"
+  silent_fallbacks_allowed: false
+  select_route_by_connectome_density: false
+  pad_missing_nodes_or_matrices: false
+  clip_or_impute_tensor_metrics: false
+
+environment:
+  execution_mode: "locked_container_or_equivalent_immutable_environment"
+  required_versions:
+    snakemake: "9.23.1"
+    mrtrix3: "3.0.7"
+    fsl: "6.0.7.18"
+    ants: "2.6.5.dev1-g89fa5be"
+    mrtrix3tissue: "3Tissue_v5.2.9_commit_f8ba0e3fa17cb3b6bb51bcc4939cde83243b8f4c"
+  current_host_observation:
+    mrtrix3: "3.0.7"
+    fsl: "6.0.7.18"
+    ants: "2.6.5.dev1-g89fa5be"
+    ss3t_csd_beta1_available: true
+    gpu_driver_available: false
+  locked_paths:
+    workflow_python: "/home/ec2-user/exp/.venv_connectome_workflow/bin/python"
+    mrtrix_script_python: "/usr/bin/python3.9"
+    snakemake: "/home/ec2-user/exp/.venv_connectome_workflow/bin/snakemake"
+    wheel_artifact_manifest: "/home/ec2-user/exp/scforge/workflow/wheel_artifacts.cp312-linux-x86_64.tsv"
+    workflow_source_manifest: "/home/ec2-user/exp/scforge/workflow/workflow_source_manifest.tsv"
+    ants_prefix: "/home/ec2-user/exp/.envs/ants-2.6.5"
+    ants_explicit_lock: "/home/ec2-user/exp/scforge/workflow/locks/ants-2.6.5-linux-64.explicit.txt"
+    convert3d_prefix: "/home/ec2-user/exp/.envs/convert3d-1.4.2"
+    convert3d_explicit_lock: "/home/ec2-user/exp/scforge/workflow/locks/convert3d-1.4.2-linux-64.explicit.txt"
+    mrtrix3tissue_prefix: "/home/ec2-user/MRtrix3Tissue"
+    ss3t_python: "/usr/bin/python3.9"
+    environment_contract: "/home/ec2-user/exp/scforge/workflow/environment_contract.yaml"
+  implementation_state: "closed_world_raw_source_normalization_with_per_unit_terminal_outcomes"
+
+inputs:
+  approved_pair_manifest:
+    path: "/home/ec2-user/exp/research_audit/outputs/connectome_v2_input_manifest_v2.csv"
+    sha256: "377a75ba5b93a511bcd0facf94bc1cb30c896449af3cfa087bd6125c1624a55a"
+    human_gate: "SL-H03-C1"
+    required_row_count: 530
+    processing_authorized_row_count: 530
+  acquisition_schema:
+    path: "/home/ec2-user/exp/scforge/workflow/schemas/acquisition_manifest_v2.schema.json"
+    sha256: "97aee55d03623b40e0f1b44e46e6d802480d48b5b634f143581ef1a762950d0f"
+    schema_version: "2.0.0"
+  source_metadata_projection:
+    path: "/home/ec2-user/exp/research_audit/outputs/source_metadata_workflow_preflight_v1/source_metadata_workflow_projection_v1.csv"
+    sha256: "1546c065cb60e3c16ba47dc4e586eaf068149c4d50e55ce5935fb3695b1d7757"
+    row_count: 530
+    validation_path: "/home/ec2-user/exp/research_audit/outputs/source_metadata_workflow_preflight_v1/source_metadata_workflow_projection_validation_v1.json"
+    validation_sha256: "060c9cf74b66dd67af60267733217f28fdc85a3be21f385067a9e9c826fe252f"
+    release_state: "SOURCE_IDENTITY_READY_CONVERSION_PENDING"
+    canary_ready_before_conversion: false
+  locked_file_inventory:
+    path: "/home/ec2-user/exp/research_audit/outputs/available_data_content_lock_v2/available_data_file_content_inventory_v2.csv"
+    sha256: "c0f221708a62ccb9acebc9732ac6e86f34c3e6629b63b6d4a3cc0d280e2672b2"
+    row_count: 451115
+    verification_policy: "stat_device_inode_size_mtime_ctime_before_and_after_conversion; content_rehash_on_any_identity_change_or_ambiguity"
+  pairing:
+    processing_rejection_by_abs_gap_allowed: false
+    processing_rejection_by_diagnosis_allowed: false
+    processing_rejection_by_t1_source_kind_allowed: false
+    timing_thresholds_are_analysis_strata_only_days: [90, 180]
+    diagnosis_is_processing_route_selector: false
+    original_t1_required_for_processing: false
+    smc_processing_policy: "process_and_retain_in_attrition; exclude_from_CN_MCI_AD_contrasts_and_report_separately"
+  source_normalization:
+    raw_dwi_kinds: ["dicom_series", "nifti_bundle"]
+    raw_t1_kinds: ["dicom_series", "nifti_single"]
+    dwi_staged_outputs: ["dwi_raw.mif", "dwi.bvec", "dwi.bval", "dwi_source_metadata.json"]
+    t1_staged_output: "t1_native.nii"
+    raw_bundle_hash_role: "immutable_identity_of_locked_source_file_universe"
+    staged_file_hash_role: "exact_hash_computed_after_deterministic_normalization"
+    raw_and_staged_hashes_must_be_distinct_fields: true
+    t1_dicom_series_uid_nullable_only_for_nifti_single: true
+    stable_t1_source_id_required: true
+    missing_phase_encoding_or_readout: "per_unit_FAIL_no_default_no_imputation"
+  source_identity_required:
+    - manifest_schema_version
+    - data_scope_decision
+    - processing_authorized
+    - analysis_role
+    - subject_id
+    - dti_image_id
+    - dti_study_date
+    - dti_source_kind
+    - dti_source_id
+    - dti_source_path
+    - dti_dicom_series_uid
+    - dti_raw_bundle_sha256
+    - t1_image_id
+    - t1_study_date
+    - t1_source_kind
+    - t1_source_id
+    - t1_source_path
+    - t1_dicom_series_uid
+    - t1_raw_bundle_sha256
+    - abs_pair_gap_days
+    - source_lock_status
+    - pair_content_bundle_sha256
+
+dwi_preprocessing:
+  input_conversion:
+    command: "mrconvert"
+    accepted_source_kinds: ["dicom_series", "nifti_bundle"]
+    gradient_source: "DICOM_header_or_explicit_locked_NIfTI_sidecars"
+    staged_image: "dwi_raw.mif"
+    staged_gradient_files: ["dwi.bvec", "dwi.bval"]
+    staged_metadata: "dwi_source_metadata.json"
+    deterministic_strides: "0,0,0,1"
+    staged_hashes_recorded_after_conversion: true
+    raw_bundle_hash_never_reused_as_staged_hash: true
+    json_metadata_required: true
+    gradient_count_must_equal_volume_count: true
+    gradient_norm_and_rotation_qc_required: true
+  stages:
+    - "dwidenoise_before_interpolation"
+    - "mrdegibbs"
+    - "dwifslpreproc"
+    - "dwibiascorrect_ants"
+  susceptibility_branch:
+    primary: "rpe_none"
+    reason: "current ADNI candidate data do not establish uniform reverse-PE coverage"
+    allow_subject_specific_switch: false
+    sensitivity_if_uniformly_available: "rpe_pair"
+    synthetic_reverse_b0: false
+  phase_encoding:
+    require_source_direction: true
+    require_total_readout_time: true
+    hardcoded_default_allowed: false
+    inferred_default_allowed: false
+    missing_value_behavior: "per_unit_FAIL_before_eddy"
+  eddy:
+    executor_policy: "explicit_cpu_for_entire_recipe_no_runtime_switch"
+    executable: "/home/ec2-user/fsl/bin/eddy_cpu"
+    force_cpu_environment_variable: "DWIFSLPREPROC_FORCE_CPU=1"
+    automatic_cuda_to_cpu_fallback_allowed: false
+    rationale: "the current host has no functioning NVIDIA driver; a GPU executor requires a new recipe and equivalence decision"
+    options:
+      slm: "linear"
+      data_is_shelled: true
+      repol: true
+      cnr_maps: true
+      residuals: true
+    run_eddy_quad: true
+    partial_or_failed_output_allowed: false
+  bias_correction:
+    command: "dwibiascorrect ants"
+    output: "dwi_preproc_biascorr.mif"
+  registration_reference:
+    definition: "arithmetic_mean_of_all_preprocessed_b0_volumes"
+    b0_threshold_s_per_mm2: 50
+  brain_mask:
+    command: "dwi2mask"
+    manual_or_automated_qc_required: true
+
+t1_and_tissue:
+  t1_source: "locked_local_DICOM_series_or_single_NIfTI_without_source_kind_rejection"
+  normalization:
+    command: "mrconvert"
+    staged_image: "t1_native.nii"
+    deterministic_uncompressed_nifti: true
+    deterministic_strides: "+1,+2,+3"
+    staged_hash_recorded_after_conversion: true
+  bias_correction_required: true
+  brain_extraction_required: true
+  five_tissue_type:
+    primary_backend: "5ttgen_fsl"
+    mix_backends_within_primary: false
+    nocrop: true
+    validate_with_5ttcheck: true
+    generate_gmwmi_for_qc: true
+    white_matter_segmentation_threshold: 0.5
+  failure_behavior: "record_per_unit_failure_and_missing_outcome; never convert failure_to_biological_zero"
+
+registration:
+  dwi_to_t1:
+    direction: "mean_b0_to_native_t1"
+    primary_method: "fsl_epi_reg_bbr_6dof"
+    white_matter_segmentation: "same_fsl_tissue_solution_used_by_5tt"
+    transform_inverted_for_t1_to_b0: true
+    select_by_density: false
+  mni_to_t1:
+    direction: "MNI152_1mm_to_native_t1"
+    template: "/home/ec2-user/fsl/data/standard/MNI152_T1_1mm.nii.gz"
+    template_sha256: "d1f03e160c2548592a01d98d44d7e0ffa8a8ef58bc9b07d26369e214ba170edb"
+    primary_method: "antsRegistrationSyN"
+    transform: "rigid_affine_syn"
+    select_by_density: false
+  label_application:
+    interpolation: "GenericLabel_or_nearest_neighbour"
+    resampling_count: 1
+    target_grid: "1mm_isotropic_grid_in_dwi_world_coordinates"
+    compose_mni_to_t1_and_t1_to_b0_before_label_resampling: true
+  quantitative_qc:
+    affine_finite_and_nonsingular: true
+    minimum_5tt_to_dwi_mask_dice: 0.70
+    minimum_atlas_label_inside_brain_fraction: 0.80
+  blinded_visual_qc:
+    - "mean_b0_on_t1_white_matter_boundary"
+    - "t1_on_mean_b0"
+    - "5tt_and_gmwmi_on_mean_b0"
+    - "aal3_labels_on_t1_and_mean_b0"
+
+atlas:
+  name: "AAL3v1"
+  source_image: "/home/ec2-user/exp/atlas/AAL/AAL3v1_1mm.nii.gz"
+  source_image_sha256: "a3721422dffd9ca1345b9c33b95431d719a29d86ef0d5ef0c9806bdf31e9b700"
+  contiguous_source_image: "/home/ec2-user/exp/atlas/AAL/AAL3v1_1mm_166.nii.gz"
+  contiguous_source_image_sha256: "99185db14c0ed741c13a23306373cd4aa2478ff072ab4cbf05bd143f0511f415"
+  node_table: "/home/ec2-user/exp/atlas/AAL/AAL3_labels.csv"
+  node_table_sha256: "d10b81494243eb0c639c143978177da5439b29c522e0292847e6752795886f4a"
+  node_map: "/home/ec2-user/exp/atlas/AAL/aal3_node_map_166.csv"
+  node_map_sha256: "321391d605a4dc5b6742c156b3efdf815c37b124d677e6a058405d3b21d68939"
+  original_label_range: [1, 170]
+  excluded_original_labels: [35, 36, 81, 82]
+  contiguous_node_range: [1, 166]
+  expected_nodes: 166
+  primary_endpoint_catchment_dilation_mm: 0
+  b0_grid_copy_purpose: "qc_only_not_connectome_generation"
+  minimum_voxels_per_label_on_1mm_grid: 1
+  hard_label_survival_rule: "exact_contiguous_labels_1_to_166_each_with_at_least_one_voxel"
+  canonical_source_minimum_voxels: 8
+  per_node_voxel_counts_recorded: true
+  stronger_label_size_threshold_status: "PENDING_DIAGNOSIS_BLIND_H04_DECISION"
+  stronger_label_size_threshold_used_as_automatic_exclusion: false
+  all_labels_required: true
+
+fod:
+  eligible_acquisition: "b0_plus_one_unique_nonzero_shell_nearest_target_within_tolerance; additional_shells_retained_but_not_used_for_SS3T"
+  nonzero_shell_selection: "diagnosis_blind_unique_shell_nearest_1000_s_per_mm2"
+  target_nonzero_shell_s_per_mm2: 1000
+  shell_tolerance_s_per_mm2: 100
+  minimum_unique_nonzero_directions: 30
+  lmax: 6
+  lmax_direction_rule: "minimum_unique_antipodally_canonicalised_directions_must_be_at_least_number_of_even_SH_coefficients"
+  response_estimation:
+    command: "dwi2response dhollander"
+    shell_ordered_lmax: "0,6"
+    shell_ordered_lmax_semantics: "one value per selected b-value centroid in ascending order: b0 then the one FOD shell"
+    outputs: ["wm", "gm", "csf"]
+    group_policy: "two_phase_diagnosis_blind_calibration_then_frozen_phase_B_input"
+    response_voxel_qc_required: true
+    calibration:
+      lifecycle: "phase_A_attempt_all_and_record_outcomes; freeze_valid_subset; phase_B_consume_locked_artifact"
+      selection_uses_diagnosis_labels: false
+      pooling:
+        primary_method: "mrtrix_responsemean_nonlegacy_scale_compensated"
+        executable: "/home/ec2-user/mrtrix3/bin/responsemean"
+        executable_sha256: "2e4059800a0565184192d0d3e5ddfb29161af42a6fb5b579970a744cd5f1e788"
+        legacy_option_allowed: false
+        data_driven_method_switch_allowed: false
+      fod_shell_compatibility:
+        rule: "exact_MRtrix_clustered_b0_and_nonzero_centroids_across_all_valid_calibration_inputs"
+        maximum_centroid_difference_s_per_mm2: 0.0
+        selection_record_and_shell_sizes_required: true
+      minimum_valid_subjects: "REQUIRED_H04_CALIBRATION_MINIMUM"
+      invalid_subject_response_policy: "FAIL_NA_excluded_from_calibration_without_dummy_files"
+      live_all_UNITS_dependency_allowed_in_phase_B: false
+      response_qc:
+        diagnosis_labels_used: false
+        selected_voxel_count_command: "mrstats response_voxels.mif -output count -ignorezero"
+        response_voxel_volume_order: ["csf", "gm", "wm"]
+        technical_count_validity: "each_of_three_tissue_volumes_must_have_a_finite_positive_integer_count"
+        stronger_absolute_voxel_minimum: null
+        stronger_threshold_policy: "none_without_separate_diagnosis_blind_prespecification_and_approval"
+        expected_shell_rows: 2
+        expected_coefficient_columns:
+          wm: 4
+          gm: 1
+          csf: 1
+        finite_coefficients_required: true
+        positive_isotropic_coefficient_required: true
+        failure_policy: "terminal_FAIL_NA_excluded_from_pool_with_candidate_evidence_retained"
+      full_cohort_reuse_policy: "reuse_canary_approved_pooled_artifact_or_issue_new_recipe_and_reprocessing_decision"
+      frozen_manifest:
+        path: "REQUIRED_BEFORE_PHASE_B"
+        sha256: "REQUIRED_BEFORE_PHASE_B"
+      pooled_responses:
+        wm:
+          path: "REQUIRED_BEFORE_PHASE_B"
+          sha256: "REQUIRED_BEFORE_PHASE_B"
+        gm:
+          path: "REQUIRED_BEFORE_PHASE_B"
+          sha256: "REQUIRED_BEFORE_PHASE_B"
+        csf:
+          path: "REQUIRED_BEFORE_PHASE_B"
+          sha256: "REQUIRED_BEFORE_PHASE_B"
+  model:
+    command: "ss3t_csd_beta1"
+    name: "SS3T-CSD"
+    outputs: ["wmfod", "gm", "csf"]
+    allow_msmt_or_single_tissue_fallback: false
+  normalisation:
+    command: "mtnormalise"
+    jointly_normalise: ["wmfod", "gm", "csf"]
+    mask: "dwi_brain_mask"
+  qc:
+    finite_nonnegative_tissue_compartments: true
+    response_and_fod_visual_qc_required: true
+    zero_or_invalid_wmfod_is_failure: true
+
+tensor:
+  input_shells: "b0_and_all_nonzero_shells_at_or_below_1500_s_per_mm2"
+  maximum_nonzero_shell_s_per_mm2: 1500
+  minimum_noncollinear_nonzero_directions: 6
+  fit:
+    command: "dwi2tensor"
+    method: "WLS_then_two_IWLS_iterations"
+    iter: 2
+    mask: "dwi_brain_mask"
+    dtifit_fallback: false
+  metrics:
+    command: "tensor2metric"
+    outputs:
+      fa: "fractional_anisotropy_dimensionless"
+      md: "mean_apparent_diffusion_coefficient_mm2_per_s"
+      rd: "radial_diffusivity_mm2_per_s"
+      ad: "axial_diffusivity_mm2_per_s_display_as_AxD"
+  invalid_value_policy: "fail_qc_no_clipping_no_zero_fill"
+
+tractography:
+  framework: "ACT"
+  act_enabled: true
+  five_tt: "same_validated_5tt_in_dwi_space"
+  algorithm: "iFOD2"
+  fod: "normalised_wmfod"
+  seeding:
+    method: "seed_dynamic"
+    image: "normalised_wmfod"
+    gmwmi_used_as_seed: false
+  backtrack: true
+  crop_at_gmwmi: true
+  select_streamlines: 10000000
+  maximum_seed_attempts: 200000000
+  minimum_length_mm: 10
+  maximum_length_mm: 250
+  cutoff: 0.06
+  step_size_rule: "0.5_times_smallest_native_preprocessed_dwi_voxel_dimension_mm"
+  maximum_angle_degrees: 45
+  nthreads_per_subject: 16
+  random_seed:
+    environment_variable: "MRTRIX_RNG_SEED"
+    derivation: "first_31_bits_of_sha256(dti_source_id|dti_raw_bundle_sha256|recipe_id)"
+  partial_or_timeout_tractogram_allowed: false
+  automatic_cutoff_ladder_allowed: false
+  automatic_act_to_noact_switch_allowed: false
+
+sift2:
+  command: "tcksift2"
+  tracks: "the_same_10M_primary_tractogram"
+  fod: "normalised_wmfod"
+  act_5tt: "same_validated_5tt_in_dwi_space"
+  fd_scale_gm: false
+  reg_tikhonov: 0.0
+  reg_tv: 0.1
+  min_td_frac: 0.1
+  min_iters: 10
+  max_iters: 1000
+  save_streamline_weights: true
+  save_mu: true
+  save_iteration_csv: true
+  weight_count_must_equal_streamline_count: true
+  retry_with_changed_flags_allowed: false
+
+connectome:
+  nodes: "direct_contiguous_AAL3_166_label_image_on_1mm_DWI_world_grid"
+  assignment:
+    method: "radial_search"
+    radius_mm: 4
+    apply_identically_to_every_subject_and_matrix: true
+    endpoint_catchment_dilation_mm: 0
+    keep_unassigned_in_matrix: false
+    save_assignments: true
+  common_flags: ["-symmetric", "-zero_diagonal"]
+  empty_edge_value: 0
+  required_matrices:
+    - name: "count"
+      kind: "tck2connectome"
+      streamline_weights: null
+      scale: null
+      stat_edge: "sum"
+      unit: "streamlines"
+    - name: "fd_sum"
+      kind: "tck2connectome"
+      streamline_weights: "sift2_weights"
+      scale: null
+      stat_edge: "sum"
+      unit: "SIFT2_proportional_fibre_cross_section_proxy"
+    - name: "count_invnodevol"
+      kind: "derived_from_count_and_physical_node_volumes"
+      formula: "2*count_ij/(node_volume_i_mm3+node_volume_j_mm3)"
+      streamline_weights: null
+      unit: "streamlines_per_mm3"
+    - name: "len_mean"
+      kind: "tck2connectome"
+      streamline_weights: null
+      scale: "length"
+      stat_edge: "mean"
+      unit: "mm"
+    - name: "invlen_mean"
+      kind: "tck2connectome"
+      streamline_weights: null
+      scale: "invlength"
+      stat_edge: "mean"
+      unit: "per_mm"
+    - name: "fa_mean"
+      kind: "tcksample_then_tck2connectome"
+      sample_image: "fa"
+      stat_tck: "mean"
+      stat_edge: "mean"
+      streamline_weights: null
+      unit: "dimensionless"
+    - name: "md_mean"
+      kind: "tcksample_then_tck2connectome"
+      sample_image: "md"
+      stat_tck: "mean"
+      stat_edge: "mean"
+      streamline_weights: null
+      unit: "mm2_per_s"
+    - name: "rd_mean"
+      kind: "tcksample_then_tck2connectome"
+      sample_image: "rd"
+      stat_tck: "mean"
+      stat_edge: "mean"
+      streamline_weights: null
+      unit: "mm2_per_s"
+    - name: "ad_mean"
+      publication_label: "AxD"
+      kind: "tcksample_then_tck2connectome"
+      sample_image: "ad"
+      stat_tck: "mean"
+      stat_edge: "mean"
+      streamline_weights: null
+      unit: "mm2_per_s"
+
+qc:
+  matrix:
+    exact_shape: [166, 166]
+    finite: true
+    symmetric_absolute_tolerance: 1.0e-8
+    zero_diagonal_absolute_tolerance: 1.0e-8
+    nonnegative_absolute_tolerance: 1.0e-12
+    count_integer_absolute_tolerance: 1.0e-6
+    count_not_allclose_to_fd_sum:
+      rtol: 1.0e-10
+      atol: 1.0e-12
+    padding_allowed: false
+    absent_metric_imputation_allowed: false
+    all_nine_required: true
+    zero_count_nodes_recorded_as_quantitative_qc: true
+    zero_count_nodes_used_as_automatic_exclusion: false
+    density_used_as_inclusion_gate: false
+  assignment:
+    support_thresholds_release_state: "PENDING_DIAGNOSIS_BLIND_H04_SAP"
+    support_metrics_used_as_automatic_exclusion: false
+    candidate_reporting_threshold_minimum_endpoint_assignment_fraction: 0.85
+    candidate_reporting_threshold_minimum_unique_assigned_nodes: 166
+    candidate_reporting_threshold_maximum_top5_endpoint_fraction: 0.35
+  tensor_edge_values:
+    fa_min: 0.0
+    fa_max: 1.0
+    diffusivity_min_mm2_per_s: 0.0
+    diffusivity_hard_max_mm2_per_s: 0.01
+    range_absolute_tolerance: 1.0e-8
+    tensor_identity_absolute_tolerance_mm2_per_s: 1.0e-8
+    require_ad_ge_md_ge_rd: true
+    clip_values: false
+  support:
+    mean_matrix_must_be_zero_exactly_where_count_is_zero: true
+    connected_edge_missing_or_nonfinite_is_failure: true
+    node_volume_must_be_positive_for_all_nodes: true
+    node_table_hash_must_match_sidecar: true
+  human_visual_review_required: true
+
+provenance:
+  immutable_per_subject_sidecar: true
+  subject_schema: "/home/ec2-user/exp/scforge/workflow/schemas/provenance_v1.schema.json"
+  run_ledger_schema: "/home/ec2-user/exp/scforge/workflow/schemas/run_ledger_v1.schema.json"
+  supported_launcher: "/home/ec2-user/exp/scforge/workflow/run_connectome_v2.py"
+  exact_command_capture: "snakemake_printshellcmds_combined_log_hashed_in_final_completion"
+  run_id_derivation: "first_24_hex_of_sha256(recipe_id|acquisition_manifest_sha256|absolute_run_root)"
+  failed_attempt_evidence: "immutable_attempt_end_record_plus_hashed_combined_execution_log"
+  external_digest_anchor_required_for_release: true
+  required_records:
+    - "subject_and_series_identity_with_exact_dates"
+    - "input_and_output_sha256"
+    - "config_sha256_and_recipe_id"
+    - "exact_commands_environment_and_tool_versions"
+    - "gradient_and_phase_encoding_metadata"
+    - "registration_transforms_scores_and_overlay_paths"
+    - "5tt_atlas_fod_tensor_tractography_and_sift2_parameters"
+    - "random_seed_streamline_counts_assignment_and_node_volumes"
+    - "all_qc_measurements_reasons_and_human_decision"
+    - "start_end_timestamps_and_host_or_container_identity"
+  overwrite_existing_derivatives: false
+  publish_only_statuses: ["PASS"]
+
+canary_only_sensitivities:
+  rule: "blinded_to_diagnosis_effects_and_never_selected_by_matrix_density"
+  comparisons:
+    - "ACT_primary_vs_uniform_noACT_diagnostic"
+    - "3M_vs_5M_vs_10M_streamline_convergence"
+    - "radial2_vs_radial4_assignment"
+    - "epi_reg_BBR_vs_6DOF_mutual_information_registration"
+    - "primary_seed_vs_independent_seed_replication"
+  promotion_rule: "any change requires SL-H04 approval and a new recipe_id before the full cohort"

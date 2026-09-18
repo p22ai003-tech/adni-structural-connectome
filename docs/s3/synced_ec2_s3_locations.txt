@@ -1,0 +1,66 @@
+Synced folder locations, excluding qc
+Generated from /Users/sabeesh/Desktop/exp/sync_tri_state.py
+
+EC2 root: /data
+S3 root: s3://<your-bucket>/exp/
+
+biascorr_1
+EC2: /data/derivatives/biascorr_1
+S3:  s3://<your-bucket>/exp/biascorr_1/
+
+connectomes
+EC2: /data/derivatives/connectomes
+S3:  s3://<your-bucket>/exp/connectomes/
+
+dti
+EC2: /data/derivatives/dti
+S3:  s3://<your-bucket>/exp/dti/
+
+dwi_t1_bbr
+EC2: /data/derivatives/dwi_t1_bbr
+S3:  s3://<your-bucket>/exp/dwi_t1_bbr/
+
+eddy
+EC2: /data/derivatives/eddy
+S3:  s3://<your-bucket>/exp/eddy/
+
+fod
+EC2: /data/derivatives/fod
+S3:  s3://<your-bucket>/exp/fod/
+
+mif_denoised
+EC2: /data/derivatives/mif_denoised
+S3:  s3://<your-bucket>/exp/mif_denoised/
+
+mif_dwi
+EC2: /data/derivatives/mif_dwi
+S3:  s3://<your-bucket>/exp/mif_dwi/
+
+mif_unringed
+EC2: /data/derivatives/mif_unringed
+S3:  s3://<your-bucket>/exp/mif_unringed/
+
+parc
+EC2: /data/derivatives/parc
+S3:  s3://<your-bucket>/exp/parc/
+
+t1_anat
+EC2: /data/derivatives/t1_anat
+S3:  s3://<your-bucket>/exp/t1_anat/
+
+t1_fast
+EC2: /data/derivatives/t1_fast
+S3:  s3://<your-bucket>/exp/t1_fast/
+
+tracks
+EC2: /data/derivatives/tracks
+S3:  s3://<your-bucket>/exp/tracks/
+
+images-dti
+EC2: /data/Images/dti
+S3:  s3://<your-bucket>/exp/Images/dti/
+
+images-mri
+EC2: /data/Images/mri
+S3:  s3://<your-bucket>/exp/Images/mri/
+Note: current local rescan reported permission denied for images-mri, but EC2 and S3 both showed 112127 files / 46544831194 bytes in the latest status.

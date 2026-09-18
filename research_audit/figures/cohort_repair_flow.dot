@@ -1,0 +1,29 @@
+digraph CohortRepair {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.35", ranksep="0.40",
+         fontname="Helvetica", fontsize=11,
+         label="SL-D01 available-data cohort and timing/QC sensitivity design", labelloc=t];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10,
+        color="#355070", fillcolor="#eef4f8", margin="0.12,0.08"];
+  edge [color="#5c677d", arrowsize=0.75, penwidth=1.2];
+
+  full [label="Pipeline manifest\n648 subjects\nAD 100 | MCI 241 | CN 307"];
+  dense [label="Dashboard density-good cohort\n530 subjects\nAD 78 | dashboard-MCI 201 | CN 251", fillcolor="#fff3cd", color="#b08900"];
+  smc [label="Diagnosis correction\n15 SMC records must not be MCI\nCN/MCI/AD analytic pool = 515", fillcolor="#ffe5e5", color="#c1121f"];
+
+  current [label="Current local pair <=90 d\n194 timing-restricted cases", fillcolor="#ddf3ef", color="#2a9d8f"];
+  sensitivity [label="Current local pair 91-180 d\n3 additional cases", fillcolor="#fff3cd", color="#b08900"];
+  longgap [label="Current local pair >180 d\n333 long-gap cases", fillcolor="#ffe5e5", color="#c1121f"];
+  locked [label="Locked available-data manifest\n530 current local pairs\ninterval + acquisition + QC flags", fillcolor="#ddf3ef", color="#2a9d8f"];
+  final [label="Rebuild matrices + current spatial/physical QC\nFinal manuscript N = TBD", fillcolor="#e8eaf6", color="#5e548e", penwidth=2];
+
+  full -> dense [label=" density >= 0.6 only "];
+  dense -> smc;
+  dense -> current;
+  dense -> sensitivity;
+  dense -> longgap;
+  current -> locked;
+  sensitivity -> locked;
+  longgap -> locked;
+  smc -> locked [style=dashed, label=" corrected labels "];
+  locked -> final;
+}

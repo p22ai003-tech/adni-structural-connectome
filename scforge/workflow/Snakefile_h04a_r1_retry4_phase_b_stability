@@ -1,0 +1,4 @@
+"""Versioned phase-B canary with diagnosis-blind tractography stability."""
+
+include: "Snakefile_h04a_r1_retry4_pretract_v4"
+include: "extensions/h04a_r1_retry4_phase_b_stability/07_stability.smk"

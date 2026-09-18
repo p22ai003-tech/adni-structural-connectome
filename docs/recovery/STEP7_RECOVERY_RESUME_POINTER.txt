@@ -1,0 +1,19 @@
+Step 7 recovery handoff created 2026-04-26 14:30 UTC
+
+Primary handoff folder:
+  /home/ec2-user/exp/step7_recovery_handoff_latest
+
+Word context document:
+  /home/ec2-user/exp/step7_recovery_handoff_latest/STEP7_RECOVERY_CONTEXT_20260426.docx
+
+GPU Eddy script to run on GPU-ready instance:
+  /home/ec2-user/exp/step7_recovery_handoff_latest/run_source_refresh_eddy_gpu.sh
+
+Launch example:
+  cd /home/ec2-user/exp
+  tmux new-session -s step7_eddy_gpu /home/ec2-user/exp/step7_recovery_handoff_latest/run_source_refresh_eddy_gpu.sh
+
+Monitor example:
+  /home/ec2-user/exp/step7_recovery_handoff_latest/monitor_eddy_refresh.sh
+
+After GPU Eddy finishes, resume with bias correction + BBR for source_refresh_ok45, then Step 7 forced prep/fod/tracks/post using step7_force_target_after_gpu.txt.

@@ -1,0 +1,19 @@
+diff --git a/scforge/workflow/rules/05_5tt_fod.smk b/scforge/workflow/rules/05_5tt_fod.smk
+--- a/scforge/workflow/rules/05_5tt_fod.smk
++++ b/scforge/workflow/rules/05_5tt_fod.smk
+@@ -133,6 +133,6 @@ rule select_fod_shells:
+     input:
+         dwi=rules.dwi_bias_correct.output,
+-        contract=rules.gradient_contract.output,
++        contract=rules.gradient_contract.output[0],
+     output:
+         dwi=subject_path("{unit}", "05_model", "dwi_fod_shells.mif"),
+         selection=subject_path("{unit}", "05_model", "fod_shell_selection.json"),
+@@ -185,6 +185,6 @@ rule select_tensor_shells:
+     input:
+         dwi=rules.dwi_bias_correct.output,
+-        contract=rules.gradient_contract.output,
++        contract=rules.gradient_contract.output[0],
+     output:
+         dwi=subject_path("{unit}", "05_model", "dwi_tensor_shells.mif"),
+         selection=subject_path("{unit}", "05_model", "tensor_shell_selection.json"),

@@ -1,0 +1,23 @@
+[Unit]
+Description=Read-only FastAPI and React connectome dashboard shadow
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/exp
+Environment=PYTHONUNBUFFERED=1
+Environment=CONNECTOME_PROJECT_ROOT=/home/ec2-user/exp
+Environment=CONNECTOME_ANALYSIS_ROOT=/home/ec2-user/exp/data/derivatives/qc/analysis_cohort
+Environment=CONNECTOME_MATRICES_DIR=/home/ec2-user/exp/data/derivatives/connectomes
+ExecStart=/home/ec2-user/exp/.venv_connectome_api/bin/uvicorn apps.connectome_api.main:app --host 127.0.0.1 --port 8001 --workers 1 --no-access-log
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

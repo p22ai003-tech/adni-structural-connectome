@@ -1,0 +1,161 @@
+{
+  "gate": "SL-H03",
+  "option": "SL-H03-C1",
+  "decision": "APPROVED",
+  "recorded_utc": "2026-07-18T10:10:00Z",
+  "approved_utc": "2026-07-18T10:28:28Z",
+  "user_response_received": "Approve SL-H03-C1",
+  "content_lock_evidence_bound_utc": "2026-07-18T10:18:47Z",
+  "approval_mode": "DESIGN_ONLY",
+  "exact_user_response": "Approve SL-H03-C1",
+  "population": {
+    "processing_denominator": 530,
+    "primary_cn_mci_ad_ceiling": 515,
+    "primary_groups": {
+      "CN": 251,
+      "MCI": 186,
+      "AD": 78
+    },
+    "smc_descriptive": 15
+  },
+  "primary_outcome": {
+    "name": "whole_brain_supported_edge_unweighted_mean_fa",
+    "formula": "mean(fa_mean[i,j] for i<j and count[i,j]>0)",
+    "edge_domain": "unique_undirected_upper_triangle",
+    "edge_weighting": "equal_weight_per_supported_edge",
+    "unsupported_zero_codes_excluded": true,
+    "supported_invalid_edge_action": "FAIL_PARTICIPANT_FA_OUTCOME",
+    "sensitivities": [
+      "streamline_count_weighted_supported_edge_mean_fa",
+      "valid_sift2_fd_sum_weighted_supported_edge_mean_fa",
+      "unweighted_supported_edge_median_fa"
+    ]
+  },
+  "primary_contrasts": [
+    {
+      "contrast": "CN_vs_MCI",
+      "support_role": "ESTIMABLE_WITH_MEASURED_COMMON_SUPPORT"
+    },
+    {
+      "contrast": "MCI_vs_AD",
+      "support_role": "ESTIMABLE_WITH_LIMITED_CELL_DEPTH"
+    },
+    {
+      "contrast": "CN_vs_AD",
+      "support_role": "ESTIMABLE_WITH_LIMITED_CELL_DEPTH"
+    }
+  ],
+  "primary_acquisition_model": {
+    "fixed_representation": [
+      "protocol_key",
+      "t1_source_class"
+    ],
+    "site_scanner_partial_pooling": "ONLY_IF_CONVERGED_AND_IDENTIFIABLE",
+    "phase_in_same_primary_fixed_design": false,
+    "phase_exclusion_reason": "ADNI_2_EQUALS_GE_MEDICAL_SYSTEMS_3T_41DIR_INDICATOR_FOR_36_SUBJECTS",
+    "full_cohort_gap_model": "PRESPECIFIED_LOW_COMPLEXITY_NONLINEAR_GAP_PLUS_DIAGNOSIS_INTERACTION_SUBJECT_TO_SAP_RANK_CHECK",
+    "restricted_window_gap_model": "OMIT_NONLINEAR_GAP_AND_DIAGNOSIS_INTERACTION"
+  },
+  "measured_design_support": {
+    "parsimonious_protocol_t1_proxy": {
+      "columns": 16,
+      "rank": 16,
+      "residual_df": 499,
+      "normalized_condition_number": 5.579000465766813
+    },
+    "cubic_phase_protocol_proxy": {
+      "columns": 27,
+      "rank": 26
+    },
+    "cubic_site_fixed_stress_proxy": {
+      "columns": 78,
+      "rank": 74
+    },
+    "timing_le_90": {
+      "n": 194,
+      "distinct_gap_values": 2,
+      "zero_gap_n": 193
+    },
+    "timing_le_180": {
+      "n": 197,
+      "distinct_gap_values": 5,
+      "zero_gap_n": 193
+    },
+    "timing_le90_siemens_3t_54": {
+      "n": 94,
+      "distinct_gap_values": 1,
+      "zero_gap_n": 94
+    }
+  },
+  "pre_canary_blockers": [
+    "SL-P0-11",
+    "SL-P0-12",
+    "SL-P0-13",
+    "SL-P0-14"
+  ],
+  "authorizes_if_approved": [
+    "FIXED_DATA_COHORT_AND_ESTIMAND_DESIGN",
+    "BASIS_FOR_SL_P0_11_TO_14_IMPLEMENTATION",
+    "LATER_SAP_DEVELOPMENT"
+  ],
+  "does_not_authorize": [
+    "CANARY_IMAGING_EXECUTION",
+    "FULL_COHORT_IMAGING_EXECUTION",
+    "CORRECTED_BIOLOGICAL_RESULT_UNBLINDING_OR_RELEASE",
+    "FINAL_SAP_FREEZE",
+    "NOVELTY_OR_MANUSCRIPT_FINDING",
+    "DASHBOARD_INFERENCE_RELEASE"
+  ],
+  "evidence": {
+    "source_pair_manifest": {
+      "path": "research_audit/outputs/available_data_pair_manifest_v2.csv",
+      "sha256": "a51503e30f0b8e60a2216dc4b70cb69546f302eda56bf5e75469c7bafca8fdd1"
+    },
+    "sl_p0_09_content_lock": {
+      "path": "research_audit/outputs/available_data_content_lock_v2/available_data_content_lock_validation_v2.json",
+      "sha256": "70619a8c951c4c93416c9280de25b84ab62383119c26ddd39eaff201b89688d2",
+      "status": "PASS",
+      "release_status": "CONTENT_HASH_LOCKED",
+      "counts": {
+        "selected_pairs": 530,
+        "selected_series": 1060,
+        "files": 451115,
+        "bytes": 99066365832
+      },
+      "file_universe_sha256": "30b5201a9f175877fdb5f93b8c163ae94f668fe03c56dcca013f01ab503a735a",
+      "locked_pair_manifest": {
+        "path": "research_audit/outputs/available_data_content_lock_v2/available_data_pair_manifest_locked_v2.csv",
+        "sha256": "1e47d263c70a8230ab0b39651b652333d03e31c63308c9f18dfa008f804689f5",
+        "rows": 530
+      },
+      "file_inventory": {
+        "path": "research_audit/outputs/available_data_content_lock_v2/available_data_file_content_inventory_v2.csv",
+        "sha256": "c0f221708a62ccb9acebc9732ac6e86f34c3e6629b63b6d4a3cc0d280e2672b2",
+        "rows": 451115
+      }
+    },
+    "diagnosis_reconciliation": {
+      "path": "research_audit/outputs/diagnosis_reconciliation_v2.csv",
+      "sha256": "0323dc47d905269869074f025f872d8c799a437e27af8daa6acac9d2e54c299a"
+    },
+    "sl_p0_10_validation": {
+      "path": "research_audit/outputs/cohort_v2_feasibility_validation.json",
+      "sha256": "4fd319a3edc2897552a4f9e1415bbf95b06dc42bbfa9b1816850311940e6cdde",
+      "status": "PASS",
+      "release_status": "FEASIBILITY_COMPLETE_NO_OUTCOMES_OPENED"
+    },
+    "sl_p0_10_memo": {
+      "path": "research_audit/outputs/fixed_data_feasibility_power_memo_v1.md",
+      "sha256": "52a1a695235a360a87fed4682a713b4b70bc0a81f0c4010dd854a96ea7e7b442"
+    },
+    "design_memo_v1_1": {
+      "path": "research_audit/closed_world_analysis_design_v1.md",
+      "sha256": "03efdd6279edfef759444ef73c21f3c77165a634576f58ffd7d184bcbb584075"
+    }
+  },
+  "safety": {
+    "biological_outcomes_opened": 0,
+    "images_processed": 0,
+    "images_modified_or_deleted": 0
+  }
+}
