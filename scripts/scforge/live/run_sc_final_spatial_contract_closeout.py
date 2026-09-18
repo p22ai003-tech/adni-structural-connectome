@@ -35,16 +35,16 @@ import run_sc_aal3_source_contract_probe as aal3_probe  # noqa: E402
 
 
 DEFAULT_PANEL = [
-    ("003_S_0908_I1249292", "known_positive_aal116_benchmark"),
-    ("127_S_5028_I401540", "severe_low_density_mask_fit"),
-    ("168_S_6874_I1667523", "severe_low_density_mask_fit"),
-    ("021_S_7092_I1597668", "severe_low_density_mask_fit"),
-    ("003_S_6257_I974346", "moderate_density_zero_row_heavy"),
-    ("031_S_4021_I1253150", "moderate_density_zero_row_heavy"),
-    ("033_S_7114_I11063036", "moderate_density_zero_row_heavy"),
-    ("014_S_4401_I1556672", "assignment_strict_pass_control"),
-    ("041_S_5141_I893581", "assignment_strict_pass_control"),
-    ("041_S_4427_I1243839", "assignment_strict_pass_control"),
+    ("<SUBJECT>_I<IMAGEID>", "known_positive_aal116_benchmark"),
+    ("<SUBJECT>_I<IMAGEID>", "severe_low_density_mask_fit"),
+    ("<SUBJECT>_I<IMAGEID>", "severe_low_density_mask_fit"),
+    ("<SUBJECT>_I<IMAGEID>", "severe_low_density_mask_fit"),
+    ("<SUBJECT>_I<IMAGEID>", "moderate_density_zero_row_heavy"),
+    ("<SUBJECT>_I<IMAGEID>", "moderate_density_zero_row_heavy"),
+    ("<SUBJECT>_I<IMAGEID>", "moderate_density_zero_row_heavy"),
+    ("<SUBJECT>_I<IMAGEID>", "assignment_strict_pass_control"),
+    ("<SUBJECT>_I<IMAGEID>", "assignment_strict_pass_control"),
+    ("<SUBJECT>_I<IMAGEID>", "assignment_strict_pass_control"),
 ]
 
 VARIANTS = ["default", "radial8", "forward40", "forward80"]

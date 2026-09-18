@@ -4,7 +4,7 @@ set -u -o pipefail
 RUN="/home/ec2-user/exp/data/derivatives/qc/sc_matrix_qc/supervisor_raw_end_to_end_probe/raw_supervisor_021_deriv_t1_20260520T211515Z"
 WORK="${RUN}/work"
 LOGS="${RUN}/logs"
-SID="021_S_7092_I1597668"
+SID="<SUBJECT>_I<IMAGEID>"
 SELECT_STREAMLINES="1000000"
 NTHREADS="8"
 CUTOFF="0.06"

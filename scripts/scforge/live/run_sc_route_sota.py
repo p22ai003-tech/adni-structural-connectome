@@ -244,8 +244,8 @@ def rebuild_from_eddy(inp: dict, sdir: Path, log: Path) -> bool:
         eddy = fixed
     if not fod.exists():
         run([MRBIN / "dwi2mask", eddy, mask, "-force"], log)
-        # dwi2mask occasionally yields a DEGENERATE mask even at rc=0: either EMPTY (098_S_6601: 0
-        # voxels) OR a tiny speck of a few hundred voxels (098_S_6658: 1070 vox, while the healthy
+        # dwi2mask occasionally yields a DEGENERATE mask even at rc=0: either EMPTY (<SUBJECT>: 0
+        # voxels) OR a tiny speck of a few hundred voxels (<SUBJECT>: 1070 vox, while the healthy
         # original is 730917). Both make the FOD untrackable -> tckgen 0-tracks ("image is empty" ROI
         # for the 0 case; near-zero seeds for the tiny case). A real brain mask is ~4e5-2e6 voxels,
         # so anything <1e5 is a failed mask. Fall back to the original production mask (regridded onto
@@ -328,7 +328,7 @@ def fresh_t12b0(inp: dict, sdir: Path, log: Path) -> Path | None:
     run([FSLBIN/"fslmaths", b0_src, "-mas", mask_nii, b0_brain], log)
     # Constrain the search to +/-40 deg: T1 and b0 are the same subject in roughly the same
     # scanner frame, so a large rotation is never correct. The unconstrained +/-90 default could
-    # settle in a flipped/axis-permuted optimum (seen on 003_S_5165), silently emptying the matrix.
+    # settle in a flipped/axis-permuted optimum (seen on <SUBJECT>), silently emptying the matrix.
     run([FSLBIN/"flirt", "-in", t1b, "-ref", b0_brain, "-omat", mat,
          "-dof", "6", "-cost", "normmi", "-searchcost", "normmi",
          "-searchrx", "-40", "40", "-searchry", "-40", "40", "-searchrz", "-40", "40"], log)
@@ -385,7 +385,7 @@ def gen_tracks_10m(inp: dict, sdir: Path, log: Path, threads: int) -> dict:
            "-minlength", "10", "-maxlength", "250", "-nthreads", str(threads), "-force"]
     # ACT is broken even on CLEAN ISOTROPIC data: the 5TT/gmwmi seed is misaligned with the atlas
     # in DWI space, so streamlines generate but don't assign to nodes -> near-empty connectome
-    # (verified: 116_S_6543 = 0.003 with ACT vs 0.768 with noACT, identical FOD/atlas). Cohort-wide
+    # (verified: <SUBJECT> = 0.003 with ACT vs 0.768 with noACT, identical FOD/atlas). Cohort-wide
     # the ACT path medians 0.19 vs 0.62 for noACT. Until the 5TT alignment is fixed, force the robust
     # FOD-based noACT path for ALL subjects (FORCE_NOACT=1, default). Set FORCE_NOACT=0 to restore ACT.
     use_noact = anisotropic or os.environ.get("FORCE_NOACT", "1") == "1"

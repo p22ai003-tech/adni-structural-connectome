@@ -605,8 +605,8 @@ class SourceHashSeparationTests(unittest.TestCase):
         self.assertNotEqual(bundle_sha256(rows), bundle_sha256([("a", 1, "a" * 64)]))
 
     def test_unit_does_not_depend_on_diagnosis_or_t1_source(self) -> None:
-        row = {"subject_id": "002_S_0413", "dti_image_id": "863064"}
-        self.assertEqual(stable_unit(row), "002_S_0413_I863064")
+        row = {"subject_id": "XXX_S_1006", "dti_image_id": "863064"}
+        self.assertEqual(stable_unit(row), "XXX_S_1006_I863064")
 
     def test_normalization_failure_marker_is_atomic_and_write_once(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

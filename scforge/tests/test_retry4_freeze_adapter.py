@@ -21,11 +21,11 @@ class Retry4FreezeAdapterTests(unittest.TestCase):
             subset = Path(directory) / "subset.csv"
             subset.write_text(
                 "subject_id,dti_image_id,manufacturer,t1_source_kind,diagnosis_at_dti\n"
-                "003_S_4118,1124861,GE MEDICAL SYSTEMS,nifti_single,CN\n"
-                "014_S_6087,926924,SIEMENS,dicom_series,MCI\n",
+                "XXX_S_1002,1124861,GE MEDICAL SYSTEMS,nifti_single,CN\n"
+                "XXX_S_1004,926924,SIEMENS,dicom_series,MCI\n",
                 encoding="utf-8",
             )
-            units = ["003_S_4118_I1124861", "014_S_6087_I926924"]
+            units = ["XXX_S_1002_I1124861", "XXX_S_1004_I926924"]
             record, metadata = load_execution_subset_technical_metadata_retry4(
                 {
                     "execution_subset_manifest": file_record(subset),
@@ -44,7 +44,7 @@ class Retry4FreezeAdapterTests(unittest.TestCase):
             subset = Path(directory) / "subset.csv"
             subset.write_text(
                 "unit,subject_id,dti_image_id,manufacturer,t1_source_kind\n"
-                "WRONG,003_S_4118,1124861,GE MEDICAL SYSTEMS,nifti_single\n",
+                "WRONG,XXX_S_1002,1124861,GE MEDICAL SYSTEMS,nifti_single\n",
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(
@@ -53,7 +53,7 @@ class Retry4FreezeAdapterTests(unittest.TestCase):
                 load_execution_subset_technical_metadata_retry4(
                     {
                         "execution_subset_manifest": file_record(subset),
-                        "units": ["003_S_4118_I1124861"],
+                        "units": ["XXX_S_1002_I1124861"],
                     }
                 )
 
@@ -68,7 +68,7 @@ class Retry4FreezeAdapterTests(unittest.TestCase):
                 load_execution_subset_technical_metadata_retry4(
                     {
                         "execution_subset_manifest": file_record(subset),
-                        "units": ["014_S_6087_I926924"],
+                        "units": ["XXX_S_1004_I926924"],
                     }
                 )
 

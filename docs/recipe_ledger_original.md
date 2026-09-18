@@ -26,7 +26,7 @@ evidence, and record the outcome here. Every run logs: recipe (env flags) → ou
    was applied as a blanket default — it helped good-data subjects (regen216) and **broke** hard ones.
 2. **A fix that helps subset A can break subset B.** Gate fixes on a precondition (e.g. only rebuild if
    `mrstats wmfod_final.mif -output max` is below a threshold), never blanket-apply.
-3. Near-zero density with a *healthy* FOD (e.g. 127_S_6549: tracks generated, 157/166 nodes empty) is a
+3. Near-zero density with a *healthy* FOD (e.g. <SUBJECT>: tracks generated, 157/166 nodes empty) is a
    **registration/atlas** problem, not a FOD or tractography one → needs the atlas-placement check, not more tckgen.
 
 ## Failure-mode → fix map

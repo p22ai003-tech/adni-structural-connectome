@@ -509,7 +509,7 @@ def make_markdown(
         "`/home/ec2-user/exp/data/derivatives/qc/sc_matrix_qc/completed_connectomes_after_gap_20260524T085201Z/completed_connectome_qc_report.md`",
         "`/home/ec2-user/exp/data/derivatives/qc/sc_matrix_qc/final_spatial_contract_closeout_20260521T114956Z/candidate_patch_decision.md`",
         "`/home/ec2-user/exp/data/derivatives/qc/sc_matrix_qc/final_spatial_contract_closeout_20260521T114956Z/aal116_vs_aal3_candidate_comparison.csv`",
-        "`/home/ec2-user/exp/archive/sample_matrices/SC_033_S_0908_AAL.csv` and `/home/ec2-user/exp/archive/sample_matrices/SC_033_S_2374_AAL.csv` as supervisor benchmark matrices.",
+        "`/home/ec2-user/exp/archive/sample_matrices/SC_<SUBJECT>_AAL.csv` and `/home/ec2-user/exp/archive/sample_matrices/SC_<SUBJECT>_AAL.csv` as supervisor benchmark matrices.",
     ]:
         add(f"- {item}")
     add("")

@@ -33,9 +33,9 @@ FAILED_ROOT = QC_ROOT / "failed_repair_outputs" / "20260512T121157Z"
 BACKUP_ROOT = QC_ROOT / "repair_backups" / "20260512T103726Z"
 LABEL_CSV = ROOT / "atlas" / "AAL" / "AAL3_labels.csv"
 PILOT_SIDS = (
-    "002_S_5230_I1042952",
-    "002_S_4213_I888016",
-    "003_S_6067_I1511200",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
 )
 WEIGHTS = (
     "count",

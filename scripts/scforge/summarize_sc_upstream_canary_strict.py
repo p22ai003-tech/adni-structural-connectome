@@ -33,8 +33,8 @@ DEFAULT_CANARY = (
     / "sc_lane_canary10_20260513T074853Z"
 )
 SUPERVISOR_MATRICES = [
-    Path("/home/ec2-user/exp/SC_033_S_0908_AAL.csv"),
-    Path("/home/ec2-user/exp/SC_033_S_2374_AAL.csv"),
+    Path("/home/ec2-user/exp/SC_<SUBJECT>_AAL.csv"),
+    Path("/home/ec2-user/exp/SC_<SUBJECT>_AAL.csv"),
 ]
 
 

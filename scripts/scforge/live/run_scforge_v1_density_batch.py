@@ -47,22 +47,22 @@ REQUIRED_METRICS = ["count", "fd_sum", "len_mean", "fa_mean", "md_mean", "rd_mea
 IO_LOCK = threading.RLock()
 
 SMOKE_SUBJECTS = [
-    "003_S_0908_I1249292",
-    "127_S_5028_I401540",
-    "014_S_4401_I1556672",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
 ]
 
 CANARY_SUBJECTS = [
-    "003_S_0908_I1249292",
-    "014_S_4401_I1556672",
-    "041_S_5141_I893581",
-    "041_S_4427_I1243839",
-    "021_S_7092_I1597668",
-    "031_S_4021_I1253150",
-    "033_S_7114_I11063036",
-    "003_S_6257_I974346",
-    "127_S_5028_I401540",
-    "168_S_6874_I1667523",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
 ]
 
 

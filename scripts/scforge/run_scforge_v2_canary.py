@@ -38,16 +38,16 @@ from scforge.reprocess_router import route_subject  # noqa: E402
 
 
 DEFAULT_SUBJECTS = (
-    ("003_S_0908_I1249292", "A", "residual_zero_row_recoverable"),
-    ("014_S_4401_I1556672", "A", "residual_zero_row_recoverable"),
-    ("041_S_5141_I893581", "A", "residual_zero_row_recoverable"),
-    ("041_S_4427_I1243839", "A", "residual_zero_row_recoverable"),
-    ("021_S_7092_I1597668", "B", "label_contract_failure"),
-    ("031_S_4021_I1253150", "B", "label_contract_failure"),
-    ("033_S_7114_I11063036", "B", "label_contract_failure"),
-    ("003_S_6257_I974346", "B", "label_contract_failure"),
-    ("127_S_5028_I401540", "C", "severe_assignment_collapse"),
-    ("168_S_6874_I1667523", "C", "severe_assignment_collapse"),
+    ("<SUBJECT>_I<IMAGEID>", "A", "residual_zero_row_recoverable"),
+    ("<SUBJECT>_I<IMAGEID>", "A", "residual_zero_row_recoverable"),
+    ("<SUBJECT>_I<IMAGEID>", "A", "residual_zero_row_recoverable"),
+    ("<SUBJECT>_I<IMAGEID>", "A", "residual_zero_row_recoverable"),
+    ("<SUBJECT>_I<IMAGEID>", "B", "label_contract_failure"),
+    ("<SUBJECT>_I<IMAGEID>", "B", "label_contract_failure"),
+    ("<SUBJECT>_I<IMAGEID>", "B", "label_contract_failure"),
+    ("<SUBJECT>_I<IMAGEID>", "B", "label_contract_failure"),
+    ("<SUBJECT>_I<IMAGEID>", "C", "severe_assignment_collapse"),
+    ("<SUBJECT>_I<IMAGEID>", "C", "severe_assignment_collapse"),
 )
 
 

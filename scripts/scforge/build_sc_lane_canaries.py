@@ -21,11 +21,11 @@ QC_ROOT = ROOT / "data/derivatives/qc/sc_matrix_qc"
 LANE_ROOT = QC_ROOT / "lane_canaries"
 
 REGISTRATION_PRIORITY = (
-    "003_S_6067_I1511200",
-    "002_S_1155_I995512",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
 )
 ASSIGNMENT_PRIORITY = (
-    "002_S_4213_I888016",
+    "<SUBJECT>_I<IMAGEID>",
 )
 
 

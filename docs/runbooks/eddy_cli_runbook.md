@@ -53,7 +53,7 @@ One specific AD series:
 
 ```bash
 source ~/exp/scripts/eddy/eddy_env.sh
-eddy_ad_run 1 1 --series 129_S_6763_I1326107
+eddy_ad_run 1 1 --series <SUBJECT>_I<IMAGEID>
 ```
 
 Examples for the other group filters:

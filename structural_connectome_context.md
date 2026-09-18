@@ -84,7 +84,7 @@ Current manifest: `/data/derivatives/qc/sc_matrix_qc/subject_manifest.csv`.
 - All 530 main `count` files are 166x166, finite, symmetric and zero-diagonal.
 - Their current density range is 0.60095–0.95239; median 0.74133 and mean 0.74594.
 - There are 530 files each for `count`, `count_invnodevol`, `fd_sum`, `len_mean` and `invlen_mean`.
-- There are 529 files each for FA, MD, RD and AxD. `168_S_6938_I1444126` is structural-only and lacks all four diffusivity matrices.
+- There are 529 files each for FA, MD, RD and AxD. `<SUBJECT>_I<IMAGEID>` is structural-only and lacks all four diffusivity matrices.
 - The explicit current filename contract is `SC_AAL166_<series>_<weight>.csv`. The earlier `SC_AAL_...` 169/170-node convention is legacy.
 
 ### Current matrix validity limits

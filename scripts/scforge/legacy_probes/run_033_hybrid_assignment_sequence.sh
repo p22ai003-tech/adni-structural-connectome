@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT=/home/ec2-user/exp/data/derivatives/qc/sc_matrix_qc/assignment_pilot
-HYBRID_ROOT=/home/ec2-user/exp/data/derivatives/qc/sc_matrix_qc/hybrid_parcellation_pilot/hybrid_033_20260517T1314/033_S_7114_I11063036
-SID=033_S_7114_I11063036
+HYBRID_ROOT=/home/ec2-user/exp/data/derivatives/qc/sc_matrix_qc/hybrid_parcellation_pilot/hybrid_033_20260517T1314/<SUBJECT>_I<IMAGEID>
+SID=<SUBJECT>_I<IMAGEID>
 
 run_one() {
   local label="$1"

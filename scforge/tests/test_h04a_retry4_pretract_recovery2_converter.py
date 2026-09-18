@@ -27,10 +27,10 @@ ANTS_APPLY = ROOT / ".envs/ants-2.6.5/bin/antsApplyTransforms"
 ANTS_INFO = ROOT / ".envs/ants-2.6.5/bin/antsTransformInfo"
 EXPECTED_C3D_SHA256 = "ea5a0bdd79ea419ff37feccb202218cdc7c14c1f8adcdf099ce70dd273c937d6"
 DIVERSE_UNITS = (
-    "003_S_4118_I1124861",  # GE, single-NIfTI T1
-    "013_S_4268_I1075344",  # Siemens, single-NIfTI T1
-    "014_S_6087_I926924",  # Siemens, DICOM-series T1
-    "126_S_6721_I1439616",  # GE, DICOM-series T1
+    "XXX_S_1002_I1124861",  # GE, single-NIfTI T1
+    "XXX_S_1003_I1075344",  # Siemens, single-NIfTI T1
+    "XXX_S_1004_I926924",  # Siemens, DICOM-series T1
+    "XXX_S_1005_I1439616",  # GE, DICOM-series T1
 )
 
 

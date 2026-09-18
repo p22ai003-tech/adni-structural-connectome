@@ -408,7 +408,7 @@ def make_markdown(
             (
                 "R20 interpretation: targeted per-ROI tracks can be generated for some "
                 "zero-row labels, but the merged candidate did not improve the matrix. "
-                "For 305_S_6810_I1523614 it reduced density from 0.5035 to 0.2420 and "
+                "For <SUBJECT>_I<IMAGEID> it reduced density from 0.5035 to 0.2420 and "
                 "increased zero rows from 15 to 40. This rejects the current R20 design "
                 "as a scalable production route."
             ),

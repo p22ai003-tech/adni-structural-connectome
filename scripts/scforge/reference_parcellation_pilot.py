@@ -39,9 +39,9 @@ from connectome_pipeline.pipeline_paths import resolve_pipeline_paths  # noqa: E
 
 
 DEFAULT_SIDS = (
-    "002_S_5230_I1042952",
-    "002_S_4213_I888016",
-    "003_S_6067_I1511200",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
+    "<SUBJECT>_I<IMAGEID>",
 )
 MATRIX_METRICS = ("count", "fd_sum")
 GROUP_REQUIRED = ("TRACKS_FINAL", "WEIGHTS", "B0MEAN", "T12B0", "AAL_B0")

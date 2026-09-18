@@ -306,7 +306,7 @@ def classify(best: dict[str, Any], baseline: dict[str, Any]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--sid", default="003_S_0908_I1249292")
+    parser.add_argument("--sid", default="<SUBJECT>_I<IMAGEID>")
     parser.add_argument("--tag", default=f"aal3_source_contract_{stamp()}")
     parser.add_argument("--variants", nargs="*", default=["default", "forward80"])
     parser.add_argument(

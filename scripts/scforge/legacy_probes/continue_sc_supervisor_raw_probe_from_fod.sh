@@ -2,7 +2,7 @@
 set -euo pipefail
 
 RUN_ROOT="${RUN_ROOT:?Set RUN_ROOT to an existing supervisor raw replay directory}"
-SID="${SID:-003_S_0908_I1249292}"
+SID="${SID:-<SUBJECT>_I<IMAGEID>}"
 SELECT_STREAMLINES="${SELECT_STREAMLINES:-1000000}"
 NTHREADS="${NTHREADS:-8}"
 CUTOFF="${CUTOFF:-0.06}"
