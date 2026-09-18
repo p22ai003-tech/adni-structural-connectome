@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
+import sc_exclusions as _sc_exclusions
+
+
 import copy
 import hashlib
 import json
@@ -14,23 +20,8 @@ from .input_contract import validate_resolved_runtime_config as _validate_base_r
 EXPECTED_RUN_ROOT = Path(
     "/data/derivatives/scforge_v2/h04a_r1_recovery_20260718_retry2"
 ).resolve()
-EXPECTED_UNITS = [
-    "003_S_4118_I1124861",
-    "007_S_5196_I390043",
-    "009_S_4324_I1186579",
-    "013_S_4268_I1075344",
-    "014_S_6087_I926924",
-    "016_S_4353_I295021",
-    "016_S_6816_I10309274",
-    "032_S_6804_I1230908",
-    "033_S_6889_I10988194",
-    "036_S_2380_I1023443",
-    "094_S_4737_I326938",
-    "126_S_6721_I1439616",
-    "129_S_6784_I1482244",
-    "135_S_6840_I1263427",
-    "168_S_6735_I1175371",
-]
+# Loaded from a gitignored local file: these name ADNI participants.
+EXPECTED_UNITS = _sc_exclusions.subject_list("h04a_r1_expected_units")
 EXPECTED_CONVERTER_SHA256 = (
     "353acb3b370faade70b552f284e0a306214a146c076c9f449c5c555b9b148ebd"
 )

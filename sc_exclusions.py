@@ -28,7 +28,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT = PROJECT_ROOT / "configs" / "exclusions.local.yaml"
 
-__all__ = ["load", "warn_if_empty", "path"]
+__all__ = ["load", "warn_if_empty", "path", "subject_list"]
 
 
 def path() -> Path:
@@ -65,3 +65,32 @@ def warn_if_empty(context: str = "") -> frozenset[str]:
             file=sys.stderr,
         )
     return excl
+
+
+@lru_cache(maxsize=8)
+def subject_list(name: str) -> tuple[str, ...]:
+    """A named list of subjects from the same gitignored local file.
+
+    Several modules carried a hard-coded default cohort -- a canary set, an
+    expected-unit list, a QC panel. Those are defaults, not logic, and they name
+    real ADNI participants, so they live beside the exclusions:
+
+        subject_lists:
+          v2_default_subjects: [ ... ]
+          spatial_contract_panel: [ ... ]
+
+    An absent list is empty. Every caller treats empty as "no default set", not
+    as an error, so the code runs anywhere and only does less.
+    """
+    p = path()
+    if not p.is_file():
+        return ()
+    try:
+        import yaml
+        data = yaml.safe_load(p.read_text()) or {}
+    except Exception as exc:
+        raise SystemExit(f"could not read {p}: {type(exc).__name__}: {exc}")
+    items = (data.get("subject_lists") or {}).get(name) or []
+    if isinstance(items, str):
+        items = [items]
+    return tuple(str(x).strip() for x in items if str(x).strip())

@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
+import sc_exclusions as _sc_exclusions
+
+
 from dataclasses import dataclass
 import json
 import os
@@ -11,20 +17,8 @@ from typing import Any
 from .config import SCForgeConfig
 
 
-DEFAULT_PANEL: tuple[str, ...] = (
-    "003_S_0908_I1249292",
-    "127_S_5028_I401540",
-    "168_S_6874_I1667523",
-    "021_S_7092_I1597668",
-    "003_S_6257_I974346",
-    "031_S_4021_I1253150",
-    "033_S_7114_I11063036",
-    "014_S_4401_I1556672",
-    "041_S_5141_I893581",
-    "041_S_4427_I1243839",
-)
-
-
+# Loaded from a gitignored local file: these name ADNI participants.
+DEFAULT_PANEL = _sc_exclusions.subject_list("spatial_contract_panel")
 def utc_stamp() -> str:
     return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
 

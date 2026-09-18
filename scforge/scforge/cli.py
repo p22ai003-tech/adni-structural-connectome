@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
+import sc_exclusions as _sc_exclusions
+
+
 import argparse
 import csv
 from dataclasses import asdict, is_dataclass
@@ -23,20 +29,8 @@ from .spatial_contract import build_spatial_canary_plan, run_spatial_canary, wri
 from .tractography import build_tractography_command_set
 
 
-V2_DEFAULT_SUBJECTS = (
-    "003_S_0908_I1249292",
-    "014_S_4401_I1556672",
-    "041_S_5141_I893581",
-    "041_S_4427_I1243839",
-    "021_S_7092_I1597668",
-    "031_S_4021_I1253150",
-    "033_S_7114_I11063036",
-    "003_S_6257_I974346",
-    "127_S_5028_I401540",
-    "168_S_6874_I1667523",
-)
-
-
+# Loaded from a gitignored local file: these name ADNI participants.
+V2_DEFAULT_SUBJECTS = _sc_exclusions.subject_list("v2_default_subjects")
 def _default_config() -> Path:
     return Path(__file__).resolve().parents[1] / "configs" / "scforge.yaml"
 
