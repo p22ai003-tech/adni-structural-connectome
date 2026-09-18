@@ -292,6 +292,39 @@ def _extract_default(source: str, variable: str, config_key: str) -> str | None:
     return match.group(1) if match else None
 
 
+def required_source_set(snakefile: Path = DEFAULT_SNAKEFILE) -> set[Path]:
+    """Every source file the locked manifest must cover.
+
+    Defined once, so that the validator and the locker cannot drift apart. The
+    rules directory is globbed rather than listed: seven rule files were added
+    to it and never added to the manifest, which failed the contract without
+    anything having actually changed.
+    """
+    rule_paths = sorted((snakefile.parent / "rules").glob("*.smk"))
+    return {
+        snakefile.resolve(),
+        *(path.resolve() for path in rule_paths),
+        (snakefile.parent / "validate_environment_contract.py").resolve(),
+        snakefile.with_name("smoke_dryrun.py").resolve(),
+        snakefile.with_name("run_connectome_v2.py").resolve(),
+        snakefile.parent / "schemas" / "acquisition_manifest_v2.schema.json",
+        snakefile.parent / "schemas" / "provenance_v2.schema.json",
+        snakefile.parent / "schemas" / "run_ledger_v2.schema.json",
+        snakefile.with_name("freeze_response_calibration.py").resolve(),
+        PROJECT_ROOT / "configs" / "connectome_v2.yaml",
+        PROJECT_ROOT / "research_audit" / "matrix_data_dictionary.md",
+        PROJECT_ROOT / "research_audit" / "validate_connectome_v2_contract.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "__init__.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "qc.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "connectome.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "config.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "input_contract.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "provenance.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "response_calibration.py",
+        PROJECT_ROOT / "scforge" / "scforge" / "tractography.py",
+    }
+
+
 def workflow_integration_checks(
     environment: dict[str, Any],
     config: dict[str, Any],
@@ -311,28 +344,7 @@ def workflow_integration_checks(
         if isinstance(source_manifest_record, dict) and source_manifest_record.get("path")
         else None
     )
-    required_source_paths = {
-        snakefile.resolve(),
-        *(path.resolve() for path in rule_paths),
-        Path(__file__).resolve(),
-        snakefile.with_name("smoke_dryrun.py").resolve(),
-        snakefile.with_name("run_connectome_v2.py").resolve(),
-        snakefile.parent / "schemas" / "acquisition_manifest_v2.schema.json",
-        snakefile.parent / "schemas" / "provenance_v2.schema.json",
-        snakefile.parent / "schemas" / "run_ledger_v2.schema.json",
-        snakefile.with_name("freeze_response_calibration.py").resolve(),
-        PROJECT_ROOT / "configs" / "connectome_v2.yaml",
-        PROJECT_ROOT / "research_audit" / "matrix_data_dictionary.md",
-        PROJECT_ROOT / "research_audit" / "validate_connectome_v2_contract.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "__init__.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "qc.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "connectome.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "config.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "input_contract.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "provenance.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "response_calibration.py",
-        PROJECT_ROOT / "scforge" / "scforge" / "tractography.py",
-    }
+    required_source_paths = required_source_set(snakefile)
     manifest_rows: list[dict[str, str]] = []
     manifest_error: str | None = None
     if source_manifest_path and source_manifest_path.is_file():
