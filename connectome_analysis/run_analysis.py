@@ -505,8 +505,9 @@ def main(argv: list[str] | None = None) -> int:
     apply_plot_theme()
     # No deriv_root is passed: every location comes from sc_config, which the
     # flags above have just set. One mechanism, one tree.
-    paths = get_analysis_paths(notebook_dir=PROJECT_ROOT)
-    paths.ensure()
+    # A dry run must not create or change anything on disk, so it neither
+    # creates folders here nor takes the lock or writes the ledger below.
+    paths = get_analysis_paths(notebook_dir=PROJECT_ROOT, ensure=not args.dry_run)
 
     import sc_config
     p = sc_config.paths()
@@ -529,11 +530,16 @@ def main(argv: list[str] | None = None) -> int:
     print(f"plan          : {len(plan)} stage(s)"
           f"{' [resume]' if args.resume else ''}{' [dry-run]' if args.dry_run else ''}\n")
 
-    lock_path = Path(paths.output_root) / "logs" / "run_analysis.lock"
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
     runner = Runner(paths, cfg, resume=args.resume, dry_run=args.dry_run, python=args.python)
     started = time.time()
 
+    if args.dry_run:
+        statuses = [runner.run_stage(s) for s in plan]
+        print(f"\ndry-run: {len(statuses)} stage(s) planned; nothing was written.")
+        return 0
+
+    lock_path = Path(paths.output_root) / "logs" / "run_analysis.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("w") as lock:
         deadline = time.time() + args.lock_timeout_sec
         while True:
@@ -570,7 +576,6 @@ def main(argv: list[str] | None = None) -> int:
 
     bad = counts.get("failed", 0) + counts.get("blocked", 0) + counts.get("incomplete", 0)
     return 1 if bad else 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -340,7 +340,11 @@ def test_coupling_aal_ranking_is_subject_level_and_fdr_corrected(client):
     assert response.status_code == 200
     rows = response.json()["data"]["rows"]
     assert len(rows) == 166
-    assert rows[0]["atlas_label"] == "Precuneus_R"
+    # Matrix row 72. This used to read "Precuneus_R", which was the name the
+    # value-keyed AAL3_labels.csv gave row 72; by matrix index it is
+    # Paracentral_Lobule_R (atlas value 74). Only the name changed.
+    assert rows[0]["node"] == 72
+    assert rows[0]["atlas_label"] == "Paracentral_Lobule_R"
     assert rows[0]["p_value"] == pytest.approx(
         0.0077081650591445845
     )

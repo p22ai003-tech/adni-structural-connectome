@@ -67,9 +67,14 @@ def get_settings() -> Settings:
         analysis_root=analysis,
         connectomes_root=connectomes,
         outputs_root=outputs,
-        aal_labels=project / "atlas/AAL/AAL3_labels.csv",
-        # Correct 166-node LUT: AAL3_labels.csv is keyed on atlas value and
-        # mislabels every matrix row from 37 onward.
+        # Region names by MATRIX INDEX (node 1..166). Every viewer either joins
+        # this on "node" as the matrix row or reads it by position, so it must
+        # be keyed on the index. AAL3_labels.csv is keyed on the original
+        # atlas value (1..170, with 35, 36, 81 and 82 unused), which named
+        # every matrix row from 35 onward wrongly in the matrix viewer and the
+        # node tables. aal3_labels_166.csv has the same columns, derived from
+        # aal3_node_map_166.csv.
+        aal_labels=project / "atlas/AAL/aal3_labels_166.csv",
         aal_node_map=_p.aal_node_map,
         hcp379_live_summary=_opt(
             project

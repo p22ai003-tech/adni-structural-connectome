@@ -34,6 +34,17 @@ def _file_descriptor(path: Path) -> dict[str, Any]:
     }
 
 
+def _present(path: Path | None) -> bool:
+    """True when an optional source is configured and exists.
+
+    The three HCP379 sources are None on any machine without the imaging
+    server's run records (settings._opt). Calling .is_file() or .parent on None
+    raised AttributeError and turned these pages into HTTP 500s; they now report
+    the source as unavailable instead.
+    """
+    return path is not None and path.is_file()
+
+
 def pipeline_sources(settings: Settings) -> list[dict[str, Any]]:
     return [
         _file_descriptor(path)
@@ -45,6 +56,7 @@ def pipeline_sources(settings: Settings) -> list[dict[str, Any]]:
             settings.pipeline_density,
             settings.pipeline_manifest,
         )
+        if path is not None
     ]
 
 
@@ -57,7 +69,7 @@ def release_status(settings: Settings) -> dict[str, Any]:
         "topology": None,
         "warnings": [],
     }
-    if settings.hcp379_live_summary.is_file():
+    if _present(settings.hcp379_live_summary):
         summary = _read_json(settings.hcp379_live_summary)
         payload["summary"] = json_safe(summary)
         payload["group_rows"] = json_safe(summary.get("rows", []))
@@ -70,7 +82,7 @@ def release_status(settings: Settings) -> dict[str, Any]:
     else:
         payload["warnings"].append("HCP379 live summary is unavailable")
 
-    if settings.hcp379_live_ledger.is_file():
+    if _present(settings.hcp379_live_ledger):
         ledger = pd.read_csv(settings.hcp379_live_ledger)
         group_columns = [
             column
@@ -99,7 +111,7 @@ def release_status(settings: Settings) -> dict[str, Any]:
     else:
         payload["warnings"].append("HCP379 recovery ledger is unavailable")
 
-    if settings.hcp379_release_topology.is_file():
+    if _present(settings.hcp379_release_topology):
         topology = _read_json(settings.hcp379_release_topology)
         payload["topology"] = json_safe(topology)
     else:
@@ -177,8 +189,9 @@ def pipeline_subjects(
         raise ValueError("invalid page")
     paths = {
         "hcp379": (
-            settings.hcp379_live_summary.parent
-            / "subject_status_density.csv"
+            settings.hcp379_live_summary.parent / "subject_status_density.csv"
+            if settings.hcp379_live_summary is not None
+            else None
         ),
         "legacy": settings.pipeline_manifest,
         "recovery-ledger": settings.hcp379_live_ledger,
@@ -186,8 +199,8 @@ def pipeline_subjects(
     if source not in paths:
         raise KeyError(f"unknown pipeline source: {source}")
     path = paths[source]
-    if not path.is_file():
-        raise FileNotFoundError(path)
+    if path is None or not path.is_file():
+        raise FileNotFoundError(path if path is not None else f"{source} source is not available on this machine")
     frame = pd.read_csv(path)
     page = frame.iloc[offset : offset + limit]
     return {

@@ -135,6 +135,7 @@ def get_analysis_paths(
     deriv_root: str | Path | None = None,
     cohort_dti_csv: str | Path | None = None,
     cohort_mri_csv: str | Path | None = None,
+    ensure: bool = True,
 ) -> AnalysisPaths:
     notebook_dir = Path(notebook_dir) if notebook_dir else Path(__file__).resolve().parent.parent
     paths = AnalysisPaths(notebook_dir=notebook_dir)
@@ -153,7 +154,9 @@ def get_analysis_paths(
         paths.cohort_dti_csv = Path(cohort_dti_csv)
     if cohort_mri_csv:
         paths.cohort_mri_csv = Path(cohort_mri_csv)
-    return paths.ensure()
+    # ensure=False resolves the locations without creating any folder, which a
+    # dry run needs: it must leave the disk exactly as it found it.
+    return paths.ensure() if ensure else paths
 
 
 def apply_plot_theme() -> None:
