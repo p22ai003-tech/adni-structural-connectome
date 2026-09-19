@@ -63,14 +63,14 @@ def sid_to_subject_id(sid: str) -> str:
 
 
 def _default_label_path(paths: AnalysisPaths) -> Path:
-    candidates = [
-        paths.notebook_dir / "atlas" / "AAL" / "AAL3_labels.csv",
-        Path("/home/ec2-user/exp/atlas/AAL/AAL3_labels.csv"),
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
+    """Labels keyed on the MATRIX ROW of the 166-node SC_AAL166 matrices.
+
+    This used AAL3_labels.csv, which is keyed on the original atlas value
+    (1..170 with 35, 36, 81, 82 unused). Applied to 166-row matrices that made
+    rows 35, 36, 81 and 82 look like "expected gaps" and misnamed every row
+    from 35 onward.
+    """
+    return paths.notebook_dir / "atlas" / "AAL" / "aal3_labels_166.csv"
 
 
 def load_aal3_labels(paths: AnalysisPaths) -> AtlasInfo:

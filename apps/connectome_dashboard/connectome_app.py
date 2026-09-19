@@ -64,7 +64,9 @@ AAL3_RESCUE_BATCH_ROOT = Path(
     os.environ.get("AAL3_RESCUE_BATCH_ROOT", "/data/derivatives/qc/sc_matrix_qc/aal3_force_connectome_ad_batch")
 )
 NOTEBOOK_PATH = PROJECT_ROOT / "notebooks" / "structural_connectome_C.ipynb"
-AAL_LABEL_CSV = PROJECT_ROOT / "atlas" / "AAL" / "AAL3_labels.csv"
+# Keyed on the matrix row (node 1..166). AAL3_labels.csv is keyed on the
+# original atlas value and named every row from 35 onward wrongly.
+AAL_LABEL_CSV = PROJECT_ROOT / "atlas" / "AAL" / "aal3_labels_166.csv"
 AAL_ATLAS_NII = PROJECT_ROOT / "atlas" / "AAL" / "AAL3v1_1mm.nii.gz"
 MNI_BRAIN_MASK_ENV = os.environ.get("CONNECTOME_MNI_BRAIN_MASK")
 MNI_BRAIN_MASK_CANDIDATES = tuple([Path(MNI_BRAIN_MASK_ENV)] if MNI_BRAIN_MASK_ENV else []) + (

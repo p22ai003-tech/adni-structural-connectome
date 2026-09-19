@@ -89,8 +89,13 @@ logging.basicConfig(
 SCHEMA_VERSION = "1.0"
 API_PREFIX = "/api/v1"
 APP_FILE = Path(__file__).resolve()
+# The Streamlit-parity reference captured on the project's own server. It lives
+# in research_audit/outputs/, which is never shipped, so it is optional: the
+# provenance endpoint reports it when present. It used to be an absolute path
+# into one machine's checkout, and a required readiness source, which meant
+# /health/ready could never pass anywhere else.
 REFERENCE_FILE = (
-    Path("/home/ec2-user/exp")
+    Path(__file__).resolve().parents[2]
     / "research_audit/outputs/connectome_dashboard_reference_v1/reference.json"
 )
 
@@ -247,10 +252,11 @@ def health_live() -> HealthResponse:
 )
 def health_ready() -> HealthResponse:
     settings = get_settings()
+    # Ready means: this server can answer from the user's own results. The
+    # parity reference is not the user's data and is not required.
     required = (
         settings.analysis_root / "00_master/master_cohort.csv",
         settings.connectomes_root,
-        REFERENCE_FILE,
     )
     missing = [str(path) for path in required if not path.exists()]
     if missing:
@@ -304,7 +310,7 @@ def metadata_provenance() -> ApiEnvelope:
             "master_sha256": _sha256(master),
             "artifact_count": len(artifact_inventory(settings)),
         },
-        sources=[REFERENCE_FILE, master],
+        sources=[p for p in (REFERENCE_FILE, master) if p.is_file()],
     )
 
 
