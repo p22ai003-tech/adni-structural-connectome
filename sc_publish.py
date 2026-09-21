@@ -51,7 +51,7 @@ def sha256_file(path: Path) -> str:
 
 
 def split_unit(unit: str) -> tuple[str, str]:
-    """``005_S_6393_I1630993`` -> ``('005_S_6393', '1630993')``.
+    """``XXX_S_NNNN_I123456`` -> ``('XXX_S_NNNN', '123456')``.
 
     The unit id is the subject id with the DWI image id appended, which is how
     the workflow keeps two scans of one subject apart.

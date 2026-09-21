@@ -115,7 +115,7 @@ def _scan(root: Path, subject: str, session: str | None, *, layout: str) -> None
 @pytest.mark.parametrize("layout", ["simple", "bids"])
 def test_every_layout_finds_and_pairs_its_scans(tmp_path, layout):
     root = tmp_path / "raw"
-    subjects = ["sub-001", "sub-002"] if layout != "adni" else ["002_S_0413"]
+    subjects = ["sub-001", "sub-002"] if layout != "adni" else ["XXX_S_NNNN"]
     for subject in subjects:
         _scan(root, subject, "ses-01", layout=layout)
 
@@ -172,7 +172,7 @@ def test_participants_file_without_a_subject_column_is_rejected(tmp_path):
 
 def test_unit_ids_accept_a_generic_image_id():
     assert stable_unit({"subject_id": "sub-001", "dti_image_id": "ses-01"}) == "sub-001_Ises-01"
-    assert stable_unit({"subject_id": "002_S_0413", "dti_image_id": "863064"}) == "002_S_0413_I863064"
+    assert stable_unit({"subject_id": "XXX_S_NNNN", "dti_image_id": "863064"}) == "XXX_S_NNNN_I863064"
 
 
 def test_unit_ids_reject_what_would_be_ambiguous():
