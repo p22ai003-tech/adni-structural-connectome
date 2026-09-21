@@ -103,11 +103,12 @@ network mid-run.
 
 ## 4. Run it
 
-Six commands. Each one writes a file the next one reads, so you can stop, look
+Each command writes a file the next one reads, so you can stop, look
 at what it produced, and carry on.
 
 ```bash
 STUDY=configs/study.yaml
+RUN=/data/mystudy/work/derivatives/scforge_v2/run1
 
 # a. find the scans and pair each DWI with a T1     -> work/pairs.csv
 python run_imaging.py --study $STUDY discover --out work/pairs.csv
@@ -122,19 +123,35 @@ python run_imaging.py probe
 python run_imaging.py validate
 
 # e. approve the subjects you want to process       -> <run>/contract/
-python run_imaging.py approve --run-root /data/mystudy/work/derivatives/scforge_v2/run1 \
-    --all --by "Your Name" --mode phase-b
+python run_imaging.py approve --run-root $RUN --all --by "Your Name"
 
-# f. run
-python run_imaging.py run --run-root /data/mystudy/work/derivatives/scforge_v2/run1 --cores 16
+# f. run phase A: preprocessing and one response function per subject
+python run_imaging.py run --run-root $RUN --cores 16
 ```
 
-Steps **a–d** take minutes and are all reversible. Step **f** is the long one.
+Steps **a–d** take minutes and are all reversible. Step **f** is hours per
+subject, mostly in eddy-current and motion correction.
+
+Phase A stops there on purpose. Three short steps open phase B:
+
+```bash
+# pool the per-subject responses into the one phase B deconvolves against
+python run_imaging.py freeze --run-root $RUN --by "Your Name"
+
+# look at <run>/subjects/*/06_preflight/ and record your verdict
+python run_imaging.py review --run-root $RUN --reviewer "Your Name"
+
+# authorise tractography for the subjects that passed
+python run_imaging.py continue --run-root $RUN --by "Your Name"
+
+# phase B: FOD, tractography, SIFT2, the nine matrices
+python run_imaging.py run --run-root $RUN --cores 16
+```
 
 Finally, put the matrices where the analysis reads them:
 
 ```bash
-python run_imaging.py publish --run-root /data/mystudy/work/derivatives/scforge_v2/run1
+python run_imaging.py publish --run-root $RUN
 ```
 
 That writes `SC_AAL166_<subject>_I<image>_<metric>.csv` per subject, plus a
@@ -256,7 +273,43 @@ If two runs are started against the same tree, Snakemake locks it and the
 second refuses. That is working as intended; unlock with
 `snakemake --unlock` only when you are certain nothing else is running.
 
-## 11. Provenance
+## 11. Running a large cohort
+
+Measured on this project's data, a subject costs about **2 GB** through
+preprocessing, and its 10-million-streamline `.tck` is another **1.2 GB**. For
+500 subjects that is close to **1.6 TB**, which is usually the binding
+constraint rather than CPU.
+
+Three things make that manageable:
+
+**Sweep as you go.** Once a subject's matrices are published, its largest
+intermediates are no longer needed:
+
+```bash
+python run_imaging.py publish --run-root <run>
+python run_imaging.py sweep   --run-root <run> --dry-run   # see what it would free
+python run_imaging.py sweep   --run-root <run>
+```
+
+It removes the streamlines and the denoised and unringed volumes, and leaves
+the preprocessed DWI, the matrices, the QC and the provenance. It will not
+touch a unit unless the provenance sidecar in the analysis directory names
+*this* run — matrices from an earlier run are not evidence that this one
+finished. `--keep-tracks` keeps the `.tck` files if you want to re-derive other
+metrics from them later.
+
+Everything it removes is regenerable, and since every stochastic step is
+seeded, regenerable to the same answer.
+
+**Run in batches.** `approve` takes `--units`, `--units-file` or `--first N`, so
+a cohort can go through in groups with its own run root each. Each batch is
+independently approvable, resumable and sweepable.
+
+**Watch the ceilings.** The approval records a wall-clock and a storage stop,
+and the run refuses to start if the free space is already below the storage
+ceiling. Set them with `--wall-clock-hours` and `--storage-gb`.
+
+## 12. Provenance
 
 `workflow_source_manifest.tsv` pins a SHA-256 for every source file the
 contract covers, so a rule cannot change without the contract noticing.
@@ -268,7 +321,7 @@ with its size, hash and inode identity. Every file is re-checked against it
 before conversion, so a source that changed underneath the run fails closed
 instead of quietly producing a different answer.
 
-## 12. Manifests are not committed
+## 13. Manifests are not committed
 
 Every manifest row names a participant and an absolute path to their imaging.
 Manifests are generated on the machine that holds the data and stay there. This

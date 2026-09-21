@@ -413,6 +413,78 @@ def cmd_continue(args) -> int:
     return 0
 
 
+def cmd_sweep(args) -> int:
+    """Reclaim disk from units whose matrices are already published.
+
+    A subject costs about 2 GB through preprocessing and another gigabyte or so
+    for its streamlines, so a 500-subject cohort needs a couple of terabytes if
+    nothing is ever removed. Most of that is intermediate: the denoised and
+    unringed volumes and the .tck are all regenerable, and now that every
+    stochastic step is seeded, regenerable to the same answer.
+
+    Nothing is removed for a unit whose matrices have not been published, and
+    nothing that cannot be rebuilt is removed at all. Snakemake will simply
+    rebuild what it finds missing, so a swept run is still resumable -- it just
+    costs the compute again.
+    """
+    run_root = Path(args.run_root).expanduser().resolve()
+    destination = (args.published or sc_config.paths().connectomes_dir).expanduser()
+    subjects = run_root / "subjects"
+    if not subjects.is_dir():
+        print(f"no subjects under {run_root}", file=sys.stderr)
+        return 2
+
+    # Regenerable, in rough order of size. The preprocessed DWI itself is kept:
+    # it is what every later stage reads, and rebuilding it means eddy again.
+    sweepable = [
+        ("01_dwi/dwi_denoised.mif", "denoised DWI"),
+        ("01_dwi/dwi_denoised_degibbs.mif", "unringed DWI"),
+        ("00_inputs/dwi_raw.mif", "converted raw DWI"),
+    ]
+    if not args.keep_tracks:
+        sweepable.insert(0, ("07_tractography/tracks_10m.tck", "streamlines"))
+
+    total = 0
+    swept_units = skipped = 0
+    for unit_dir in sorted(p for p in subjects.iterdir() if p.is_dir()):
+        unit = unit_dir.name
+        subject, _, image = unit.rpartition("_I")
+        # Matrices for this subject may exist from an earlier run; that is no
+        # reason to delete this one's inputs. The provenance sidecar names the
+        # run that produced them, and only that makes a unit sweepable.
+        sidecar = destination / f"SC_AAL_{subject}_I{image}_generation_provenance.json"
+        published_here = False
+        if sidecar.is_file():
+            try:
+                record = json.loads(sidecar.read_text())
+                published_here = (Path(record.get("run_root", "")) == run_root
+                                  and len(record.get("files", [])) >= 9)
+            except (ValueError, OSError):
+                published_here = False
+        if not published_here and not args.force:
+            skipped += 1
+            continue
+        freed = 0
+        for relative, _label in sweepable:
+            target = unit_dir / relative
+            if not target.is_file():
+                continue
+            freed += target.stat().st_size
+            if not args.dry_run:
+                target.unlink()
+        if freed:
+            swept_units += 1
+            total += freed
+            verb = "would free" if args.dry_run else "freed"
+            print(f"  {unit:<28} {verb} {freed / 2**30:.2f} GB")
+
+    verb = "would reclaim" if args.dry_run else "reclaimed"
+    print(f"\n{verb} {total / 2**30:.1f} GB from {swept_units} unit(s)")
+    if skipped:
+        print(f"{skipped} unit(s) left alone: their matrices are not published yet")
+    return 0
+
+
 def cmd_publish(args) -> int:
     argv = ["--run-root", str(args.run_root)]
     if args.out:
@@ -954,6 +1026,17 @@ def main(argv=None) -> int:
     cn.add_argument("--force", action="store_true",
                     help="continue with a unit that did not pass preflight")
     cn.set_defaults(func=cmd_continue)
+
+    sw = sub.add_parser("sweep", help="reclaim disk from units already published")
+    sw.add_argument("--run-root", type=Path, required=True)
+    sw.add_argument("--published", type=Path, default=None,
+                    help="where matrices were published (default: $SC_CONNECTOMES_DIR)")
+    sw.add_argument("--keep-tracks", action="store_true",
+                    help="keep the .tck files, which are the largest single item")
+    sw.add_argument("--force", action="store_true",
+                    help="sweep a unit whose matrices are not published")
+    sw.add_argument("--dry-run", action="store_true")
+    sw.set_defaults(func=cmd_sweep)
 
     pb = sub.add_parser("publish", help="run matrices -> the analysis connectome directory")
     pb.add_argument("--run-root", type=Path, required=True)
