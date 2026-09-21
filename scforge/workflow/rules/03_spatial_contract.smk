@@ -35,7 +35,7 @@ rule b0_to_t1_bbr:
         set -euo pipefail
         mkdir -p "$(dirname {output.matrix:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
-        export FSLDIR=/home/ec2-user/fsl
+        export FSLDIR={FSL_DIR:q}
         export FSLOUTPUTTYPE=NIFTI_GZ
         epi_reg --epi={input.b0:q} --t1={input.t1:q} --t1brain={input.t1_brain:q} \
           --wmseg={input.wmseg:q} --out={params.prefix:q} > {log:q} 2>&1
@@ -60,7 +60,7 @@ rule invert_bbr_transform:
         set -euo pipefail
         mkdir -p "$(dirname {output.fsl:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
-        export FSLDIR=/home/ec2-user/fsl
+        export FSLDIR={FSL_DIR:q}
         convert_xfm -omat {output.fsl:q} -inverse {input.matrix:q} > {log:q} 2>&1
         transformconvert {output.fsl:q} {input.t1:q} {input.b0:q} flirt_import {output.mrtrix:q} \
           >> {log:q} 2>&1
@@ -82,6 +82,7 @@ rule mni_to_t1_nonlinear:
         warped=subject_path("{unit}", "03_spatial", "mni_in_t1.nii.gz"),
     params:
         prefix=lambda wc: subject_path(wc.unit, "03_spatial", "mni_to_t1_"),
+        seed=lambda wc: subject_seed(wc.unit),
     log:
         subject_log("{unit}", "03_ants_mni_to_t1.log"),
     threads: 16
@@ -91,6 +92,7 @@ rule mni_to_t1_nonlinear:
         mkdir -p "$(dirname {output.affine:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+        export ANTS_RANDOM_SEED={params.seed}
         antsRegistrationSyN.sh -d 3 -f {input.fixed:q} -m {input.moving:q} \
           -o {params.prefix:q} -t s -x {input.fixed_mask:q} > {log:q} 2>&1
         test -s {output.affine:q}

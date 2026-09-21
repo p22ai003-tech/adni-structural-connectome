@@ -60,7 +60,7 @@ inputs:
     processing_authorized_row_count: 530
   acquisition_schema:
     path: "/home/ec2-user/exp/scforge/workflow/schemas/acquisition_manifest_v2.schema.json"
-    sha256: "669a9ad87b64e6353e18ed14d3fba01f07ce7dd77c0d8bc0ce3a0ade288be04d"
+    sha256: "4d19d95a2c8ba62142c6a67610c27725f6c04acf512235f0b760178b364904a1"
     schema_version: "2.0.0"
   # The source content lock and the metadata projection describe one cohort's
   # raw files, so there is no repo-wide value for them. `run_imaging.py approve`

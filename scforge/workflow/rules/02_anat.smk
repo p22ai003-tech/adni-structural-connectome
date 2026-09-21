@@ -35,7 +35,7 @@ rule t1_brain_extract:
         set -euo pipefail
         mkdir -p "$(dirname {output.brain:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
-        export FSLDIR=/home/ec2-user/fsl
+        export FSLDIR={FSL_DIR:q}
         export FSLOUTPUTTYPE=NIFTI_GZ
         bet {input:q} {output.brain:q} -m -R -f 0.30 > {log:q} 2>&1
         test -s {output.mask:q}

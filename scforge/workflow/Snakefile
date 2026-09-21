@@ -124,7 +124,8 @@ ATTEMPT_CONTEXT_PATH = Path(
 
 MRTRIX_BIN = (Path(ENVIRONMENT_LOCK["mrtrix3"]["prefix"]) / "bin").resolve()
 MRTRIX3TISSUE_BIN = (Path(ENVIRONMENT_LOCK["mrtrix3tissue"]["prefix"]) / "bin").resolve()
-FSL_BIN = (Path(ENVIRONMENT_LOCK["fsl"]["prefix"]) / "bin").resolve()
+FSL_DIR = Path(ENVIRONMENT_LOCK["fsl"]["prefix"]).resolve()
+FSL_BIN = (FSL_DIR / "bin").resolve()
 ANTS_BIN = Path(ENVIRONMENT_LOCK["ants"]["prefix"]).resolve() / "bin"
 SS3T_PYTHON = Path(ENVIRONMENT_LOCK["execution_policy"]["ss3t_invocation"]["python"]).resolve()
 SS3T_SCRIPT = Path(ENVIRONMENT_LOCK["execution_policy"]["ss3t_invocation"]["script"]).resolve()
@@ -414,6 +415,22 @@ def run_path(*parts):
 
 def subject_log(unit, name):
     return subject_path(unit, "logs", name)
+
+
+def subject_seed(unit):
+    """A deterministic per-subject seed, derived from the data and the recipe.
+
+    Tools that sample randomly -- tractography, and ANTs' mutual-information
+    registration -- default to seeding from the clock, which is why the
+    original cohort cannot be reproduced. Deriving the seed from the subject's
+    source identity and the recipe id means the same input under the same
+    recipe gives the same answer, while two subjects still get different
+    streams.
+    """
+    row = ROW_BY_UNIT[str(unit)]
+    token = f"{row['dti_source_id']}|{row['dti_raw_bundle_sha256']}|{RECIPE_ID}"
+    seed = int.from_bytes(hashlib.sha256(token.encode("utf-8")).digest()[:4], "big")
+    return (seed & 0x7FFFFFFF) or 1  # ANTs treats 0 as "seed from the clock"
 
 
 def matrix_path(unit, metric):

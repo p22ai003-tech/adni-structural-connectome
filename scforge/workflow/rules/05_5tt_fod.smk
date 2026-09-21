@@ -61,7 +61,7 @@ rule five_tt_t1:
         set -euo pipefail
         mkdir -p "$(dirname {output.five_tt:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
-        export FSLDIR=/home/ec2-user/fsl
+        export FSLDIR={FSL_DIR:q}
         export FSLOUTPUTTYPE=NIFTI_GZ
         5ttgen fsl {input.t1:q} {output.five_tt:q} -nocrop -nthreads {threads} \
           > {log:q} 2>&1

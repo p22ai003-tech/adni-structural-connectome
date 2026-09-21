@@ -286,7 +286,7 @@ rule dwi_motion_eddy:
         set -euo pipefail
         mkdir -p "$(dirname {output.dwi:q})" "$(dirname {log:q})"
         export PATH={MRTRIX_BIN:q}:/usr/bin:/bin:{input.fsl_cpu_path:q}:{ANTS_BIN:q}:{C3D_AFFINE_TOOL.parent:q}
-        export FSLDIR=/home/ec2-user/fsl
+        export FSLDIR={FSL_DIR:q}
         export FSLOUTPUTTYPE=NIFTI_GZ
         export DWIFSLPREPROC_FORCE_CPU=1
         export DWIFSLPREPROC_NO_CPU_FALLBACK=1

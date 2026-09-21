@@ -80,10 +80,13 @@
     },
     "dti_image_id": {
       "type": "string",
-      "pattern": "^[0-9]+$"
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
     },
     "dti_study_date": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date"
     },
     "dti_source_kind": {
@@ -184,10 +187,13 @@
     },
     "t1_image_id": {
       "type": "string",
-      "pattern": "^[0-9]+$"
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
     },
     "t1_study_date": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date"
     },
     "t1_source_kind": {

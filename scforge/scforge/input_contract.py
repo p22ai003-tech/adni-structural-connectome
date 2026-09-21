@@ -39,6 +39,10 @@ SUPPORTED_PE_DIRECTIONS = frozenset({"i", "i-", "j", "j-", "k", "k-"})
 NULLABLE_STRING_FIELDS = frozenset(
     {
         "diagnosis_at_dti",
+        # Not every layout records when a scan was taken; see the "undated"
+        # timing stratum. A date that is absent is left absent.
+        "dti_study_date",
+        "t1_study_date",
         "dti_dicom_series_uid",
         "dwi_nifti_path",
         "dwi_bvec_path",
@@ -83,12 +87,26 @@ def sha256_file(path: str | Path) -> str:
 
 
 def stable_unit(row: Mapping[str, str]) -> str:
+    """The processing unit id: one subject's one DWI series.
+
+    ADNI image ids are numeric, but a generic study's are whatever the folder
+    that holds the scan is called -- a session name, or the subject name where
+    there is only one session. Any safe identifier is accepted; the one
+    restriction is that it may not itself contain the ``_I`` separator, which
+    would make the unit id ambiguous to split back apart.
+    """
     subject = str(row.get("subject_id", "")).strip()
     image_id = str(row.get("dti_image_id", "")).strip()
     if not SAFE_ID_RE.fullmatch(subject):
         raise ValueError(f"Unsafe subject_id in manifest: {subject!r}")
-    if not image_id.isdigit():
-        raise ValueError(f"dti_image_id must be numeric for {subject}: {image_id!r}")
+    if not image_id:
+        raise ValueError(f"dti_image_id is empty for {subject}")
+    if not SAFE_ID_RE.fullmatch(image_id):
+        raise ValueError(f"Unsafe dti_image_id for {subject}: {image_id!r}")
+    if "_I" in image_id:
+        raise ValueError(
+            f"dti_image_id may not contain '_I' for {subject}: {image_id!r}"
+        )
     return f"{subject}_I{image_id}"
 
 

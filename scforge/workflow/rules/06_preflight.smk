@@ -138,7 +138,7 @@ rule visual_review_bundle:
         set -euo pipefail
         mkdir -p "$(dirname {output.b0_t1:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
-        export FSLDIR=/home/ec2-user/fsl
+        export FSLDIR={FSL_DIR:q}
         export FSLOUTPUTTYPE=NIFTI_GZ
         slices {input.b0:q} {input.t1:q} -o {output.b0_t1:q} > {log:q} 2>&1
         slices {input.b0:q} {input.five_tt:q} -o {output.b0_5tt:q} >> {log:q} 2>&1

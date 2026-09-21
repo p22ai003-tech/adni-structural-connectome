@@ -38,6 +38,7 @@ not include them.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -137,6 +138,279 @@ def cmd_validate(args) -> int:
         print("If phase_encoding_direction / total_readout_time are blank, run:")
         print("    python run_imaging.py probe")
     return rc
+
+
+def cmd_freeze(args) -> int:
+    """Pool phase-A response functions into the one frozen artifact phase B reads.
+
+    Phase A estimates a response function per subject; phase B deconvolves
+    every subject against a single pooled response so the FODs are on a common
+    scale. Freezing is the step between: it closes phase A into an immutable
+    publication, pools the responses of the subjects that succeeded, and
+    records the result in the run overlay.
+
+    Without it, phase B stops on a placeholder path named
+    REQUIRED_BEFORE_PHASE_B, which reads like a missing file rather than the
+    stage it is.
+    """
+    import datetime as _dt
+    import yaml as _yaml
+
+    sys.path.insert(0, str(PROJECT_ROOT / "scforge"))
+    sys.path.insert(0, str(PROJECT_ROOT / "scforge" / "workflow"))
+    from scforge.input_contract import load_acquisition_manifest
+    from scforge.provenance import file_record, write_immutable_json
+    from scforge.response_calibration import freeze_response_calibration_from_phase_a
+    import run_connectome_v2 as launcher
+
+    run_root = Path(args.run_root).expanduser().resolve()
+    contract_dir = run_root / "contract"
+    overlay_path = contract_dir / "run_overlay.yaml"
+    if not overlay_path.is_file():
+        print(f"no approval in {run_root}; run `approve` first", file=sys.stderr)
+        return 2
+    overlay = _yaml.safe_load(overlay_path.read_text())
+    run_context = json.loads((contract_dir / "run_context.json").read_text())
+    binding = run_context["execution_binding"]
+
+    end_path = contract_dir / "attempt_end.json"
+    if not end_path.is_file():
+        print("this run has not finished an attempt yet; run the phase-A workflow first",
+              file=sys.stderr)
+        return 2
+    attempt_end = json.loads(end_path.read_text())
+    log_path = Path(attempt_end["execution_log"])
+
+    rows = load_acquisition_manifest(Path(overlay["execution_manifest_path"]))
+    missing = [row["unit"] for row in rows
+               if not (run_root / "subjects" / row["unit"] / "05_model"
+                       / "response_calibration_outcome.json").is_file()]
+    if missing:
+        print(f"phase A has not produced an outcome for {len(missing)} unit(s): "
+              f"{', '.join(missing[:5])}", file=sys.stderr)
+        return 1
+
+    publication = run_root / "publication"
+    if (publication / "response_calibration_phase_a_manifest.json").is_file():
+        print("phase A is already published for this run")
+    else:
+        launcher.finalize_response_calibration_phase_a(
+            run_root=run_root,
+            manifest_rows=rows,
+            execution_binding=binding,
+            run_id=run_context["run_id"],
+            lineage_id=run_context["lineage_id"],
+            recipe_id=run_context["recipe_id"],
+            run_context_path=contract_dir / "run_context.json",
+            attempt_start_path=contract_dir / "attempt_context.json",
+            attempt_end_path=end_path,
+            execution_log_path=log_path,
+            workflow_returncode=int(attempt_end["snakemake_returncode"]),
+            ended_utc=attempt_end["ended_utc"],
+        )
+
+    manifest_path = publication / "response_calibration_phase_a_manifest.json"
+    completion_path = publication / "response_calibration_phase_a_completion.json"
+    if not completion_path.is_file():
+        phase_a = json.loads(manifest_path.read_text())
+        write_immutable_json(completion_path, {
+            "schema_version": "2.0.0",
+            "record_type": "response_calibration_phase_a_completion",
+            "status": phase_a["run_outcome"],
+            "completed_utc": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+            "mode": "response-calibration-phase-a",
+            "run_id": run_context["run_id"],
+            "lineage_id": run_context["lineage_id"],
+            "recipe_id": run_context["recipe_id"],
+            "execution_binding": binding,
+            "run_context": file_record(contract_dir / "run_context.json"),
+            "terminal_attempt_start": file_record(contract_dir / "attempt_context.json"),
+            "terminal_attempt_end": file_record(end_path),
+            "combined_execution_log": file_record(log_path),
+            "snakemake_returncode": int(attempt_end["snakemake_returncode"]),
+            "phase_a_summary": phase_a["summary"],
+            "phase_a_manifest": file_record(manifest_path),
+            "phase_a_ledger": file_record(
+                publication / "response_calibration_phase_a_ledger.jsonl"),
+            "freeze_required_before_phase_b": True,
+            "full_run_terminal_publication": False,
+            "production_overwrite": False,
+        })
+
+    normative = _yaml.safe_load(DEFAULT_WORKFLOW_CONFIG.read_text())
+    pooling = normative["fod"]["response_estimation"]["calibration"]["pooling"]
+    # The config pins the path and SHA-256 of the responsemean this recipe was
+    # frozen against. Another site has a different MRtrix build, so when the
+    # pinned binary is not here the one on the toolchain is used instead and
+    # its own hash is what the frozen manifest records. That is a weaker claim
+    # than the pinned one, and it is stated rather than hidden.
+    executable = Path(pooling["executable"])
+    expected_sha = pooling["executable_sha256"]
+    if not executable.is_file():
+        tool = sc_config.tools()
+        candidate = (tool.mrtrix_bin / "responsemean") if tool.mrtrix_bin else None
+        if candidate is None or not candidate.is_file():
+            candidate = Path(shutil.which("responsemean") or "")
+        if not candidate or not candidate.is_file():
+            print("responsemean not found. Set MRTRIX_BIN or put MRtrix3 on PATH.",
+                  file=sys.stderr)
+            return 2
+        executable = candidate.resolve()
+        expected_sha = _sha256_file(executable)
+        print(f"responsemean: {executable} (recording its hash; the recipe's "
+              "pinned binary is not on this machine)")
+    frozen_dir = run_root / "05_group_response_frozen"
+    if frozen_dir.exists():
+        print(f"already frozen: {frozen_dir}")
+        frozen = json.loads(
+            (frozen_dir / "frozen_response_calibration_manifest.json").read_text())
+        frozen["manifest_path"] = str(frozen_dir / "frozen_response_calibration_manifest.json")
+    else:
+        frozen = freeze_response_calibration_from_phase_a(
+            completion_path, manifest_path, frozen_dir,
+            minimum_valid_subjects=args.minimum_valid,
+            generated_utc=_dt.datetime.now(_dt.timezone.utc).isoformat(),
+            responsemean_executable=executable,
+            expected_responsemean_sha256=expected_sha,
+        )
+        print(f"pooled {frozen['valid_subject_count']} response function(s); "
+              f"{frozen['invalid_subject_count']} excluded")
+
+    calibration = {
+        "frozen_manifest": {
+            "path": str(frozen["manifest_path"]),
+            "sha256": _sha256_file(Path(frozen["manifest_path"])),
+        },
+        "pooled_responses": {
+            tissue: {
+                "path": str(frozen_dir / f"pooled_response_{tissue}.txt"),
+                "sha256": _sha256_file(frozen_dir / f"pooled_response_{tissue}.txt"),
+            }
+            for tissue in ("wm", "gm", "csf")
+        },
+    }
+    overlay.setdefault("fod", {}).setdefault("response_estimation", {}).setdefault(
+        "calibration", {}).update(calibration)
+    overlay_path.write_text(_yaml.safe_dump(overlay, sort_keys=False), encoding="utf-8")
+    print(f"frozen calibration recorded in {overlay_path.name}")
+    print("next: python run_imaging.py review --run-root "
+          f"{run_root} --reviewer \"<your name>\"")
+    return 0
+
+
+def cmd_review(args) -> int:
+    """Record a reviewer's verdict on the visual-QC bundle for some units.
+
+    Between preflight and tractography a human is meant to look at the
+    registration and mask overlays and say whether each subject is usable. The
+    workflow reads that verdict from ``<run>/review/human_visual_qc.csv`` and
+    refuses to enter phase B without one, but nothing wrote the file, so the
+    gate could not be passed at all. This writes it.
+
+    The file deliberately carries no diagnosis column: the review is blind.
+    """
+    run_root = Path(args.run_root).expanduser().resolve()
+    review_path = run_root / "review" / "human_visual_qc.csv"
+    units = args.units or _approved_units(run_root)
+    if not units:
+        print(f"no units to review under {run_root}", file=sys.stderr)
+        return 2
+    reviewed_utc = args.utc or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    fields = ["unit", "status", "reviewer", "reviewed_utc", "note"]
+    existing: dict[str, dict] = {}
+    if review_path.is_file():
+        import csv as _csv
+        with review_path.open(newline="", encoding="utf-8-sig") as handle:
+            for row in _csv.DictReader(handle):
+                existing[str(row.get("unit", "")).strip()] = dict(row)
+    for unit in units:
+        existing[unit] = {"unit": unit, "status": args.status.upper(),
+                          "reviewer": args.reviewer, "reviewed_utc": reviewed_utc,
+                          "note": args.note}
+    review_path.parent.mkdir(parents=True, exist_ok=True)
+    import csv as _csv
+    with review_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = _csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for unit in sorted(existing):
+            writer.writerow({key: existing[unit].get(key, "") for key in fields})
+    print(f"recorded {args.status.upper()} for {len(units)} unit(s) by {args.reviewer}")
+    print(f"  {review_path}")
+    return 0
+
+
+def _approved_units(run_root: Path) -> list[str]:
+    binding_path = run_root / "contract" / "execution_binding.json"
+    if not binding_path.is_file():
+        return []
+    return list(json.loads(binding_path.read_text()).get("units", []))
+
+
+def cmd_continue(args) -> int:
+    """Open phase B for the units that passed preflight.
+
+    Phase B is a second gate, on purpose: tractography is the expensive part
+    and should only run on subjects whose registration and masks a person has
+    actually looked at. The workflow requires a continuation binding naming
+    exactly those units; this writes it into the run overlay after checking
+    each unit's preflight record really is a PASS.
+    """
+    import yaml as _yaml
+
+    run_root = Path(args.run_root).expanduser().resolve()
+    overlay_path = run_root / "contract" / "run_overlay.yaml"
+    if not overlay_path.is_file():
+        print(f"no approval in {run_root}; run `approve` first", file=sys.stderr)
+        return 2
+    overlay = _yaml.safe_load(overlay_path.read_text())
+
+    passed, failed, missing = [], [], []
+    for unit in _approved_units(run_root):
+        record_path = (run_root / "subjects" / unit / "06_preflight"
+                       / "tractography_preflight.json")
+        if not record_path.is_file():
+            missing.append(unit)
+            continue
+        record = json.loads(record_path.read_text())
+        (passed if record.get("status") == "PASS" else failed).append(unit)
+
+    chosen = sorted(set(args.units)) if args.units else sorted(passed)
+    print(f"preflight: {len(passed)} pass, {len(failed)} fail, {len(missing)} not yet run")
+    if failed:
+        print(f"  failed : {', '.join(failed)}")
+    if missing:
+        print(f"  pending: {', '.join(missing)}")
+    if not chosen:
+        print("\nnothing to continue with. Run the pre-tractography phase first, "
+              "then `review`, then this command.", file=sys.stderr)
+        return 1
+    not_passed = [unit for unit in chosen if unit not in passed]
+    if not_passed and not args.force:
+        print(f"\nrefusing: {', '.join(not_passed)} did not pass preflight "
+              "(pass --force only if you know why)", file=sys.stderr)
+        return 1
+
+    binding = {
+        "schema_version": "2.0.0",
+        "binding_type": "tractography_continuation_binding",
+        "execution_scope": "canary",
+        "recipe_id": overlay["execution_binding"]["recipe_id"],
+        "execution_subset_manifest": overlay["execution_binding"]["execution_subset_manifest"],
+        "diagnosis_labels_used": False,
+        "approved_units": chosen,
+        "approved_unit_count": len(chosen),
+        "approved_by": args.by,
+        "approved_utc": args.utc or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    overlay["launcher_mode"] = "phase-b"
+    overlay["tractography_continuation_binding"] = binding
+    overlay_path.write_text(_yaml.safe_dump(overlay, sort_keys=False), encoding="utf-8")
+    (run_root / "contract" / "tractography_continuation_binding.json").write_text(
+        json.dumps(binding, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"\nphase B open for {len(chosen)} unit(s), approved by {args.by}")
+    print(f"next: python run_imaging.py run --run-root {run_root} --cores 16")
+    return 0
 
 
 def cmd_publish(args) -> int:
@@ -298,7 +572,36 @@ def cmd_run(args) -> int:
     print(f"run root : {run_root}")
     print(f"snakemake: {snakemake}")
     print(f"$ {' '.join(cmd)}\n", flush=True)
-    return subprocess.run(cmd, env=env, cwd=str(PROJECT_ROOT)).returncode
+    if args.dry_run or not approved:
+        return subprocess.run(cmd, env=env, cwd=str(PROJECT_ROOT)).returncode
+
+    # The phase-A publication records the log of the attempt that produced it,
+    # so the run has to be captured as well as shown.
+    log_dir = run_root / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / f"execution_{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}.log"
+    with log_path.open("wb") as handle:
+        process = subprocess.Popen(cmd, env=env, cwd=str(PROJECT_ROOT),
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        assert process.stdout is not None
+        for line in process.stdout:
+            sys.stdout.buffer.write(line)
+            sys.stdout.flush()
+            handle.write(line)
+        returncode = process.wait()
+    (run_root / "contract" / "attempt_end.json").write_text(
+        json.dumps({
+            "schema_version": "1.0.0",
+            "status": "COMPLETE" if returncode == 0 else "FAILED",
+            "ended_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "snakemake_returncode": returncode,
+            "execution_log": str(log_path),
+        }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"\nlog: {log_path}")
+    if returncode == 0:
+        print("next: python run_imaging.py freeze --run-root "
+              f"{run_root} --by \"<your name>\"")
+    return returncode
 
 
 def _sha256_file(path: Path) -> str:
@@ -611,8 +914,10 @@ def main(argv=None) -> int:
     a.add_argument("--selection-rule", default="first N units in manifest order",
                    help="how the units were chosen; recorded in the decision")
     a.add_argument("--mode", default="response-calibration-phase-a",
-                   choices=("response-calibration-phase-a", "pre-tractography-canary", "phase-b"),
-                   help="launcher mode recorded in the overlay")
+                   choices=("response-calibration-phase-a", "pre-tractography-canary"),
+                   help="launcher mode recorded in the overlay. Phase B is not "
+                        "approved here: it opens with `continue`, after preflight "
+                        "and a human review of the QC overlays")
     a.add_argument("--recipe-id", default=None, help="default: the recipe_id in configs/connectome_v2.yaml")
     a.add_argument("--max-cores", type=int, default=8, help="core ceiling this approval permits")
     a.add_argument("--wall-clock-hours", type=int, default=72, help="wall-clock stop for the run")
@@ -621,6 +926,34 @@ def main(argv=None) -> int:
                    help="lock sources on size and stat identity only, without hashing "
                         "their contents (much faster on large cohorts, weaker guarantee)")
     a.set_defaults(func=cmd_approve)
+
+    fz = sub.add_parser("freeze", help="pool the phase-A responses phase B deconvolves against")
+    fz.add_argument("--run-root", type=Path, required=True)
+    fz.add_argument("--by", required=True, help="who is freezing this calibration")
+    fz.add_argument("--minimum-valid", type=int, default=1,
+                    help="how many subjects must have produced a valid response "
+                         "before the pool is accepted (default: 1)")
+    fz.set_defaults(func=cmd_freeze)
+
+    rv = sub.add_parser("review", help="record the human visual-QC verdict for units")
+    rv.add_argument("--run-root", type=Path, required=True)
+    rv.add_argument("--units", nargs="*", default=None,
+                    help="default: every approved unit in the run")
+    rv.add_argument("--status", default="PASS", choices=("PASS", "FAIL"))
+    rv.add_argument("--reviewer", required=True, help="who looked at the overlays")
+    rv.add_argument("--utc", default=None)
+    rv.add_argument("--note", default="")
+    rv.set_defaults(func=cmd_review)
+
+    cn = sub.add_parser("continue", help="open phase B for the units that passed preflight")
+    cn.add_argument("--run-root", type=Path, required=True)
+    cn.add_argument("--units", nargs="*", default=None,
+                    help="default: every unit whose preflight passed")
+    cn.add_argument("--by", required=True, help="who is authorising tractography")
+    cn.add_argument("--utc", default=None)
+    cn.add_argument("--force", action="store_true",
+                    help="continue with a unit that did not pass preflight")
+    cn.set_defaults(func=cmd_continue)
 
     pb = sub.add_parser("publish", help="run matrices -> the analysis connectome directory")
     pb.add_argument("--run-root", type=Path, required=True)

@@ -80,6 +80,14 @@ class Bundle:
         return bundle_sha256(records), len(self.members), total
 
 
+def _iso_date(value) -> str:
+    """DICOM writes StudyDate as YYYYMMDD; the contract wants YYYY-MM-DD."""
+    text = str(value or "").strip()
+    if len(text) == 8 and text.isdigit():
+        return f"{text[:4]}-{text[4:6]}-{text[6:]}"
+    return text
+
+
 def classify(folder: Path, *, modality: str) -> Bundle | None:
     """Decide what kind of scan a folder holds, by looking inside it."""
     if not folder.is_dir():
@@ -126,7 +134,7 @@ def scanner_metadata(bundle: Bundle) -> dict[str, str]:
             "scanner_model": str(getattr(ds, "ManufacturerModelName", "") or "").strip(),
             "field_strength_t": str(getattr(ds, "MagneticFieldStrength", "") or "").strip(),
             "protocol": str(getattr(ds, "ProtocolName", "") or "").strip(),
-            "study_date": str(getattr(ds, "StudyDate", "") or "").strip(),
+            "study_date": _iso_date(getattr(ds, "StudyDate", "")),
         }
     except Exception:
         return {}

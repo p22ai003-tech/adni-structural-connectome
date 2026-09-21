@@ -2,9 +2,9 @@
 
 
 def _subject_rng_seed(wildcards):
-    row = ROW_BY_UNIT[str(wildcards.unit)]
-    token = f"{row['dti_source_id']}|{row['dti_raw_bundle_sha256']}|{RECIPE_ID}".encode("utf-8")
-    return int.from_bytes(hashlib.sha256(token).digest()[:4], "big") & 0x7FFFFFFF
+    # One definition of the per-subject seed, shared with registration; see
+    # subject_seed() in the Snakefile.
+    return subject_seed(wildcards.unit)
 
 
 def _subject_rng_token(wildcards):
