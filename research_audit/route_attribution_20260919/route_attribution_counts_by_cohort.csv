@@ -1,0 +1,24 @@
+s4,fam,AD,CN,MCI,total
+A_legacy_pre-SOTA,NO_MATCH,4,29,20,53
+B_existing3M_ACT_track+SyN_r4,route_sota_laneB_batch,5,52,45,102
+B_existing3M_ACT_track+SyN_r4,route_sota_laneCD,1,6,2,9
+C_10M_r4_AD10M_0612,NO_MATCH,3,0,0,3
+D_3M_r2_noACT,ad_L7,3,0,0,3
+D_3M_r2_noACT,base_all2,12,95,80,187
+D_3M_r2_noACT,base_all2+regen216,2,14,7,23
+D_3M_r2_noACT,gap11,0,0,5,5
+D_3M_r2_noACT,recover,1,0,1,2
+D_3M_r2_preFORCE_NOACT(ACT iso/noACT aniso),lane1_AD_fullhead3M,1,0,0,1
+D_3M_r2_preFORCE_NOACT(ACT iso/noACT aniso),lane1_AD_keepbest,32,0,0,32
+D_3M_r2_preFORCE_NOACT(ACT iso/noACT aniso),lane1_MCICN,0,8,5,13
+E_10M_r2_AD3build(ad_blitz v1 tracks),NO_MATCH,3,0,0,3
+E_10M_r2_noACT:ad_L5,ad_L5,3,0,0,3
+E_10M_r2_noACT:batch162,batch162,0,19,18,37
+E_10M_r2_noACT:fastcrash,fastcrash,0,5,3,8
+E_10M_r2_noACT:mcicn_recover,mcicn_recover,0,8,10,18
+E_10M_r2_noACT:mcicn_recover2,mcicn_recover2,0,6,3,9
+E_10M_r2_noACT:recover3_mid,recover3_mid,0,0,2,2
+E_10M_r2_preFORCE_NOACT,lane5_AD_10Mmid,2,0,0,2
+F_10M_r4_reprocess4,NO_MATCH,1,0,0,1
+F_10M_r4_reprocess4,reprocess4,0,2,0,2
+F_r4_radial4_standardize,NO_MATCH,5,7,0,12
