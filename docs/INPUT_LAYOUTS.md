@@ -98,7 +98,7 @@ subject.
 
 Sessions named `ses-01` carry no acquisition date, and that is fine. Where both
 scans have a date the pipeline records the gap between them and labels the pair
-(`within_90d`, `within_180d`, `beyond_180d`); where they do not, the stratum is
+(`le_90_days`, `days_91_180`, `gt_180_days`); where they do not, the stratum is
 `undated` and the gap is left empty. Nothing is invented, and no pair is
 dropped for timing.
 
