@@ -99,7 +99,11 @@ def apply_study(args) -> "object | None":
 
 
 def cmd_doctor(args) -> int:
-    return _delegate("sc_doctor", ["--imaging"] if args.imaging_only else [])
+    argv = ["--imaging"] if args.imaging_only else []
+    study = getattr(args, "_study", None)
+    if study is not None:
+        argv += ["--layout", study.layout]
+    return _delegate("sc_doctor", argv)
 
 
 def cmd_discover(args) -> int:

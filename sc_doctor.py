@@ -81,23 +81,42 @@ def tool_version(path: str) -> str:
     return ""
 
 
-def check_paths() -> int:
+def check_paths(layout: str | None = None) -> int:
     print("\nPaths")
     print("-" * 72)
     p = sc_config.paths()
     problems = 0
-    # Roots that must exist for anything to work; the rest are created on demand.
-    required = {"project_root", "data_root"}
+    # Roots that must exist for anything to work. The output tree is created on
+    # demand, so an absent data_root is only a problem when it is also not
+    # writable -- a path under a volume that is not mounted, say.
+    required = {"project_root"}
+    # raw_dwi_root and raw_t1_root are where the ADNI layout keeps each
+    # modality. Another layout keeps them somewhere else, so reporting ours as
+    # missing would be noise about a folder that should not exist.
+    skip = set() if layout in (None, "adni") else {"raw_dwi_root", "raw_t1_root"}
     for name, value in p.as_dict().items():
-        exists = Path(value).exists()
-        if exists:
+        if name in skip:
+            continue
+        path = Path(value)
+        if path.exists():
             _print(OK, name, value)
         elif name in required:
             _print(BAD, name, f"{value}   <- set SC_{name.upper()}")
             problems += 1
+        elif name == "data_root" and not _creatable(path):
+            _print(BAD, name, f"{value}   <- cannot be created; is the volume mounted?")
+            problems += 1
         else:
             _print(WARN, name, f"{value}   (absent; created on demand)")
     return problems
+
+
+def _creatable(path: Path) -> bool:
+    """Is there an existing ancestor we could write this path under?"""
+    for parent in [path, *path.parents]:
+        if parent.exists():
+            return os.access(parent, os.W_OK)
+    return False
 
 
 def check_tools(required: bool) -> int:
@@ -214,13 +233,16 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--imaging", action="store_true", help="only the imaging requirements")
     ap.add_argument("--analysis", action="store_true", help="only the analysis requirements")
+    ap.add_argument("--layout", choices=("simple", "adni", "bids"), default=None,
+                    help="the study's input layout, so only the folders it uses "
+                         "are reported")
     args = ap.parse_args(argv)
     both = not (args.imaging or args.analysis)
 
     print("=" * 72)
     print("pipeline preflight")
     print("=" * 72)
-    problems = check_paths()
+    problems = check_paths(args.layout)
     if both or args.analysis:
         problems += check_packages()
         problems += check_cohort()
