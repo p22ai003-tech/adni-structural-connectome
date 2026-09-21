@@ -151,15 +151,19 @@ class Study:
         return env
 
     def apply_environment(self) -> dict[str, str]:
-        """Export the study's paths, without overriding an explicit setting.
+        """Export the study's paths, overriding what the environment already says.
 
-        A variable already set in the environment wins, so a user can point one
-        run somewhere else without editing the file.
+        The study file is the deliberate, specific statement about where one
+        study lives, so it wins over a variable that happens to be exported.
+        Otherwise ``source env.sh`` -- which sets SC_DATA_ROOT for this machine
+        -- would quietly send a study's output somewhere else, and the user
+        would have no sign of it.
+
+        A command-line flag still wins over the study: the runners apply their
+        own flags after this.
         """
         applied = {}
         for key, value in self.environment().items():
-            if os.environ.get(key):
-                continue
             os.environ[key] = value
             applied[key] = value
         try:  # the resolver caches; a new study must invalidate it

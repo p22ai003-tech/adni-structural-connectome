@@ -10,6 +10,7 @@ cohort's shape.
 from __future__ import annotations
 
 import csv
+import os
 import json
 import subprocess
 import sys
@@ -366,3 +367,22 @@ def test_a_table_with_no_subject_column_says_what_it_wanted(tmp_path):
     with pytest.raises(ValueError) as error:
         _load_cohort_csv(bad)
     assert "participant_id" in str(error.value)
+
+
+def test_the_study_file_beats_an_exported_variable(tmp_path, monkeypatch):
+    """`source env.sh` must not quietly redirect a study's output."""
+    config = tmp_path / "study.yaml"
+    participants = tmp_path / "participants.csv"
+    participants.write_text("subject_id,diagnosis\nsub-001,CN\n")
+    config.write_text(
+        "study: {name: s, layout: simple}\n"
+        f"input: {{source: local, path: {tmp_path}, participants: participants.csv}}\n"
+        f"output: {{data_root: {tmp_path / 'work'}}}\n"
+    )
+    monkeypatch.setenv("SC_DATA_ROOT", "/somewhere/else")
+    monkeypatch.setenv("SC_COHORT_DIR", "/another/study/cohort")
+    sc_study.load_study(config).apply_environment()
+    assert os.environ["SC_DATA_ROOT"] == str(tmp_path / "work")
+    # A study with its own participants table owns its cohort directory, so it
+    # can never join against another study's subjects.
+    assert os.environ["SC_COHORT_DIR"] == str(tmp_path)
