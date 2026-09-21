@@ -277,10 +277,10 @@ rule dwi_motion_eddy:
         dwi=subject_path("{unit}", "01_dwi", "dwi_preproc.mif"),
         eddy_qc=directory(subject_path("{unit}", "01_dwi", "eddy_qc")),
     params:
-        eddy_options="--slm=linear --data_is_shelled --repol --cnr_maps --residuals",
+        eddy_options=EDDY_OPTIONS,
     log:
         subject_log("{unit}", "01_dwifslpreproc.log"),
-    threads: 16
+    threads: EDDY_SCHEDULER_THREADS
     shell:
         r"""
         set -euo pipefail

@@ -301,6 +301,19 @@ metrics from them later.
 Everything it removes is regenerable, and since every stochastic step is
 seeded, regenerable to the same answer.
 
+**Give the run cores, not one subject cores.** Distortion and motion
+correction is the wall clock, and FSL's `eddy_cpu` is single-threaded by
+default — it takes `--nthr` and ignores `OMP_NUM_THREADS`. A cohort therefore
+goes faster by running many subjects at once than by giving one subject more
+cores, and `--cores` is what controls that. Reserve roughly 3.5 GB of RAM per
+concurrent subject.
+
+`dwi_preprocessing.eddy.scheduler_threads` is what one job reserves; the
+default of 4 lets `--cores 32` work on eight subjects at a time.
+`dwi_preprocessing.eddy.threads` is `eddy`'s own `--nthr`, left at its default
+of 1 because changing it changes the order of floating-point reductions and so,
+in principle, the result.
+
 **Run in batches.** `approve` takes `--units`, `--units-file` or `--first N`, so
 a cohort can go through in groups with its own run root each. Each batch is
 independently approvable, resumable and sweepable.

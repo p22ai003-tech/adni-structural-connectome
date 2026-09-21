@@ -152,6 +152,17 @@ EXPECTED_MATRICES = tuple(item["name"] for item in config["connectome"]["require
 # The atlas decides how many nodes a matrix has and the assignment radius is a
 # recipe parameter; neither belongs in a shell line, or a different atlas can
 # never be used.
+_EDDY = config["dwi_preprocessing"]["eddy"]
+_EDDY_THREADS = int(_EDDY.get("threads", 1))
+# eddy_cpu's own --nthr, which defaults to 1 and is not OMP_NUM_THREADS. It is
+# only passed when it is not the default, so the frozen recipe's invocation is
+# unchanged.
+EDDY_OPTIONS = "--slm=linear --data_is_shelled --repol --cnr_maps --residuals" + (
+    f" --nthr={_EDDY_THREADS}" if _EDDY_THREADS > 1 else ""
+)
+# What Snakemake reserves for the whole dwifslpreproc job, which is not the
+# same thing: eddy dominates it and uses _EDDY_THREADS cores.
+EDDY_SCHEDULER_THREADS = int(_EDDY.get("scheduler_threads", 4))
 EXPECTED_NODES = int(config["atlas"]["expected_nodes"])
 ASSIGNMENT_RADIUS_MM = float(config["connectome"]["assignment"]["radius_mm"])
 TENSOR_METRICS = ("fa", "md", "rd", "ad")
