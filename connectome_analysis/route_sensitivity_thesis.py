@@ -180,6 +180,28 @@ def named(results: pd.DataFrame, cells: list[tuple[str, str, str]]) -> pd.DataFr
     return pd.DataFrame(rows)
 
 
+def table_a(net_dir: Path, routes: pd.Series) -> pd.DataFrame:
+    """Whole-connectome microstructure per network (Table A).
+
+    Unlike Tables B and C, its published q-values correct across the three
+    pairwise contrasts within each network and measure -- that is what
+    pairwise_robust_tests does -- so it is recomputed with that function
+    rather than with pairwise() above.
+    """
+    from connectome_analysis.analysis_stats import pairwise_robust_tests
+
+    frame = _read(net_dir / "network_microstructure_subject.csv").rename(columns={"metric": "measure"})
+    frame["route_family"] = frame["subject_id"].map(routes)
+    rows = []
+    for name, data in variants(frame, ["network", "measure"]).items():
+        for (net, meas), sub in data.groupby(["network", "measure"]):
+            for r in pairwise_robust_tests(sub.dropna(subset=["value"]), "value").itertuples():
+                rows.append({"variant": name, "network": net, "measure": meas,
+                             "contrast": f"{r.group_a.lower()}_{r.group_b.lower()}",
+                             "delta": r.cliffs_delta, "q": r.bm_q})
+    return pd.DataFrame(rows)
+
+
 def main() -> int:
     import sc_config
 
@@ -224,6 +246,15 @@ def main() -> int:
             ])
             cells.to_csv(out / "thesis_named_exception_cells.csv", index=False)
             print(cells.to_string(index=False))
+
+    a = table_a(net_dir, routes)
+    a.to_csv(out / "table_A_microstructure_three_ways.csv", index=False)
+    counts = (a.assign(sig=a["q"] < Q).groupby(["measure", "contrast", "variant"])["sig"].sum()
+              .unstack("variant")[list(VARIANTS)].astype(int))
+    counts.to_csv(out / "table_A_networks_separating.csv")
+    summary["table_A_networks_separating"] = counts.reset_index().to_dict("records")
+    print("\n== table A: networks separating the groups (q < 0.05)")
+    print(counts.to_string())
 
     arch = _read(root / "20_exception_specificity" / "exception_architecture_subject.csv")
     features = [c for c in arch.columns if c not in ("subject_id", "group", "phase")]
