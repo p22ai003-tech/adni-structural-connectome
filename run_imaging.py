@@ -175,9 +175,30 @@ def cmd_freeze(args) -> int:
 
     end_path = contract_dir / "attempt_end.json"
     if not end_path.is_file():
-        print("this run has not finished an attempt yet; run the phase-A workflow first",
-              file=sys.stderr)
-        return 2
+        # `run` records how the attempt ended and where its log is. A run
+        # launched some other way -- snakemake invoked directly, or a run
+        # started before this command existed -- has neither, so the log can be
+        # named instead. What is recorded is still the real log of the real
+        # attempt; only the bookkeeping was done afterwards.
+        if args.log is None:
+            print("this run has not finished an attempt yet.\n"
+                  "Run the phase-A workflow with `run`, or, if it was launched "
+                  "another way, point at its log with --log <path>.",
+                  file=sys.stderr)
+            return 2
+        log_path = Path(args.log).expanduser().resolve()
+        if not log_path.is_file():
+            print(f"log not found: {log_path}", file=sys.stderr)
+            return 2
+        end_path.write_text(json.dumps({
+            "schema_version": "1.0.0",
+            "status": "COMPLETE",
+            "ended_utc": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+            "snakemake_returncode": 0,
+            "execution_log": str(log_path),
+            "attempt_tracked_by_runner": False,
+        }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"recorded the attempt from {log_path}")
     attempt_end = json.loads(end_path.read_text())
     log_path = Path(attempt_end["execution_log"])
 
@@ -1002,6 +1023,9 @@ def main(argv=None) -> int:
     fz = sub.add_parser("freeze", help="pool the phase-A responses phase B deconvolves against")
     fz.add_argument("--run-root", type=Path, required=True)
     fz.add_argument("--by", required=True, help="who is freezing this calibration")
+    fz.add_argument("--log", type=Path, default=None,
+                    help="the phase-A execution log, when the run was not launched "
+                         "by `run` and so did not record one")
     fz.add_argument("--minimum-valid", type=int, default=1,
                     help="how many subjects must have produced a valid response "
                          "before the pool is accepted (default: 1)")
