@@ -401,6 +401,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "Each flag sets the matching SC_* environment variable for this run, so the\n"
         "in-process stages and the build_*.py subprocesses resolve the same tree.\n"
         "Setting the variables yourself is equivalent.")
+    loc.add_argument("--study", type=Path, default=os.environ.get("SC_STUDY") or None,
+                     help="study configuration, the same file the imaging side takes "
+                          "(see sc_study.py --init); any flag below overrides it")
     loc.add_argument("--deriv-root", type=Path, default=None,
                      help="derivatives root holding connectomes/ and qc/ (SC_DERIV_ROOT)")
     loc.add_argument("--connectomes-dir", type=Path, default=None,
@@ -464,7 +467,22 @@ def select(args: argparse.Namespace) -> list[str]:
 
 
 def apply_location_flags(args: argparse.Namespace) -> None:
-    """Turn --deriv-root and friends into SC_* variables, then reset sc_config."""
+    """Turn --study and --deriv-root into SC_* variables, then reset sc_config.
+
+    A study file describes where one study's data and outputs live, and the
+    imaging side already takes it. Reading the same file here means an analysis
+    does not have to be told a second time where the connectomes are. An
+    explicit flag still wins over it.
+    """
+    if getattr(args, "study", None):
+        sys.path.insert(0, str(PROJECT_ROOT))
+        import sc_study
+
+        try:
+            sc_study.load_study(args.study).apply_environment()
+        except sc_study.StudyError as error:
+            print(str(error), file=sys.stderr)
+            raise SystemExit(2)
     mapping = {
         "SC_DERIV_ROOT": args.deriv_root,
         "SC_CONNECTOMES_DIR": args.connectomes_dir,
