@@ -1149,12 +1149,12 @@ def run_goal_search(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run enhanced ML feature/model goal search for connectome diagnostics.")
-    parser.add_argument("--exp-root", type=Path, default=Path("/home/ec2-user/exp"))
+    parser.add_argument("--exp-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument(
         "--out-dir",
         type=Path,
         default=None,
-        help="Writable output directory. Defaults to /home/ec2-user/exp/outputs/enhanced_goal_search.",
+        help="Writable output directory. Defaults to <repo>/outputs/enhanced_goal_search.",
     )
     parser.add_argument("--max-feature-sets", type=int, default=None)
     parser.add_argument("--feature-set", action="append", default=None, help="Run only this named feature set. May be repeated.")

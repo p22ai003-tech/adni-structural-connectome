@@ -205,7 +205,14 @@ def _mi_classification_fixed(x, y):
 
 
 def _analysis_dir(deriv_root: str | Path | None = None) -> Path:
-    paths = get_analysis_paths(notebook_dir="/home/ec2-user/exp", deriv_root=deriv_root or "/data/derivatives")
+    # With no explicit root the locations come from sc_config, like every other
+    # stage. Falling back to a fixed /data/derivatives here used to send this
+    # stage's reads and writes to the published tree whatever SC_ANALYSIS_ROOT
+    # said -- including during a run meant to start from an empty one.
+    if deriv_root:
+        paths = get_analysis_paths(deriv_root=deriv_root)
+    else:
+        paths = get_analysis_paths()
     return paths.section_dir("18", "ml_diagnostics")
 
 
@@ -2882,7 +2889,8 @@ def write_current_signal_audit(deriv_root: str | Path | None = None) -> dict[str
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Leakage-safe stronger clinical outcome model search.")
-    parser.add_argument("--deriv-root", default="/data/derivatives")
+    parser.add_argument("--deriv-root", default=None,
+                        help="derivatives root (default: from sc_config / the SC_* variables)")
     parser.add_argument("--fast", action="store_true", help="Use a smaller grid for quick iteration.")
     parser.add_argument("--include-history", action="store_true", help="Also run all-history sensitivity mode.")
     parser.add_argument("--include-disease-meta", action="store_true", help="Add experimental out-of-fold structural disease-probability meta-features.")

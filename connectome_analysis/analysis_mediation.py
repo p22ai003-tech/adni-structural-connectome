@@ -159,7 +159,6 @@ def run_mediation(paths: AnalysisPaths, master: pd.DataFrame) -> dict:
 
 if __name__ == "__main__":
     from connectome_analysis.analysis_config import get_analysis_paths
-    PR = Path("/home/ec2-user/exp")
-    p = get_analysis_paths(notebook_dir=PR, deriv_root=PR / "data" / "derivatives", cohort_dti_csv=PR / "cohort" / "dti.csv").ensure()
+    p = get_analysis_paths().ensure()  # locations from sc_config
     m = pd.read_csv(p.master_dir / "master_cohort.csv")
     print(run_mediation(p, m))

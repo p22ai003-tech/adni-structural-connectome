@@ -278,7 +278,11 @@ def audit_parcellation_coverage(
     max_subjects: int | None = None,
 ) -> pd.DataFrame:
     rows: list[dict] = []
-    mrtrix_bin = Path("/home/ec2-user/mrtrix3/bin")
+    import sc_config
+
+    # MRtrix from the configured toolchain ($MRTRIX_BIN, else PATH), not a
+    # path on one machine
+    mrtrix_bin = sc_config.tools().mrtrix_bin or Path("/nonexistent")
     sids = sorted(target_nodes_by_sid)
     if max_subjects is not None:
         sids = sids[:max_subjects]
@@ -945,12 +949,7 @@ def run_sc_matrix_qc(
     weights: Iterable[str] = MATRIX_WEIGHTS,
     max_subjects: int | None = None,
 ) -> dict[str, pd.DataFrame]:
-    paths = paths or get_analysis_paths(
-        notebook_dir=Path("/home/ec2-user/exp"),
-        deriv_root=Path("/home/ec2-user/exp/data/derivatives"),
-        cohort_dti_csv=Path("/home/ec2-user/exp/cohort/dti.csv"),
-        cohort_mri_csv=Path("/home/ec2-user/exp/cohort/mri.csv"),
-    )
+    paths = paths or get_analysis_paths()  # locations from sc_config
     out_dir = Path(output_dir) if output_dir else paths.qc_dir / "sc_matrix_qc"
     out_dir.mkdir(parents=True, exist_ok=True)
 

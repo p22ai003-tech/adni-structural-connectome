@@ -324,7 +324,9 @@ def _c_outcome_search(r: Runner):
     from connectome_analysis.analysis_clinical_outcome_search import run_search
     fast = bool(param(r.cfg, "clinical_outcome_search", "outcome_search_fast", True))
     jobs = int(param(r.cfg, "clinical_outcome_search", "outcome_search_jobs", 4))
-    return run_search(str(r.paths.deriv_root), fast=fast, n_jobs=jobs)
+    # No root is passed: the search resolves the same tree as every other
+    # stage, from sc_config, which the location flags have already set.
+    return run_search(None, fast=fast, n_jobs=jobs)
 
 
 def _c_literature(r: Runner):

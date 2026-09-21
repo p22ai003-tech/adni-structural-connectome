@@ -491,8 +491,8 @@ def run_neural_benchmarks(exp_root: Path, out_dir: Path, only_feature_sets: set[
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run optional neural benchmarks for connectome ML goal search.")
-    parser.add_argument("--exp-root", type=Path, default=Path("/home/ec2-user/exp"))
-    parser.add_argument("--out-dir", type=Path, default=Path("/home/ec2-user/exp/outputs/enhanced_neural_benchmarks"))
+    parser.add_argument("--exp-root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--out-dir", type=Path, default=Path(__file__).resolve().parents[1] / "outputs/enhanced_neural_benchmarks")
     parser.add_argument("--feature-set", action="append", default=None)
     parser.add_argument("--task", choices=("both", "disease", "score"), default="both")
     args = parser.parse_args()
