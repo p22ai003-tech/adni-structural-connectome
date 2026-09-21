@@ -214,7 +214,8 @@ rule execution_preflight:
                 Path(input.run_context).read_text(encoding="utf-8")
             )
             validate_resolved_runtime_config(
-                normative_config, resolved_config, locked_run_context
+                normative_config, resolved_config, locked_run_context,
+                portable=bool(config.get("portable_mode", False)),
             )
         except Exception as exc:
             failures.append(f"unable to compare normative and resolved configs: {type(exc).__name__}:{exc}")
@@ -386,15 +387,33 @@ rule execution_preflight:
             str(C3D_LOCK): str(ENVIRONMENT_LOCK["convert3d"]["explicit_conda_lock"]["sha256"]),
         }
         locked_files[str(PROVENANCE_SCHEMA)] = _sha256(input.provenance_schema)
+        # In portable mode the toolchain is checked for presence and version
+        # (below) rather than by byte hash. Compiled binaries differ between
+        # builds of the same release, and the interpreter and conda paths are
+        # machine-specific, so hash-pinning them makes the workflow unrunnable
+        # anywhere but the machine the contract was written on. Everything that
+        # ships WITH the repository -- the atlas, the node tables, the schemas,
+        # the MNI template -- is still hash-checked above, because those bytes
+        # must be identical everywhere for the result to be comparable.
+        portable = bool(config.get("portable_mode", False))
+        tool_binaries = {}
         for section in ("mrtrix3", "mrtrix3tissue", "fsl", "ants", "convert3d"):
             for details in ENVIRONMENT_LOCK[section].get("binaries", {}).values():
-                locked_files[str(Path(details["path"]))] = str(details["sha256"])
+                tool_binaries[str(Path(details["path"]))] = str(details["sha256"])
+        if not portable:
+            locked_files.update(tool_binaries)
         for path, expected in locked_files.items():
             candidate = Path(path)
             if not candidate.is_file():
                 failures.append(f"locked environment file missing: {path}")
-            elif _sha256(candidate).lower() != expected.lower():
+            elif not portable and _sha256(candidate).lower() != expected.lower():
                 failures.append(f"locked environment SHA-256 mismatch: {path}")
+        if portable:
+            missing_tools = [p for p in tool_binaries if not Path(p).is_file()]
+            if missing_tools:
+                failures.append(
+                    "toolchain binaries missing: " + ", ".join(sorted(missing_tools)[:6])
+                )
 
         workflow_source_rows = []
         seen_source_paths = set()

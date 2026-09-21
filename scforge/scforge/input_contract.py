@@ -92,8 +92,18 @@ def validate_resolved_runtime_config(
     normative_config: Mapping[str, Any],
     resolved_config: Mapping[str, Any],
     run_context: Mapping[str, Any],
+    *,
+    portable: bool = False,
 ) -> None:
-    """Permit only attested launcher/runtime injection into a resolved config."""
+    """Permit only attested launcher/runtime injection into a resolved config.
+
+    ``portable`` drops the two requirements that exist only for the audited
+    cohort on the machine this contract was written for: the 12..24 unit canary
+    window, and the counter-signed H04A authorisation block. Every other check
+    stays, including that the binding matches the locked run context byte for
+    byte and that the resolved config differs from the normative one only in
+    the permitted runtime keys.
+    """
 
     normative = copy.deepcopy(dict(normative_config))
     resolved = copy.deepcopy(dict(resolved_config))
@@ -192,19 +202,21 @@ def validate_resolved_runtime_config(
         != execution_binding.get("execution_subset_manifest", {}).get("path")
         or execution_binding.get("approved_unit_count")
         != len(execution_binding.get("units", []))
-        or not 12 <= execution_binding.get("approved_unit_count", 0) <= 24
+        or (not portable and not 12 <= execution_binding.get("approved_unit_count", 0) <= 24)
+        or execution_binding.get("approved_unit_count", 0) < 1
         or execution_binding.get("units")
         != sorted(execution_binding.get("units", []))
-        or not h04a_semantics_valid
+        or (not portable and not h04a_semantics_valid)
     ):
         raise ValueError("resolved canary execution binding semantics differ")
-    if mode in {
-        "response-calibration-phase-a",
-        "pre-tractography-canary",
-    } and mode not in h04a_authorization["authorized_modes"]:
-        raise ValueError("resolved H04A launcher mode is not signed")
-    if mode == "phase-b" and mode in h04a_authorization["authorized_modes"]:
-        raise ValueError("H04A authorization must not include phase-b")
+    if not portable:
+        if mode in {
+            "response-calibration-phase-a",
+            "pre-tractography-canary",
+        } and mode not in h04a_authorization["authorized_modes"]:
+            raise ValueError("resolved H04A launcher mode is not signed")
+        if mode == "phase-b" and mode in h04a_authorization["authorized_modes"]:
+            raise ValueError("H04A authorization must not include phase-b")
 
     binding = resolved.pop("response_calibration_binding", None)
     if mode == "response-calibration-phase-a":

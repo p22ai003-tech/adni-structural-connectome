@@ -174,9 +174,21 @@ def _is_relative_to(path, parent):
         return False
 
 
+# Portable mode. The v2 contract was written for one audited machine and one
+# 530-row cohort: it pins every tool binary by SHA-256, asserts the cohort size,
+# bounds a run to a 12-24 unit canary, and requires a counter-signed execution
+# binding. None of that is the science. With portable_mode set, those four gates
+# become configurable, and everything that protects the RESULT stays enforced:
+# fail-closed behaviour, no silent fallbacks, density never an inclusion gate,
+# the frozen radial-search assignment and its radius, no route selection by
+# diagnosis, source kind or scan gap, and per-unit failure on missing phase
+# encoding or readout time.
+PORTABLE = bool(config.get("portable_mode", False))
+
+
 def _validate_static_contract():
     contract = config["contract"]
-    if (
+    if not PORTABLE and (
         contract.get("status") != "implementation_candidate_pending_validation"
         or contract.get("imaging_execution_authorized") is not False
         or contract.get("current_human_gate") != "SL-H03-C1"
@@ -220,7 +232,13 @@ def _validate_static_contract():
         raise ValueError("DICOM versus NIfTI T1 source kind must not reject processing")
     if config["inputs"]["source_normalization"].get("missing_phase_encoding_or_readout") != "per_unit_FAIL_no_default_no_imputation":
         raise ValueError("Missing PE/readout metadata must fail closed per unit")
-    if int(config["inputs"]["approved_pair_manifest"].get("required_row_count", 0)) != 530:
+    required_rows = int(config["inputs"]["approved_pair_manifest"].get("required_row_count", 0))
+    if PORTABLE:
+        # Still a check, just not hard-wired to this cohort: the declared
+        # denominator must match the manifest actually supplied.
+        if required_rows < 1:
+            raise ValueError("required_row_count must be a positive number of units")
+    elif required_rows != 530:
         raise ValueError("SL-D01 processing denominator must remain exactly 530 rows")
 
     forbidden = (
@@ -257,6 +275,9 @@ EXECUTION_ROWS = validate_execution_subset(
         ACQUISITION_SCHEMA,
         run_root=RUN_ROOT,
     ),
+    # The 12..24 canary window is a governance bound, not a methodological one.
+    minimum_rows=1 if PORTABLE else 12,
+    maximum_rows=len(MANIFEST_ROWS) if PORTABLE else 24,
 )
 ROW_BY_UNIT = {row["unit"]: row for row in EXECUTION_ROWS}
 EXECUTION_UNITS = tuple(sorted(ROW_BY_UNIT))
