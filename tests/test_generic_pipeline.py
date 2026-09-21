@@ -283,3 +283,45 @@ def test_phase_b_cannot_be_approved_directly():
     )
     assert result.returncode != 0
     assert "phase-b" in result.stderr or "invalid choice" in result.stderr
+
+
+# --------------------------------------------------------------------------
+# acquisition parameters
+# --------------------------------------------------------------------------
+
+def test_a_supplied_sidecar_is_read_rather_than_re_derived(tmp_path):
+    """A DWI given as NIfTI already carries what dcm2niix would have produced."""
+    import sc_probe_acquisition
+
+    sidecar = tmp_path / "dwi.json"
+    sidecar.write_text(json.dumps({
+        "PhaseEncodingDirection": "j-",
+        "TotalReadoutTime": 0.0333,
+        "Manufacturer": "GE",
+    }))
+    result = sc_probe_acquisition.read_sidecar(sidecar)
+    assert "error" not in result
+    values = sc_probe_acquisition.row_values(result["sidecar"], origin=result["origin"])
+    assert values["phase_encoding_direction"] == "j-"
+    assert values["normalization_readiness"] == "READY"
+    # Where the value came from is recorded, not flattened into "dicom_header".
+    assert values["phase_encoding_source"] == "supplied_sidecar"
+
+
+def test_an_axis_without_a_polarity_never_becomes_ready(tmp_path):
+    import sc_probe_acquisition
+
+    for origin in ("dicom_header", "supplied_sidecar"):
+        values = sc_probe_acquisition.row_values(
+            {"PhaseEncodingAxis": "j", "TotalReadoutTime": 0.05}, origin=origin)
+        assert values["phase_encoding_direction"] == "j"
+        assert values["normalization_readiness"] == "FAIL_MISSING_PHASE_ENCODING"
+
+
+def test_a_broken_sidecar_is_an_error_not_a_guess(tmp_path):
+    import sc_probe_acquisition
+
+    broken = tmp_path / "dwi.json"
+    broken.write_text("{not json")
+    assert "error" in sc_probe_acquisition.read_sidecar(broken)
+    assert "error" in sc_probe_acquisition.read_sidecar(tmp_path / "absent.json")

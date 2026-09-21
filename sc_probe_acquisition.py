@@ -128,7 +128,20 @@ def probe_series(binary: str, series_dir: Path, timeout: int = 180) -> dict:
         return {"sidecar": best, "n_sidecars": len(sidecars)}
 
 
-def row_values(sidecar: dict) -> dict:
+def read_sidecar(path: Path) -> dict:
+    """Read a JSON sidecar that already exists, as probe_series would return it."""
+    if not path.is_file():
+        return {"error": f"sidecar not found: {path}"}
+    try:
+        sidecar = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        return {"error": f"{type(error).__name__}: {error}"}
+    if not isinstance(sidecar, dict):
+        return {"error": f"sidecar is not a JSON object: {path}"}
+    return {"sidecar": sidecar, "origin": "supplied_sidecar"}
+
+
+def row_values(sidecar: dict, *, origin: str = "dicom_header") -> dict:
     """Map the BIDS sidecar onto the manifest's four acquisition fields.
 
     dcm2niix distinguishes a value it read from one it estimated: when the
@@ -140,12 +153,12 @@ def row_values(sidecar: dict) -> dict:
     ped = sidecar.get("PhaseEncodingDirection")
     if ped:
         out["phase_encoding_direction"] = ped
-        out["phase_encoding_source"] = "dicom_header"
+        out["phase_encoding_source"] = origin
     elif sidecar.get("PhaseEncodingAxis"):
         # Axis without polarity: usable for the axis, but the sign is unknown
         # and must not be invented.
         out["phase_encoding_direction"] = sidecar["PhaseEncodingAxis"]
-        out["phase_encoding_source"] = "dicom_header_axis_only_no_polarity"
+        out["phase_encoding_source"] = f"{origin}_axis_only_no_polarity"
     if sidecar.get("TotalReadoutTime") is not None:
         out["total_readout_time"] = sidecar["TotalReadoutTime"]
         out["total_readout_time_source"] = "dcm2niix_computed"
@@ -158,7 +171,7 @@ def row_values(sidecar: dict) -> dict:
     # dwifslpreproc, so it stays fail-closed rather than being completed by a
     # guess about the sign.
     has_pe = bool(out["phase_encoding_direction"]) and \
-        out["phase_encoding_source"] != "dicom_header_axis_only_no_polarity"
+        not out["phase_encoding_source"].endswith("_axis_only_no_polarity")
     has_trt = out["total_readout_time"] not in (None, "")
     out["normalization_readiness"] = READY if (has_pe and has_trt) else _NOT_READY[(has_pe, has_trt)]
     return out
@@ -212,13 +225,21 @@ def main(argv=None) -> int:
     for n, r in enumerate(todo, 1):
         sid = r.get("subject_id", "?")
         src = Path(str(r.get(args.path_column, "")).strip())
-        res = probe_series(binary, src)
+        # A DWI supplied as a NIfTI bundle already carries the sidecar dcm2niix
+        # would have produced. Re-deriving it is not possible -- there are no
+        # DICOM headers left to read -- and not necessary, because the file is
+        # right there and says where its values came from.
+        sidecar_path = str(r.get("dwi_json_path", "") or "").strip()
+        if r.get("dti_source_kind") == "nifti_bundle" and sidecar_path:
+            res = read_sidecar(Path(sidecar_path))
+        else:
+            res = probe_series(binary, src)
         if "error" in res:
             errors += 1
             results[id(r)] = {"error": res["error"]}
             print(f"  [{n}/{len(todo)}] {sid:<14} ERROR  {res['error'][:70]}")
             continue
-        vals = row_values(res["sidecar"])
+        vals = row_values(res["sidecar"], origin=res.get("origin", "dicom_header"))
         results[id(r)] = vals
         print(f"  [{n}/{len(todo)}] {sid:<14} pe={vals['phase_encoding_direction'] or '-':<4} "
               f"trt={vals['total_readout_time'] or '-':<12} "
