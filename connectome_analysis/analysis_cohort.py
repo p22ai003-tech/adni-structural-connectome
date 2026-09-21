@@ -219,8 +219,24 @@ def build_master_cohort(paths: AnalysisPaths) -> pd.DataFrame:
 
     master["density"] = master["subject_id"].astype(str).map(_count_density)
     master["is_dense"] = master["density"].apply(lambda d: bool(pd.notna(d) and d >= 0.6))
+    considered = len(master)
     master = master.loc[master["is_dense"]].copy()
     master["cohort_label"] = "dense"
+
+    if master.empty:
+        # An empty cohort used to be written out and every later stage would
+        # then do nothing on no subjects, which looks like success. Almost
+        # always it means the connectome directory and the cohort table are
+        # describing different people.
+        raise SystemExit(
+            f"master cohort is empty: none of {considered} subject(s) in the "
+            f"cohort table has a connectome at or above the density floor.\n"
+            f"  connectomes : {paths.connectomes_dir}\n"
+            f"  subject ids look like: "
+            f"{', '.join(str(s) for s in dti['subject_id'].head(3))}\n"
+            f"Check that the ids in the cohort table match the ones in the "
+            f"published matrix filenames, and that the matrices are published."
+        )
 
     out_path = paths.master_dir / "master_cohort.csv"
     master.to_csv(out_path, index=False)

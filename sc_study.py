@@ -138,9 +138,16 @@ class Study:
         env["SC_CONNECTOMES_DIR"] = str(
             self.overrides.get("connectomes_dir", deriv / "connectomes")
         )
+        # A study that names its own participants table owns its cohort
+        # directory. Without this the analysis falls back to whatever cohort/
+        # happens to sit in the checkout -- which, for anyone who cloned this
+        # repository, is a different study's subjects.
+        if "cohort_dir" not in self.overrides and self.participants is not None:
+            env["SC_COHORT_DIR"] = str(self.participants.parent)
         for key in ("cohort_dir", "atlas_root", "run_state_dir", "manifest"):
             if key in self.overrides:
                 env[f"SC_{key.upper()}"] = str(self.overrides[key])
+        env.setdefault("SC_STUDY", str(self.path))
         return env
 
     def apply_environment(self) -> dict[str, str]:
