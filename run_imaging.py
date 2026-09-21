@@ -139,6 +139,19 @@ def cmd_validate(args) -> int:
     return rc
 
 
+def cmd_publish(args) -> int:
+    argv = ["--run-root", str(args.run_root)]
+    if args.out:
+        argv += ["--out", str(args.out)]
+    if args.units:
+        argv += ["--units", *args.units]
+    if args.overwrite:
+        argv.append("--overwrite")
+    if args.dry_run:
+        argv.append("--dry-run")
+    return _delegate("sc_publish", argv)
+
+
 def cmd_run(args) -> int:
     snakemake = find_snakemake()
     if not snakemake:
@@ -608,6 +621,14 @@ def main(argv=None) -> int:
                    help="lock sources on size and stat identity only, without hashing "
                         "their contents (much faster on large cohorts, weaker guarantee)")
     a.set_defaults(func=cmd_approve)
+
+    pb = sub.add_parser("publish", help="run matrices -> the analysis connectome directory")
+    pb.add_argument("--run-root", type=Path, required=True)
+    pb.add_argument("--out", type=Path, default=None)
+    pb.add_argument("--units", nargs="*", default=None)
+    pb.add_argument("--overwrite", action="store_true")
+    pb.add_argument("--dry-run", action="store_true")
+    pb.set_defaults(func=cmd_publish)
 
     r = sub.add_parser("run", help="execute the Snakemake workflow")
     r.add_argument("--manifest", type=Path, default=None)
