@@ -459,8 +459,12 @@ def cmd_sweep(args) -> int:
         print(f"no subjects under {run_root}", file=sys.stderr)
         return 2
 
-    # Regenerable, in rough order of size. The preprocessed DWI itself is kept:
-    # it is what every later stage reads, and rebuilding it means eddy again.
+    # Two levels, because two situations. `intermediates` keeps the
+    # preprocessed DWI, which is what every later stage reads and whose rebuild
+    # means eddy again -- the right choice while a cohort is still being worked
+    # on. `all-regenerable` keeps only what the analysis and an audit need, for
+    # a full-cohort run where the alternative is not finishing: a subject costs
+    # about 15 GB complete, so 500 of them is roughly 8 TB.
     sweepable = [
         ("01_dwi/dwi_denoised.mif", "denoised DWI"),
         ("01_dwi/dwi_denoised_degibbs.mif", "unringed DWI"),
@@ -468,6 +472,25 @@ def cmd_sweep(args) -> int:
     ]
     if not args.keep_tracks:
         sweepable.insert(0, ("07_tractography/tracks_10m.tck", "streamlines"))
+    if args.level == "all-regenerable":
+        sweepable += [
+            ("01_dwi/dwi_preproc.mif", "preprocessed DWI"),
+            ("01_dwi/dwi_preproc_biascorr.mif", "bias-corrected DWI"),
+            ("05_model/dwi_fod_shells.mif", "FOD shells"),
+            ("05_model/dwi_tensor_shells.mif", "tensor shells"),
+            ("05_model/5tt_t1_fsl.mif", "five-tissue segmentation"),
+            ("03_spatial/mni_to_t1_1Warp.nii.gz", "template warp"),
+            ("03_spatial/mni_to_t1_1InverseWarp.nii.gz", "template inverse warp"),
+            ("04_atlas/b0_1mm_world_grid.nii.gz", "1 mm reference grid"),
+            ("00_inputs/t1_native.nii", "converted T1"),
+            ("05_model/wmfod.mif", "white-matter FOD"),
+            ("05_model/wmfod_norm.mif", "normalised white-matter FOD"),
+            ("05_model/tensor.mif", "diffusion tensor"),
+            # eddy's diagnostic volumes. The QC report and its numbers stay;
+            # these are the full-size images behind them.
+            ("01_dwi/eddy_qc/eddy_residuals.nii.gz", "eddy residual volumes"),
+            ("01_dwi/eddy_qc/eddy_outlier_free_data.nii.gz", "eddy outlier-free volumes"),
+        ]
 
     total = 0
     swept_units = skipped = 0
@@ -1059,6 +1082,11 @@ def main(argv=None) -> int:
     sw.add_argument("--run-root", type=Path, required=True)
     sw.add_argument("--published", type=Path, default=None,
                     help="where matrices were published (default: $SC_CONNECTOMES_DIR)")
+    sw.add_argument("--level", choices=("intermediates", "all-regenerable"),
+                    default="intermediates",
+                    help="intermediates keeps the preprocessed DWI so later stages "
+                         "can be rerun without eddy; all-regenerable keeps only what "
+                         "the analysis and an audit need, for a full-cohort run")
     sw.add_argument("--keep-tracks", action="store_true",
                     help="keep the .tck files, which are the largest single item")
     sw.add_argument("--force", action="store_true",

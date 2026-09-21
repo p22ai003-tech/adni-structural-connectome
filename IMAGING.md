@@ -275,12 +275,16 @@ second refuses. That is working as intended; unlock with
 
 ## 11. Running a large cohort
 
-Measured on this project's data, a subject costs about **2 GB** through
-preprocessing, and its 10-million-streamline `.tck` is another **1.2 GB**. For
-500 subjects that is close to **1.6 TB**, which is usually the binding
-constraint rather than CPU.
+Measured on this project's data, a complete subject costs about **15 GB**: the
+10-million-streamline `.tck` alone is 5–12 GB (median 7), preprocessing another
+4 GB, and the model and registration stages about 3.5 GB between them. For 500
+subjects that is roughly **8 TB**, which is the binding constraint long before
+CPU is.
 
-Three things make that manageable:
+So a full cohort is not one run that you let finish. It is batches, each of
+which is swept before the next begins.
+
+Three things make that work:
 
 **Sweep as you go.** Once a subject's matrices are published, its largest
 intermediates are no longer needed:
@@ -291,12 +295,22 @@ python run_imaging.py sweep   --run-root <run> --dry-run   # see what it would f
 python run_imaging.py sweep   --run-root <run>
 ```
 
-It removes the streamlines and the denoised and unringed volumes, and leaves
-the preprocessed DWI, the matrices, the QC and the provenance. It will not
-touch a unit unless the provenance sidecar in the analysis directory names
-*this* run — matrices from an earlier run are not evidence that this one
-finished. `--keep-tracks` keeps the `.tck` files if you want to re-derive other
-metrics from them later.
+There are two levels:
+
+| `--level` | removes | leaves a subject at |
+|---|---|---|
+| `intermediates` (default) | streamlines, denoised and unringed volumes, converted raw | about 7 GB |
+| `all-regenerable` | the above, plus the preprocessed DWI, the FODs, the tensor, the 5TT segmentation, the template warps and eddy's diagnostic volumes | under 1 GB |
+
+`intermediates` keeps the preprocessed DWI, so a later stage can be rerun
+without paying for eddy again — the right choice while a cohort is still being
+worked on. `all-regenerable` keeps only what the analysis and an audit need,
+and is what makes a full cohort fit.
+
+It will not touch a unit unless the provenance sidecar in the analysis
+directory names *this* run: matrices for the same subject from an earlier run
+are not evidence that this one finished. `--keep-tracks` keeps the `.tck` files
+if you want to re-derive other metrics from them later.
 
 Everything it removes is regenerable, and since every stochastic step is
 seeded, regenerable to the same answer.
@@ -315,8 +329,10 @@ of 1 because changing it changes the order of floating-point reductions and so,
 in principle, the result.
 
 **Run in batches.** `approve` takes `--units`, `--units-file` or `--first N`, so
-a cohort can go through in groups with its own run root each. Each batch is
-independently approvable, resumable and sweepable.
+a cohort goes through in groups, each with its own run root. Each batch is
+independently approvable, resumable and sweepable. Size a batch by dividing
+your free space by 15 GB and leaving headroom — on a 1.5 TB volume, batches of
+about 50.
 
 **Watch the ceilings.** The approval records a wall-clock and a storage stop,
 and the run refuses to start if the free space is already below the storage
