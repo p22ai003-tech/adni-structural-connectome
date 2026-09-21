@@ -325,3 +325,44 @@ def test_a_broken_sidecar_is_an_error_not_a_guess(tmp_path):
     broken.write_text("{not json")
     assert "error" in sc_probe_acquisition.read_sidecar(broken)
     assert "error" in sc_probe_acquisition.read_sidecar(tmp_path / "absent.json")
+
+
+# --------------------------------------------------------------------------
+# the analysis side's cohort table
+# --------------------------------------------------------------------------
+
+def test_a_participants_table_stands_in_for_the_cohort_exports(tmp_path):
+    """A study that is not ADNI has one small table, not two IDA exports."""
+    from connectome_analysis.analysis_cohort import _load_cohort_csv
+
+    participants = tmp_path / "participants.csv"
+    participants.write_text(
+        "participant_id,diagnosis,age,gender\n"
+        "sub-001,CN,71,F\n"
+        "sub-002,AD,78,M\n"
+    )
+    table = _load_cohort_csv(participants)
+    assert list(table["subject_id"]) == ["sub-001", "sub-002"]
+    assert list(table["group"]) == ["CN", "AD"]
+    assert list(table["Age"]) == [71, 78]
+    assert list(table["Sex"]) == ["F", "M"]
+
+
+def test_the_adni_column_names_still_win(tmp_path):
+    from connectome_analysis.analysis_cohort import _load_cohort_csv
+
+    export = tmp_path / "dti.csv"
+    export.write_text("Subject ID,Research Group,Age,Sex\nXXX_S_NNNN,CN,70,F\n")
+    table = _load_cohort_csv(export)
+    assert list(table["subject_id"]) == ["XXX_S_NNNN"]
+    assert list(table["group"]) == ["CN"]
+
+
+def test_a_table_with_no_subject_column_says_what_it_wanted(tmp_path):
+    from connectome_analysis.analysis_cohort import _load_cohort_csv
+
+    bad = tmp_path / "participants.csv"
+    bad.write_text("name,diagnosis\nsub-001,CN\n")
+    with pytest.raises(ValueError) as error:
+        _load_cohort_csv(bad)
+    assert "participant_id" in str(error.value)

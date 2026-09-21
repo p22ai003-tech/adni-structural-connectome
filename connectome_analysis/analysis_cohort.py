@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from collections import Counter
 from pathlib import Path
@@ -64,12 +65,35 @@ def _read_metrics_table(metrics_path: Path | None) -> pd.DataFrame:
     return metrics
 
 
+# What a generic participants table calls a column, mapped onto what the ADNI
+# exports call it. Everything downstream reads the ADNI names.
+_PARTICIPANT_ALIASES = {
+    "participant_id": "subject_id",
+    "subject": "subject_id",
+    "diagnosis": "group",
+    "dx": "group",
+    "research_group": "group",
+    "age": "Age",
+    "sex": "Sex",
+    "gender": "Sex",
+}
+
+
 def _load_cohort_csv(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path)
+    lower = {str(name).strip().lower(): name for name in df.columns}
+    for alias, canonical in _PARTICIPANT_ALIASES.items():
+        if canonical not in df.columns and alias in lower:
+            df[canonical] = df[lower[alias]]
     if "Subject ID" in df.columns:
         df["subject_id"] = df["Subject ID"].astype(str)
-    elif "subject_id" not in df.columns:
-        raise ValueError(f"Could not find Subject ID column in {path}")
+    elif "subject_id" in df.columns:
+        df["subject_id"] = df["subject_id"].astype(str)
+    else:
+        raise ValueError(
+            f"Could not find a subject column in {path}; expected one of "
+            f"Subject ID, subject_id, participant_id"
+        )
     if "Research Group" in df.columns:
         df["group"] = df["Research Group"].map(recode_group)
     elif "group" in df.columns:
@@ -77,10 +101,44 @@ def _load_cohort_csv(path: Path) -> pd.DataFrame:
     return df
 
 
+def _participants_table(paths: AnalysisPaths) -> Path | None:
+    """The generic stand-in for the ADNI cohort exports.
+
+    A study that is not ADNI has one small table saying who its subjects are --
+    subject_id and whichever of diagnosis, age and sex it has -- rather than
+    the two IDA exports this cohort was built from. Either is enough to give
+    every later stage its grouping variable.
+    """
+    candidates = [
+        paths.cohort_dti_csv.parent / "participants.csv",
+        Path(os.environ["SC_STUDY"]).parent / "participants.csv"
+        if os.environ.get("SC_STUDY") else None,
+        Path(os.environ["SC_RAW_IMAGES_ROOT"]) / "participants.csv"
+        if os.environ.get("SC_RAW_IMAGES_ROOT") else None,
+    ]
+    for candidate in candidates:
+        if candidate is not None and candidate.is_file():
+            return candidate
+    return None
+
+
 def build_master_cohort(paths: AnalysisPaths) -> pd.DataFrame:
     paths.ensure()
-    dti = _load_cohort_csv(paths.cohort_dti_csv)
-    mri = _load_cohort_csv(paths.cohort_mri_csv)
+    if not paths.cohort_dti_csv.is_file():
+        participants = _participants_table(paths)
+        if participants is None:
+            raise SystemExit(
+                f"no cohort table found.\n"
+                f"  looked for {paths.cohort_dti_csv}\n"
+                f"  and participants.csv beside it, beside the study file, or in "
+                f"the raw image root.\n"
+                f"A participants.csv needs a subject_id column plus whichever of "
+                f"diagnosis, age and sex you have."
+            )
+        dti = mri = _load_cohort_csv(participants)
+    else:
+        dti = _load_cohort_csv(paths.cohort_dti_csv)
+        mri = _load_cohort_csv(paths.cohort_mri_csv)
     metrics_path = _choose_metrics_table(paths)
     metrics = _read_metrics_table(metrics_path)
 
