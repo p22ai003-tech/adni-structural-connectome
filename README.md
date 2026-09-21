@@ -4,20 +4,33 @@ Diffusion MRI to structural connectomes to the statistical and machine-learning
 results behind the thesis. Two pipelines, each with one entry point.
 
 ```bash
-# imaging: a folder of T1 and DWI images -> connectome matrices
+# describe your study once: where the data is, how it is laid out, where output goes
+python sc_study.py --init configs/study.yaml
+
+# imaging: a folder of T1 and DWI scans -> connectome matrices
 source env.sh
-python run_imaging.py doctor
-python run_imaging.py discover --raw-root /data/Images
-python run_imaging.py probe
-python run_imaging.py run --cores 16
+python run_imaging.py --study configs/study.yaml doctor
+python run_imaging.py --study configs/study.yaml discover --out work/pairs.csv
+python sc_manifest_build.py --pairs work/pairs.csv --out configs/acquisition_manifest.csv
+python run_imaging.py probe && python run_imaging.py validate
+python run_imaging.py approve --run-root <run> --all --by "Your Name"
+python run_imaging.py run --run-root <run> --cores 16
+python run_imaging.py publish --run-root <run>
 
 # analysis: connectome matrices -> every table the thesis reports
 python -m connectome_analysis.run_analysis --all --resume
 ```
 
+The imaging route is documented step by step in **[IMAGING.md](IMAGING.md)**, and
+the three input layouts it accepts in
+**[docs/INPUT_LAYOUTS.md](docs/INPUT_LAYOUTS.md)**. Your data may be a local
+directory, a mounted volume, or an `s3://` prefix that is staged before the run.
+
 | | |
 |---|---|
-| `IMAGING.md` | imaging runbook: layout, manifest, stages, toolchain |
+| `IMAGING.md` | imaging runbook: install, layouts, the six steps, the gates |
+| `docs/INPUT_LAYOUTS.md` | what your input folder has to look like |
+| `configs/study.example.yaml` | the one file describing a study |
 | `connectome_analysis/README.md` | analysis runbook: the 37-stage graph, parameters, outputs |
 | `sc_config.py` | every path, from at most three `SC_*` roots |
 | `sc_doctor.py` | preflight: paths, toolchain, packages, input contract |
@@ -42,12 +55,28 @@ Paths derive from at most three environment variables, resolved in
 `sc_config.py`; `python -c "import sc_config; print(sc_config.describe())"`
 prints what they resolve to and marks anything absent.
 
-## Data is not in this repository, and must not be
+## This repository ships no data
 
-ADNI imaging and clinical data are governed by a Data Use Agreement. Participant
-images, per-subject derivatives, cohort tables and acquisition manifests are all
-excluded by `.gitignore`. Obtain data from https://adni.loni.usc.edu/ under your
-own agreement. See `LICENSE`, which covers the source code only.
+No imaging, no participant tables, no acquisition manifests. Per-subject
+derivatives, cohort tables and manifests are excluded by `.gitignore`, and CI
+fails a commit that adds one. `LICENSE` covers the source code only.
+
+The results here were produced from ADNI, which is governed by a Data Use
+Agreement; obtain that data from https://adni.loni.usc.edu/ under your own
+agreement. The pipeline itself is not ADNI-specific — see
+[docs/INPUT_LAYOUTS.md](docs/INPUT_LAYOUTS.md).
+
+## Third-party licences
+
+The Python dependencies are permissively licensed, and the atlas shipped in
+`atlas/` is AAL3, free for academic use.
+
+Of the four imaging toolkits the pipeline calls, three — MRtrix3, ANTs and
+dcm2niix — are permissively licensed. **FSL is free for academic use but not for
+commercial use**; read its licence at
+https://fsl.fmrib.ox.ac.uk/fsl/docs/#/license before using this pipeline
+commercially. FSL is used for eddy-current and motion correction and for BBR
+registration.
 
 ## Two things a reader of the results should know
 

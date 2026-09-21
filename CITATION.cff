@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+title: ADNI structural connectome pipeline
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - family-names: Ethiraj
+    given-names: Sabeesh
+repository-code: "https://github.com/p22ai003-tech/adni-structural-connectome"
+abstract: >-
+  An end-to-end pipeline from diffusion and T1 MRI to AAL3 structural
+  connectomes, and from those matrices to the statistical and machine-learning
+  results they support. The imaging side runs MRtrix3, FSL and ANTs under a
+  Snakemake workflow with an explicit input contract, a per-run source content
+  lock and deterministic per-subject seeding. The analysis side is a 37-stage
+  graph covering network measures, length-resolved connectivity, exception
+  analysis and a residualised machine-learning model.
+keywords:
+  - structural connectome
+  - diffusion MRI
+  - tractography
+  - Alzheimer's disease
+  - ADNI
+  - AAL3
+  - reproducible pipeline
+license: MIT
+
+references:
+  - type: software
+    title: MRtrix3
+    notes: Denoising, FOD estimation, tractography and connectome assembly.
+    authors:
+      - family-names: Tournier
+        given-names: J.-Donald
+    repository-code: "https://github.com/MRtrix3/mrtrix3"
+  - type: software
+    title: FSL
+    notes: >-
+      Eddy-current and motion correction, and BBR registration. Free for
+      academic use only; see the FSL licence.
+    repository-code: "https://fsl.fmrib.ox.ac.uk/fsl/"
+  - type: software
+    title: ANTs
+    notes: Nonlinear registration between the template and native T1 space.
+    repository-code: "https://github.com/ANTsX/ANTs"
+  - type: software
+    title: dcm2niix
+    notes: DICOM to NIfTI conversion and acquisition metadata.
+    repository-code: "https://github.com/rordenlab/dcm2niix"
