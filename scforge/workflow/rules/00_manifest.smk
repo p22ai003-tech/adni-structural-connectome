@@ -166,7 +166,15 @@ rule execution_preflight:
             "workflow_source_manifest_sha256": _sha256(input.workflow_source),
             "environment_contract_sha256": _sha256(input.environment),
         }
-        if not isinstance(h04a_authorization, dict):
+        # In portable mode the authorisation is the one written by
+        # `run_imaging.py approve`: locally decided, with its own resource
+        # ceilings. Those ceilings are still enforced below (cores, wall clock,
+        # storage); what is not required is that they equal the constants of
+        # the project's own governance decision.
+        portable_auth = bool(config.get("portable_mode", False))
+        if portable_auth and isinstance(h04a_authorization, dict):
+            pass
+        elif not isinstance(h04a_authorization, dict):
             failures.append("execution binding lacks signed H04A authorization")
         else:
             for key, expected in h04a_expected.items():

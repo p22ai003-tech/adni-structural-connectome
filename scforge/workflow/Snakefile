@@ -141,7 +141,17 @@ FROZEN_RESPONSE_PATHS = {
 
 WORKFLOW_REQUIRED_SOURCE_PATHS = {
     (WORKFLOW_DIR / "Snakefile").resolve(),
-    *((path.resolve()) for path in sorted((WORKFLOW_DIR / "rules").glob("*.smk"))),
+    # The rules this Snakefile includes, not every .smk in the directory. The
+    # directory also holds one-off recovery and retry extensions that the
+    # canonical route never loads; requiring the lock to cover code that does
+    # not run makes the contract fail for a reason unrelated to the run.
+    *(
+        (WORKFLOW_DIR / "rules" / _name).resolve()
+        for _name in re.findall(
+            r'include:\s*"rules/([^"]+)"',
+            (WORKFLOW_DIR / "Snakefile").read_text(encoding="utf-8"),
+        )
+    ),
     (WORKFLOW_DIR / "validate_environment_contract.py").resolve(),
     (WORKFLOW_DIR / "smoke_dryrun.py").resolve(),
     (WORKFLOW_DIR / "run_connectome_v2.py").resolve(),

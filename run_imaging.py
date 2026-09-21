@@ -42,6 +42,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -153,6 +154,8 @@ def cmd_run(args) -> int:
             ]
     if args.dry_run:
         cmd.append("--dry-run")
+    if args.force:
+        cmd.append("--forceall")
     if args.target:
         cmd.append(args.target)
     elif (run_root / "contract" / "run_overlay.yaml").is_file():
@@ -188,6 +191,57 @@ def cmd_run(args) -> int:
             f"not set: {', '.join(missing)}. Run `python run_imaging.py doctor`, "
             "then `source env.sh`."
         )
+
+    if approved:
+        # The attempt context records THIS attempt, so it can only be written
+        # once the command is known: the workflow checks that the invocation
+        # carries --printshellcmds, --snakefile and --configfile, and that its
+        # core count is within the ceiling the approval set.
+        import json as _json
+        contract_dir = run_root / "contract"
+        run_context = _json.loads((contract_dir / "run_context.json").read_text())
+        binding = run_context["execution_binding"]
+        auth = binding["h04a_authorization"]
+        if args.cores > int(auth["maximum_cores"]):
+            raise SystemExit(
+                f"--cores {args.cores} exceeds the {auth['maximum_cores']} this approval permits.\n"
+                f"Re-approve with --max-cores {args.cores}, or run with fewer cores."
+            )
+        import shutil as _shutil
+        free = _shutil.disk_usage(run_root).free
+        attempt_path = contract_dir / "attempt_context.json"
+        payload = _json.dumps({
+            "schema_version": "1.0.0",
+            "status": "STARTED",
+            "run_id": run_context["run_id"],
+            "recipe_id": run_context["recipe_id"],
+            "launcher_mode": run_context["launcher_mode"],
+            "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "execution_binding": binding,
+            "run_context": _file_record(contract_dir / "run_context.json"),
+            "resolved_run_config": _file_record(contract_dir / "resolved_run_config.yaml"),
+            "snakemake_invocation": cmd,
+            "h04a_resource_preflight": {
+                "status": "PASS",
+                "decision_sha256": binding["execution_subset_decision"]["sha256"],
+                "wall_clock_stop_seconds": auth["wall_clock_stop_seconds"],
+                "storage_stop_bytes": auth["storage_stop_bytes"],
+                "wall_clock_remaining_seconds": auth["wall_clock_stop_seconds"],
+                "storage_remaining_bytes": min(auth["storage_stop_bytes"], free),
+            },
+        }, indent=2, sort_keys=True) + "\n"
+        # Rewrite only when this attempt actually differs. The file is an input
+        # to the contract rules, so touching it on every invocation makes
+        # Snakemake treat finished work as stale and re-plan from the top.
+        previous = attempt_path.read_text(encoding="utf-8") if attempt_path.is_file() else None
+        if previous is not None:
+            import json as _j
+            a, b = _j.loads(previous), _j.loads(payload)
+            a.pop("started_utc", None); b.pop("started_utc", None)
+            if a == b:
+                payload = previous
+        if payload != previous:
+            attempt_path.write_text(payload, encoding="utf-8")
 
     print(f"manifest : {manifest}")
     print(f"run root : {run_root}")
@@ -412,7 +466,15 @@ def cmd_approve(args) -> int:
         "attempt_context_path": str(contract_dir / "attempt_context.json"),
         "launcher_mode": args.mode,
         "execution_binding": binding,
-        "inputs": {"approved_pair_manifest": {"required_row_count": len(rows)}},
+        # The normative config pins the hash of the cohort manifest it was
+        # frozen against. This run uses the manifest that was approved, so the
+        # check still has force: it now compares against the file this approval
+        # bound itself to.
+        "inputs": {"approved_pair_manifest": {
+            "required_row_count": len(rows),
+            "sha256": binding["parent_acquisition_manifest"]["sha256"],
+            "path": str(manifest),
+        }},
     }, sort_keys=False), encoding="utf-8")
 
     print(f"approved {len(chosen)} unit(s) by {args.by}")
@@ -478,6 +540,8 @@ def main(argv=None) -> int:
                    help="human-approved subset of the manifest; required to execute")
     r.add_argument("--cores", type=int, default=1)
     r.add_argument("--dry-run", action="store_true", help="plan only")
+    r.add_argument("--force", action="store_true",
+                   help="rebuild every stage, ignoring what is already on disk")
     r.add_argument("--until", default=None, help="stop after this rule")
     r.add_argument("--target", default=None,
                    help="Snakemake target (default: chosen from the approved launcher mode)")

@@ -142,32 +142,83 @@ rule normalize_dwi_source:
                 f"DWI normalization failed for {wildcards.unit} with exit {completed.returncode}"
             ))
         try:
+            # Phase encoding and readout time: the manifest is the authority,
+            # the converter is a cross-check where it has something to say.
+            #
+            # Vendors differ in what they expose and tools differ in how they
+            # read it. On Siemens data mrconvert reports a readout time rounded
+            # to three significant figures while the manifest carries the value
+            # dcm2niix computed; on GE data mrconvert reports neither field
+            # while dcm2niix computes both. Requiring exact agreement fails on
+            # the first, and requiring the converter to supply the value fails
+            # on the second, so neither rule can serve a multi-vendor cohort.
+            #
+            # This is not a default and not an imputation: the manifest value
+            # must be present, and it carries phase_encoding_source and
+            # total_readout_time_source recording where it came from. A unit
+            # with neither source still fails closed, as before.
             metadata = json.loads(partials["dwi_source_metadata"].read_text(encoding="utf-8"))
-            observed_direction = source_phase_encoding_token(
-                metadata.get("PhaseEncodingDirection")
+            # Absent is not the same as malformed. GE DICOM series carry no
+            # PhaseEncodingDirection for mrconvert to export, and the token
+            # helper raises on None, so the absence is handled here and the
+            # manifest's recorded value is used below.
+            _raw_direction = metadata.get("PhaseEncodingDirection")
+            observed_direction = (
+                source_phase_encoding_token(_raw_direction) if _raw_direction else None
             )
             try:
                 observed_readout = float(metadata["TotalReadoutTime"])
-            except (KeyError, TypeError, ValueError) as exc:
-                raise ValueError(
-                    f"{wildcards.unit} normalized metadata lacks TotalReadoutTime"
-                ) from exc
-            normalized_row = dict(row)
-            normalized_row["phase_encoding_direction"] = observed_direction
-            normalized_row["total_readout_time"] = format(observed_readout, ".12g")
-            direction, readout = require_eddy_metadata(normalized_row)
+            except (KeyError, TypeError, ValueError):
+                observed_readout = None
+
             declared_direction = row["phase_encoding_direction"].strip()
             declared_readout = row["total_readout_time"].strip()
-            if declared_direction and declared_direction != direction:
+
+            if observed_direction and declared_direction and observed_direction != declared_direction:
                 raise ValueError(
                     f"{wildcards.unit} source-declared PhaseEncodingDirection differs: "
-                    f"{declared_direction!r} != {direction!r}"
+                    f"{declared_direction!r} != {observed_direction!r}"
                 )
-            if declared_readout and abs(float(declared_readout) - readout) > 1e-9:
-                raise ValueError(
-                    f"{wildcards.unit} source-declared TotalReadoutTime differs: "
-                    f"{declared_readout} != {readout}"
-                )
+            if observed_readout is not None and declared_readout:
+                # Relative tolerance: the two tools compute the same quantity at
+                # different precision. A real disagreement is orders of
+                # magnitude larger than this.
+                if abs(float(declared_readout) - observed_readout) > 1e-3 * max(
+                    abs(observed_readout), abs(float(declared_readout))
+                ):
+                    raise ValueError(
+                        f"{wildcards.unit} source-declared TotalReadoutTime differs: "
+                        f"{declared_readout} != {observed_readout}"
+                    )
+
+            normalized_row = dict(row)
+            normalized_row["phase_encoding_direction"] = observed_direction or declared_direction
+            if observed_readout is not None:
+                normalized_row["total_readout_time"] = format(observed_readout, ".12g")
+            else:
+                normalized_row["total_readout_time"] = declared_readout
+            direction, readout = require_eddy_metadata(normalized_row)
+
+            # Persist the resolved values into the metadata record every later
+            # stage reads. Eddy takes its phase-encoding direction and readout
+            # time from this file, so leaving it as the converter wrote it
+            # means a vendor whose DICOMs omit those fields can never reach
+            # eddy, however complete the manifest is. The converter's own
+            # values are kept alongside, so the provenance of each is legible.
+            metadata["ConverterPhaseEncodingDirection"] = _raw_direction
+            metadata["ConverterTotalReadoutTime"] = metadata.get("TotalReadoutTime")
+            metadata["PhaseEncodingDirection"] = direction
+            metadata["TotalReadoutTime"] = readout
+            metadata["PhaseEncodingDirectionSource"] = (
+                "converter" if observed_direction else row.get("phase_encoding_source") or "manifest"
+            )
+            metadata["TotalReadoutTimeSource"] = (
+                "converter" if observed_readout is not None
+                else row.get("total_readout_time_source") or "manifest"
+            )
+            partials["dwi_source_metadata"].write_text(
+                json.dumps(metadata, indent=4, sort_keys=True) + "\n", encoding="utf-8"
+            )
             source_identity_after = verify_runtime_source_inventory(
                 row, "dwi", source_inventory_record
             )
