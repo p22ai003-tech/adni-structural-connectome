@@ -90,12 +90,42 @@ def validate(csv_path: Path) -> int:
         print(f"\nextra columns not in the contract ({len(extra_cols)}): {', '.join(extra_cols[:8])}"
               + (" ..." if len(extra_cols) > 8 else ""))
 
-    # per-row emptiness on required fields
+    # Per-row emptiness, counted only for fields the schema says cannot be
+    # null. A DICOM series legitimately leaves the NIfTI-bundle members empty,
+    # and an unlabelled cohort leaves the diagnosis empty; reporting those as
+    # problems tells a user their correct manifest is broken.
+    props = schema.get("properties") or (schema.get("items") or {}).get("properties") or {}
+
+    def _nullable(name: str) -> bool:
+        """True when the schema permits null, including via anyOf."""
+        spec = props.get(name) or {}
+        declared = spec.get("type")
+        if isinstance(declared, list) and "null" in declared:
+            return True
+        for branch in spec.get("anyOf", []) or spec.get("oneOf", []):
+            if isinstance(branch, dict) and branch.get("type") == "null":
+                return True
+        if declared is None and "enum" in spec:
+            return None in spec["enum"]
+        return False
+
+    # Dates and free-text context are cohort metadata: the workflow never reads
+    # them, so an empty one is worth noting, not failing.
+    INFORMATIONAL = {"t1_study_date", "dti_study_date", "phase", "site", "protocol",
+                     "scanner_model", "field_strength_t", "manufacturer"}
     blank_counts: dict[str, int] = {}
+    nullable_blanks: dict[str, int] = {}
     for row in rows:
         for c in required:
             if c in row and (row[c] is None or str(row[c]).strip() == ""):
-                blank_counts[c] = blank_counts.get(c, 0) + 1
+                if _nullable(c) or c in INFORMATIONAL:
+                    nullable_blanks[c] = nullable_blanks.get(c, 0) + 1
+                else:
+                    blank_counts[c] = blank_counts.get(c, 0) + 1
+    if nullable_blanks:
+        print(f"\nempty but allowed to be ({len(nullable_blanks)} nullable field(s)): "
+              + ", ".join(sorted(nullable_blanks)[:6])
+              + (" ..." if len(nullable_blanks) > 6 else ""))
     if blank_counts:
         print(f"\nREQUIRED FIELDS BLANK IN SOME ROWS ({len(blank_counts)} fields):")
         for c, n in sorted(blank_counts.items(), key=lambda kv: -kv[1])[:15]:
