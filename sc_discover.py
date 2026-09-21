@@ -81,32 +81,109 @@ def parse_date(name: str) -> datetime | None:
         return None
 
 
-def scan_modality(root: Path, modality: str, subjects: set[str] | None) -> list[Series]:
+# Where the scans live, per supported layout. A layout only has to answer one
+# question: which folders are scans, and for each, whose is it, when was it
+# taken and what shall we call it.
+LAYOUTS = ("simple", "adni", "bids")
+MODALITY_DIRS = {
+    "simple": {"dwi": "dwi", "anat": "anat"},
+    "adni": {"dwi": "dti", "anat": "mri"},
+    "bids": {"dwi": "dwi", "anat": "anat"},
+}
+
+
+def _session_date(name: str) -> datetime | None:
+    """A session folder may encode a date; if it does not, that is fine."""
+    d = parse_date(name)
+    if d:
+        return d
+    m = re.match(r"^(?:ses-)?(\d{4})-?(\d{2})-?(\d{2})", name)
+    if m:
+        try:
+            return datetime(*(int(g) for g in m.groups()))
+        except ValueError:
+            return None
+    return None
+
+
+def _scan_simple(base: Path, modality: str, subjects: set[str] | None) -> list[Series]:
+    """<root>/<dwi|anat>/<subject>[/<session>]/  -- the documented template."""
     out: list[Series] = []
-    base = root / modality
-    if not base.is_dir():
-        return out
+    for subj_dir in sorted(p for p in base.iterdir() if p.is_dir()):
+        if subjects and subj_dir.name not in subjects:
+            continue
+        children = [p for p in sorted(subj_dir.iterdir()) if p.is_dir()]
+        sessions = [c for c in children if not _looks_like_scan(c)]
+        if sessions:
+            for sess in sessions:
+                out.append(Series(subject=subj_dir.name, modality=modality,
+                                  protocol=sess.name, acquired=_session_date(sess.name),
+                                  image_id=sess.name, path=sess))
+        else:
+            out.append(Series(subject=subj_dir.name, modality=modality,
+                              protocol="", acquired=None,
+                              image_id=subj_dir.name, path=subj_dir))
+    return out
+
+
+def _looks_like_scan(folder: Path) -> bool:
+    """A folder is a scan when it holds image files rather than more folders."""
+    for p in folder.iterdir():
+        if p.is_file() and (p.suffix.lower() in {".dcm", ".ima"} or p.name.endswith((".nii", ".nii.gz"))):
+            return True
+    return False
+
+
+def _scan_bids(base: Path, modality: str, subjects: set[str] | None) -> list[Series]:
+    """<root>/sub-XXX/[ses-YYY/]<dwi|anat>/ -- modality sits inside the subject."""
+    out: list[Series] = []
+    root = base.parent
+    for subj_dir in sorted(p for p in root.iterdir() if p.is_dir() and p.name.startswith("sub-")):
+        if subjects and subj_dir.name not in subjects:
+            continue
+        sessions = [p for p in sorted(subj_dir.iterdir()) if p.is_dir() and p.name.startswith("ses-")]
+        for holder in sessions or [subj_dir]:
+            mod_dir = holder / MODALITY_DIRS["bids"][modality]
+            if mod_dir.is_dir():
+                out.append(Series(subject=subj_dir.name, modality=modality,
+                                  protocol=holder.name if holder is not subj_dir else "",
+                                  acquired=_session_date(holder.name),
+                                  image_id=holder.name, path=mod_dir))
+    return out
+
+
+def _scan_adni(base: Path, modality: str, subjects: set[str] | None) -> list[Series]:
+    """<root>/<dti|mri>/<SUBJECT>/<PROTOCOL>/<DATE>/I<IMAGE_ID>/"""
+    out: list[Series] = []
     for subj_dir in sorted(base.iterdir()):
         if not subj_dir.is_dir() or not _SUBJECT.match(subj_dir.name):
             continue
         if subjects and subj_dir.name not in subjects:
             continue
-        for proto_dir in sorted(subj_dir.iterdir()):
-            if not proto_dir.is_dir():
-                continue
-            for date_dir in sorted(proto_dir.iterdir()):
-                if not date_dir.is_dir():
-                    continue
+        for proto_dir in sorted(p for p in subj_dir.iterdir() if p.is_dir()):
+            for date_dir in sorted(p for p in proto_dir.iterdir() if p.is_dir()):
                 acquired = parse_date(date_dir.name)
-                for img_dir in sorted(date_dir.iterdir()):
-                    if not img_dir.is_dir():
-                        continue
-                    out.append(Series(
-                        subject=subj_dir.name, modality=modality,
-                        protocol=proto_dir.name, acquired=acquired,
-                        image_id=img_dir.name.lstrip("I"), path=img_dir,
-                    ))
+                for img_dir in sorted(p for p in date_dir.iterdir() if p.is_dir()):
+                    out.append(Series(subject=subj_dir.name, modality=modality,
+                                      protocol=proto_dir.name, acquired=acquired,
+                                      image_id=img_dir.name.lstrip("I"), path=img_dir))
     return out
+
+
+def scan_modality(root: Path, modality: str, subjects: set[str] | None,
+                  layout: str = "adni") -> list[Series]:
+    """Find every scan of one modality, under whichever layout is in use."""
+    if layout not in LAYOUTS:
+        raise SystemExit(f"unknown layout {layout!r}; expected one of {', '.join(LAYOUTS)}")
+    base = root / MODALITY_DIRS[layout][modality]
+    if layout == "bids":
+        # BIDS puts the modality inside each subject, so the base only tells us
+        # which name to look for further down.
+        return _scan_bids(base, modality, subjects)
+    if not base.is_dir():
+        return []
+    return _scan_adni(base, modality, subjects) if layout == "adni" \
+        else _scan_simple(base, modality, subjects)
 
 
 def read_meta(series: Series) -> None:
@@ -148,6 +225,10 @@ def pair(dwi: list[Series], t1: list[Series], max_days: float,
     rows, unpaired = [], []
     for d in dwi:
         candidates = by_subject.get(d.subject, [])
+        if not candidates:
+            unpaired.append({"subject_id": d.subject, "dti_image_id": d.image_id,
+                             "reason": "no T1 series for this subject"})
+            continue
         best, best_gap = None, None
         for c in candidates:
             if d.acquired is None or c.acquired is None:
@@ -155,17 +236,32 @@ def pair(dwi: list[Series], t1: list[Series], max_days: float,
             gap = abs((c.acquired - d.acquired).total_seconds()) / 86400.0
             if best_gap is None or gap < best_gap:
                 best, best_gap = c, gap
-        if best is None or best_gap is None:
-            unpaired.append({"subject_id": d.subject, "dti_image_id": d.image_id,
-                             "reason": "no T1 series for this subject"})
-            continue
+        if best is None:
+            # No dates to compare. Not every layout encodes an acquisition date,
+            # and a study with one session per subject does not need one: match
+            # the session when both modalities name it, otherwise take the
+            # subject's only T1. The gap is recorded as unknown rather than
+            # invented, and the stratum says so.
+            same_session = [c for c in candidates if c.protocol and c.protocol == d.protocol]
+            if same_session:
+                best = same_session[0]
+            elif len(candidates) == 1:
+                best = candidates[0]
+            else:
+                unpaired.append({
+                    "subject_id": d.subject, "dti_image_id": d.image_id,
+                    "reason": f"{len(candidates)} T1 sessions and no dates to choose between them",
+                })
+                continue
         # The pair is made and LABELLED rather than refused. That is how this
         # cohort was actually built, and the label is the thing that matters: in
         # the 530-subject manifest the median T1-DWI gap is 753 days and 321 of
         # 530 pairs exceed 180 days. Dropping them would have cost most of the
         # cohort; hiding the gap would have been worse. Use --max-gap-days to
         # exclude instead, if a particular analysis needs to.
-        if best_gap <= max_days:
+        if best_gap is None:
+            stratum = "undated"
+        elif best_gap <= max_days:
             stratum = f"le_{max_days:.0f}_days"
         elif best_gap <= sensitivity_days:
             # Named for the inclusive lower bound, matching the convention the
@@ -173,7 +269,7 @@ def pair(dwi: list[Series], t1: list[Series], max_days: float,
             stratum = f"days_{max_days + 1:.0f}_{sensitivity_days:.0f}"
         else:
             stratum = f"gt_{sensitivity_days:.0f}_days"
-        if max_gap_days is not None and best_gap > max_gap_days:
+        if max_gap_days is not None and best_gap is not None and best_gap > max_gap_days:
             unpaired.append({"subject_id": d.subject, "dti_image_id": d.image_id,
                              "reason": f"gap {best_gap:.0f} d exceeds --max-gap-days {max_gap_days:.0f}"})
             continue
@@ -190,7 +286,7 @@ def pair(dwi: list[Series], t1: list[Series], max_days: float,
             "t1_protocol": best.protocol,
             "t1_source_path": str(best.path),
             "t1_file_count": best.n_files,
-            "abs_pair_gap_days": round(best_gap, 3),
+            "abs_pair_gap_days": "" if best_gap is None else round(best_gap, 3),
             "timing_stratum": stratum,
             "manufacturer": d.meta.get("manufacturer", ""),
             "scanner_model": d.meta.get("scanner_model", ""),
@@ -208,8 +304,8 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--raw-root", type=Path, default=p.raw_images_root,
                     help="directory holding dti/ and mri/ (default: $SC_RAW_IMAGES_ROOT)")
-    ap.add_argument("--dwi-dir", default="dti")
-    ap.add_argument("--t1-dir", default="mri")
+    ap.add_argument("--layout", default="adni", choices=LAYOUTS,
+                    help="how the input folder is organised (default: adni)")
     ap.add_argument("--out", type=Path, default=None, help="manifest CSV to write")
     ap.add_argument("--unpaired-out", type=Path, default=None,
                     help="CSV of DWI series that could not be paired")
@@ -233,11 +329,13 @@ def main(argv=None) -> int:
 
     subjects = None
     if args.limit:
-        d = raw / args.dwi_dir
+        d = raw / MODALITY_DIRS[args.layout]["dwi"]
+        if args.layout == "bids":
+            d = raw
         subjects = {x.name for x in sorted(d.iterdir())[: args.limit] if x.is_dir()}
 
-    dwi = scan_modality(raw, args.dwi_dir, subjects)
-    t1 = scan_modality(raw, args.t1_dir, subjects)
+    dwi = scan_modality(raw, "dwi", subjects, args.layout)
+    t1 = scan_modality(raw, "anat", subjects, args.layout)
     print(f"series   : {len(dwi)} DWI, {len(t1)} T1")
 
     if not args.no_meta:

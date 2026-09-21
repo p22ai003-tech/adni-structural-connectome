@@ -58,7 +58,7 @@ workflow:
     index: "configured package index plus the verified local pip cache for connection_pool 0.0.3"
   source_manifest:
     path: "/home/ec2-user/exp/scforge/workflow/workflow_source_manifest.tsv"
-    sha256: "cf2de394ecae862a10c3ffb23e43e6d609509e04bf3e33d7d2e43d3d4418649f"
+    sha256: "072b17af237a9473270572553dd75257d3ec06e5eac0435dc16d5f9ea47ebd3b"
     rows: 29
     policy: "every listed source file is rehashed by execution_preflight before imaging"
   runtime_packages:

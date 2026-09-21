@@ -11,7 +11,7 @@ contract:
   authorization_scope: "design_only_no_imaging"
   next_execution_gate: "SL-H04A"
   frozen_utc: null
-  matrix_dictionary: "/home/ec2-user/exp/research_audit/matrix_data_dictionary.md"
+  matrix_dictionary: "docs/MATRIX_DICTIONARY.md"
   hash_policy: "sha256_of_exact_file_bytes"
   change_policy: "new_recipe_id_and_decision_log_entry"
   failure_policy: "fail_closed"
@@ -50,9 +50,11 @@ environment:
   implementation_state: "closed_world_raw_source_normalization_with_per_unit_terminal_outcomes"
 
 inputs:
+  # Built by `run_imaging.py discover` + `sc_manifest_build.py`, then pinned
+  # into the run overlay by `approve`.
   approved_pair_manifest:
-    path: "/home/ec2-user/exp/research_audit/outputs/connectome_v2_input_manifest_v2.csv"
-    sha256: "377a75ba5b93a511bcd0facf94bc1cb30c896449af3cfa087bd6125c1624a55a"
+    path: "configs/acquisition_manifest.csv"
+    sha256: null
     human_gate: "SL-H03-C1"
     required_row_count: 530
     processing_authorized_row_count: 530
@@ -60,18 +62,22 @@ inputs:
     path: "/home/ec2-user/exp/scforge/workflow/schemas/acquisition_manifest_v2.schema.json"
     sha256: "97aee55d03623b40e0f1b44e46e6d802480d48b5b634f143581ef1a762950d0f"
     schema_version: "2.0.0"
+  # The source content lock and the metadata projection describe one cohort's
+  # raw files, so there is no repo-wide value for them. `run_imaging.py approve`
+  # builds both for the units it approves and writes the paths and hashes into
+  # the run overlay; the workflow refuses to start without them.
   source_metadata_projection:
-    path: "/home/ec2-user/exp/research_audit/outputs/source_metadata_workflow_preflight_v1/source_metadata_workflow_projection_v1.csv"
-    sha256: "1546c065cb60e3c16ba47dc4e586eaf068149c4d50e55ce5935fb3695b1d7757"
-    row_count: 530
-    validation_path: "/home/ec2-user/exp/research_audit/outputs/source_metadata_workflow_preflight_v1/source_metadata_workflow_projection_validation_v1.json"
-    validation_sha256: "060c9cf74b66dd67af60267733217f28fdc85a3be21f385067a9e9c826fe252f"
+    path: null
+    sha256: null
+    row_count: null
+    validation_path: null
+    validation_sha256: null
     release_state: "SOURCE_IDENTITY_READY_CONVERSION_PENDING"
     canary_ready_before_conversion: false
   locked_file_inventory:
-    path: "/home/ec2-user/exp/research_audit/outputs/available_data_content_lock_v2/available_data_file_content_inventory_v2.csv"
-    sha256: "c0f221708a62ccb9acebc9732ac6e86f34c3e6629b63b6d4a3cc0d280e2672b2"
-    row_count: 451115
+    path: null
+    sha256: null
+    row_count: null
     verification_policy: "stat_device_inode_size_mtime_ctime_before_and_after_conversion; content_rehash_on_any_identity_change_or_ambiguity"
   pairing:
     processing_rejection_by_abs_gap_allowed: false

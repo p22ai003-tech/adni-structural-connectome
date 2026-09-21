@@ -455,6 +455,22 @@ def cmd_approve(args) -> int:
     (contract_dir / "resolved_run_config.yaml").write_text(
         yaml.safe_dump(resolved, sort_keys=False), encoding="utf-8")
 
+    # The source content lock and the metadata projection describe the raw
+    # files this run is about to read. They were cohort artifacts built by hand
+    # once; the pipeline now builds them per run from the approved subset, so
+    # any cohort gets the same protection without shipping ours.
+    import sc_source_lock
+    lock = sc_source_lock.build(subset_path, contract_dir / "source_lock",
+                                rehash=not args.no_content_hash)
+    if lock["missing_files"]:
+        print(f"FAIL: {len(lock['missing_files'])} approved source file(s) missing",
+              file=sys.stderr)
+        for entry in lock["missing_files"][:10]:
+            print(f"  {entry}", file=sys.stderr)
+        return 1
+    print(f"source lock: {lock['inventory_row_count']} files, "
+          f"{lock['projection_row_count']} pairs")
+
     overlay_path = contract_dir / "run_overlay.yaml"
     overlay_path.write_text(yaml.safe_dump({
         "portable_mode": True,
@@ -470,11 +486,25 @@ def cmd_approve(args) -> int:
         # frozen against. This run uses the manifest that was approved, so the
         # check still has force: it now compares against the file this approval
         # bound itself to.
-        "inputs": {"approved_pair_manifest": {
-            "required_row_count": len(rows),
-            "sha256": binding["parent_acquisition_manifest"]["sha256"],
-            "path": str(manifest),
-        }},
+        "inputs": {
+            "approved_pair_manifest": {
+                "required_row_count": len(rows),
+                "sha256": binding["parent_acquisition_manifest"]["sha256"],
+                "path": str(manifest),
+            },
+            "locked_file_inventory": {
+                "path": str(lock["inventory_path"]),
+                "sha256": lock["inventory_sha256"],
+                "row_count": lock["inventory_row_count"],
+            },
+            "source_metadata_projection": {
+                "path": str(lock["projection_path"]),
+                "sha256": lock["projection_sha256"],
+                "row_count": lock["projection_row_count"],
+                "validation_path": str(lock["validation_path"]),
+                "validation_sha256": lock["validation_sha256"],
+            },
+        },
     }, sort_keys=False), encoding="utf-8")
 
     print(f"approved {len(chosen)} unit(s) by {args.by}")
@@ -530,6 +560,9 @@ def main(argv=None) -> int:
     a.add_argument("--max-cores", type=int, default=8, help="core ceiling this approval permits")
     a.add_argument("--wall-clock-hours", type=int, default=72, help="wall-clock stop for the run")
     a.add_argument("--storage-gb", type=int, default=150, help="storage stop for the run")
+    a.add_argument("--no-content-hash", action="store_true",
+                   help="lock sources on size and stat identity only, without hashing "
+                        "their contents (much faster on large cohorts, weaker guarantee)")
     a.set_defaults(func=cmd_approve)
 
     r = sub.add_parser("run", help="execute the Snakemake workflow")

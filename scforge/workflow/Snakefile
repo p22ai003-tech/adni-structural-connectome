@@ -50,7 +50,17 @@ from scforge.response_calibration import (  # noqa: E402
 )
 
 NORMATIVE_CONFIG = (PROJECT_ROOT / "configs" / "connectome_v2.yaml").resolve()
-MATRIX_DICTIONARY = (PROJECT_ROOT / "research_audit" / "matrix_data_dictionary.md").resolve()
+def _project_path(value, default):
+    """Resolve a configured path, treating a relative one as repo-relative."""
+    candidate = Path(value) if value else Path(default)
+    if not candidate.is_absolute():
+        candidate = PROJECT_ROOT / candidate
+    return candidate.resolve()
+
+
+MATRIX_DICTIONARY = _project_path(
+    config.get("contract", {}).get("matrix_dictionary"), "docs/MATRIX_DICTIONARY.md"
+)
 ENVIRONMENT_CONTRACT = Path(
     config["environment"]["locked_paths"]["environment_contract"]
 ).resolve()
@@ -60,14 +70,31 @@ WORKFLOW_SOURCE_MANIFEST = Path(
     ENVIRONMENT_LOCK["workflow"]["source_manifest"]["path"]
 ).resolve()
 ACQUISITION_SCHEMA = Path(config["inputs"]["acquisition_schema"]["path"]).resolve()
-LOCKED_SOURCE_INVENTORY = Path(
-    config["inputs"]["locked_file_inventory"]["path"]
-).resolve()
-SOURCE_METADATA_PROJECTION = Path(
-    config["inputs"]["source_metadata_projection"]["path"]
-).resolve()
-SOURCE_METADATA_PROJECTION_VALIDATION = Path(
-    config["inputs"]["source_metadata_projection"]["validation_path"]
+def _required_input_path(section, key="path"):
+    """A source-lock path the run must supply.
+
+    ``run_imaging.py approve`` builds the content lock and the metadata
+    projection for the approved subset and writes their paths into the run
+    overlay. There is deliberately no repo-wide default: the lock describes one
+    cohort's files, so a stale one would be worse than none.
+    """
+    try:
+        value = config["inputs"][section][key]
+    except KeyError:
+        value = None
+    if not value:
+        raise ValueError(
+            f"inputs.{section}.{key} is not set. Run "
+            "`python run_imaging.py approve ...`, which builds the source "
+            "content lock for the approved units and records it in the run overlay."
+        )
+    return _project_path(value, value)
+
+
+LOCKED_SOURCE_INVENTORY = _required_input_path("locked_file_inventory")
+SOURCE_METADATA_PROJECTION = _required_input_path("source_metadata_projection")
+SOURCE_METADATA_PROJECTION_VALIDATION = _required_input_path(
+    "source_metadata_projection", "validation_path"
 ).resolve()
 PROVENANCE_SCHEMA = (WORKFLOW_DIR / "schemas" / "provenance_v2.schema.json").resolve()
 RUN_LEDGER_SCHEMA = (WORKFLOW_DIR / "schemas" / "run_ledger_v2.schema.json").resolve()
@@ -160,8 +187,8 @@ WORKFLOW_REQUIRED_SOURCE_PATHS = {
     PROVENANCE_SCHEMA,
     RUN_LEDGER_SCHEMA,
     (PROJECT_ROOT / "configs" / "connectome_v2.yaml").resolve(),
-    (PROJECT_ROOT / "research_audit" / "matrix_data_dictionary.md").resolve(),
-    (PROJECT_ROOT / "research_audit" / "validate_connectome_v2_contract.py").resolve(),
+    MATRIX_DICTIONARY,
+    (WORKFLOW_DIR / "validate_connectome_v2_contract.py").resolve(),
     (PROJECT_ROOT / "scforge" / "scforge" / "__init__.py").resolve(),
     (PROJECT_ROOT / "scforge" / "scforge" / "qc.py").resolve(),
     (PROJECT_ROOT / "scforge" / "scforge" / "connectome.py").resolve(),
