@@ -91,11 +91,9 @@ group of 201 is 186 MCI plus 15 SMC.
 
 ## Historical entry points
 
-These predate the two runners above and are kept because the audit trail
-references them.
+These predate the two runners above. They are kept because the audit trail
+references them, and are not the way to run anything.
 
-- `research_audit/SUPERLIST.md`: execution checklist and human gates.
-- `research_audit/objective1_audit_report.md`: scientific and technical audit.
 - `structural_connectome_context.md`: technical context and implementation summary.
 - `notebooks/structural_connectome_A.ipynb`: DWI conversion, denoise/Gibbs, eddy provenance.
 - `notebooks/structural_connectome_B.ipynb`: T1/BBR, 5TT/GMWMI, FOD, tracks, connectomes.
@@ -104,6 +102,10 @@ references them.
 - `scforge/`: contract-first SC-Forge package, configs, workflow rules and tests.
 - `apps/connectome_dashboard/`: Streamlit dashboard and its refresh loop.
 - `scripts/`: helpers by purpose (`scforge/`, `recovery/`, `preprocessing/`, `eddy/`, `s3/`, `maintenance/`).
+
+`research_audit/` holds this project's own audit trail — decisions, evidence
+and one-off analyses tied to one cohort on one machine. It is not part of the
+package and nothing in the pipeline reads it.
 
 ## Important Paths
 

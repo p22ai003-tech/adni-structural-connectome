@@ -46,13 +46,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_EXCLUDE = ("research_audit/", "scripts/hcp/")
 
 # Files inside an excluded subtree that the workflow contract still requires.
-# The v2 contract's locked source manifest covers these, so a package without
-# them cannot satisfy its own contract. Both are checked to carry no participant
-# identifiers by the safety gate below, like everything else.
-KEEP_DESPITE_EXCLUDE = (
-    "research_audit/matrix_data_dictionary.md",
-    "research_audit/validate_connectome_v2_contract.py",
-)
+# Empty now: the two that used to be rescued -- the matrix data dictionary and
+# the contract validator -- moved into the shipped tree, where they belong,
+# because both are workflow components rather than audit output. The list stays
+# because a future exclusion may again cover a file the workflow needs.
+KEEP_DESPITE_EXCLUDE: tuple[str, ...] = ()
 
 # Thesis presentations, reports and manuscripts. They are 72 MB of the tracked
 # tree and none of it is pipeline code, so a code package should not carry them.
