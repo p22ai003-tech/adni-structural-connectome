@@ -1,11 +1,11 @@
-project_root: /home/ec2-user/exp
-derivatives_root: /home/ec2-user/exp/data/derivatives/sc_forge_v1
-existing_derivatives_root: /home/ec2-user/exp/data/derivatives
+project_root: ${repo}
+derivatives_root: ${repo}/data/derivatives/sc_forge_v1
+existing_derivatives_root: ${repo}/data/derivatives
 
 atlas:
   name: AAL3
-  mni_image: /home/ec2-user/exp/atlas/AAL/AAL3v1_1mm.nii.gz
-  labels_csv: /home/ec2-user/exp/atlas/AAL/AAL3_labels.csv
+  mni_image: ${repo}/atlas/AAL/AAL3v1_1mm.nii.gz
+  labels_csv: ${repo}/atlas/AAL/AAL3_labels.csv
   max_original_label: 170
   expected_gaps: [35, 36, 81, 82]
   force_contiguous_nodes: true

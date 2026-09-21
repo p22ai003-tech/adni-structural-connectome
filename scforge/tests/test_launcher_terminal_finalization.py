@@ -59,6 +59,15 @@ def identity(unit: str, *, dti: str, t1: str) -> dict[str, str]:
     }
 
 
+def _responsemean_stub(directory: Path) -> Path:
+    """A stand-in executable to record; the frozen manifest only hashes it."""
+    stub = Path(directory) / "responsemean"
+    if not stub.exists():
+        stub.write_text("#!/bin/sh\n# stand-in for MRtrix responsemean\n", encoding="utf-8")
+        stub.chmod(0o755)
+    return stub
+
+
 class LauncherTerminalFinalizationTests(unittest.TestCase):
     def test_normative_recipe_remains_false_and_cannot_be_toggled(self) -> None:
         candidate = {
@@ -920,9 +929,7 @@ class LauncherTerminalFinalizationTests(unittest.TestCase):
                 "status": "PASS",
                 "generated_utc": "2026-07-18T01:02:00+00:00",
                 "method": "mrtrix_responsemean_nonlegacy_scale_compensated",
-                "responsemean_executable": file_record(
-                    "/home/ec2-user/mrtrix3/bin/responsemean"
-                ),
+                "responsemean_executable": file_record(_responsemean_stub(Path(directory))),
                 "responsemean_legacy_option_used": False,
                 "diagnosis_labels_used": False,
                 "minimum_valid_subjects": 12,

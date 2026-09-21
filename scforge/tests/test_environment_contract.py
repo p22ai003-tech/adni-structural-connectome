@@ -25,7 +25,32 @@ from validate_environment_contract import (  # noqa: E402
 )
 
 
+def _toolchain_installed() -> bool:
+    """Are the executables the contract names actually on this host?
+
+    Three tests below audit the host against its contract -- every binary
+    present and matching its SHA-256. That is the right check on a machine set
+    up to run the pipeline, and meaningless on one with no imaging tools, such
+    as a CI runner; there they are skipped. The policy tests, which compare the
+    files with each other, run everywhere.
+    """
+    environment = load_environment(DEFAULT_ENVIRONMENT)
+    probes = (
+        Path(environment["mrtrix3"]["prefix"]) / "bin" / "mrinfo",
+        Path(environment["fsl"]["prefix"]) / "bin" / "flirt",
+        Path(environment["ants"]["prefix"]) / "bin" / "antsRegistration",
+    )
+    return all(probe.is_file() for probe in probes)
+
+
+requires_toolchain = unittest.skipUnless(
+    _toolchain_installed(),
+    "needs MRtrix3, FSL and ANTs installed (see IMAGING.md, `run_imaging.py lock-env`)",
+)
+
+
 class EnvironmentArtifactTests(unittest.TestCase):
+    @requires_toolchain
     def test_all_declared_artifact_hashes_match_current_host(self) -> None:
         environment = load_environment(DEFAULT_ENVIRONMENT)
         mismatches = []
@@ -71,6 +96,7 @@ class EnvironmentPolicyTests(unittest.TestCase):
         eddy = next(row for row in checks if row["code"] == "policy.eddy_single_cpu_executor")
         self.assertFalse(eddy["passed"])
 
+    @requires_toolchain
     def test_workflow_resolves_locked_tools_and_cpu_only_eddy(self) -> None:
         checks = workflow_integration_checks(self.environment, self.config)
         failures = [
@@ -85,6 +111,7 @@ class EnvironmentPolicyTests(unittest.TestCase):
         self.assertTrue(by_code["workflow.normal_path_excludes_tissue"]["passed"])
         self.assertTrue(by_code["workflow.eddy_cuda_not_discoverable"]["passed"])
 
+    @requires_toolchain
     def test_full_read_only_audit_has_no_errors(self) -> None:
         report = audit_environment_contract()
         self.assertNotEqual(

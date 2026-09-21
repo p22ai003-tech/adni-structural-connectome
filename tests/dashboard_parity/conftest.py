@@ -16,11 +16,42 @@ from connectome_dashboard_core.lr_sr import (
 from connectome_dashboard_core.settings import get_settings
 
 
-PROJECT_ROOT = Path("/home/ec2-user/exp")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REFERENCE_ROOT = (
     PROJECT_ROOT
     / "research_audit/outputs/connectome_dashboard_reference_v1"
 )
+
+
+def _study_outputs_present() -> bool:
+    """These tests compare the dashboard against this study's own results.
+
+    They need the analysis outputs of the ADNI cohort and the frozen reference
+    captured from the earlier Streamlit dashboard, neither of which is part of
+    the repository. Where they are absent there is nothing to compare, so the
+    tests are skipped rather than failed.
+    """
+    try:
+        analysis_root = get_settings().analysis_root
+    except Exception:
+        return False
+    return (
+        (REFERENCE_ROOT / "section_11.json").is_file()
+        and (Path(analysis_root) / "00_master" / "master_cohort.csv").is_file()
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if _study_outputs_present():
+        return
+    skip = pytest.mark.skip(
+        reason="needs this study's analysis outputs and the frozen dashboard "
+               "reference, which are not part of the repository"
+    )
+    here = Path(__file__).resolve().parent
+    for item in items:
+        if Path(str(item.fspath)).resolve().is_relative_to(here):
+            item.add_marker(skip)
 
 
 @pytest.fixture(scope="session")

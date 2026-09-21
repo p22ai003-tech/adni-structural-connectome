@@ -369,9 +369,9 @@ def test_findings_endpoint_preserves_claim_boundaries(client):
 
 
 def test_frontend_production_build_is_shadow_scoped():
-    dist = Path(
-        "/home/ec2-user/exp/apps/connectome_web/dist"
-    )
+    dist = Path(__file__).resolve().parents[2] / "apps" / "connectome_web" / "dist"
+    if not (dist / "index.html").is_file():
+        pytest.skip("the web frontend has not been built (npm run build in apps/connectome_web)")
     index = (dist / "index.html").read_text(encoding="utf-8")
     assert "/next/assets/" in index
     assert "<div id=\"root\"></div>" in index

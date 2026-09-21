@@ -13,19 +13,33 @@ import numpy as np
 import yaml
 
 
-ROOT = Path("/home/ec2-user/exp")
+import pytest
+
+from scforge.environment import merged_contract
+
+ROOT = Path(__file__).resolve().parents[2]
+_ENV = merged_contract()
+_FSL = Path(_ENV["fsl"]["prefix"])
+_MRTRIX = Path(_ENV["mrtrix3"]["prefix"])
 RUN_ROOT = Path(
     "/data/derivatives/scforge_v2/h04a_r1_recovery_20260719_retry4"
 )
 CONTRACT = ROOT / "scforge/workflow/environment_contract_recovery2_convert3d.yaml"
 LOCK = ROOT / "scforge/workflow/locks/convert3d-1.3.0-recovery2-linux-64.explicit.txt"
 C3D = ROOT / ".envs/convert3d-1.3.0-recovery2/bin/c3d_affine_tool"
-CONVERT_XFM = Path("/home/ec2-user/fsl/bin/convert_xfm")
-FLIRT = Path("/home/ec2-user/fsl/bin/flirt")
-TRANSFORMCONVERT = Path("/home/ec2-user/mrtrix3/bin/transformconvert")
+CONVERT_XFM = _FSL / "bin" / "convert_xfm"
+FLIRT = _FSL / "bin" / "flirt"
+TRANSFORMCONVERT = _MRTRIX / "bin" / "transformconvert"
 ANTS_APPLY = ROOT / ".envs/ants-2.6.5/bin/antsApplyTransforms"
 ANTS_INFO = ROOT / ".envs/ants-2.6.5/bin/antsTransformInfo"
 EXPECTED_C3D_SHA256 = "ea5a0bdd79ea419ff37feccb202218cdc7c14c1f8adcdf099ce70dd273c937d6"
+pytestmark = pytest.mark.skipif(
+    not (C3D.is_file() and CONVERT_XFM.is_file()),
+    reason="needs the Recovery2 Convert3D environment and FSL, which exist only on "
+           "the machine that ran that recovery",
+)
+
+
 def _diverse_units(count: int = 4) -> tuple[str, ...]:
     """Units to exercise the converter on.
 
@@ -95,13 +109,13 @@ def test_recovery2_converter_roundtrip_and_cross_backend_resampling() -> None:
     environment = dict(os.environ)
     environment.update(
         {
-            "FSLDIR": "/home/ec2-user/fsl",
+            "FSLDIR": str(_FSL),
             "FSLOUTPUTTYPE": "NIFTI_GZ",
             "PATH": ":".join(
                 (
-                    "/home/ec2-user/fsl/bin",
-                    "/home/ec2-user/mrtrix3/bin",
-                    "/home/ec2-user/exp/.envs/ants-2.6.5/bin",
+                    str(_FSL / "bin"),
+                    str(_MRTRIX / "bin"),
+                    str(ANTS_APPLY.parent),
                     "/usr/bin",
                 )
             ),

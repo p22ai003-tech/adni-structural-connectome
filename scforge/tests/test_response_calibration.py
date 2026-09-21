@@ -23,7 +23,13 @@ from scforge.response_calibration import (
 RECIPE = "test-response-recipe"
 RUN_ID = "a" * 24
 ATTEMPT_ID = "phase-a-test-attempt"
-RESPONSEMEAN = Path("/home/ec2-user/mrtrix3/bin/responsemean")
+# subprocess.run is mocked in these tests, so responsemean is only ever hashed,
+# never executed. A stub file stands in for it, which keeps the tests free of
+# any MRtrix installation.
+_STUB_DIR = Path(tempfile.mkdtemp(prefix="responsemean_stub_"))
+RESPONSEMEAN = _STUB_DIR / "responsemean"
+RESPONSEMEAN.write_text("#!/bin/sh\n# stand-in for MRtrix responsemean; never executed\n")
+RESPONSEMEAN.chmod(0o755)
 
 
 class ResponseCalibrationNonContagionTests(unittest.TestCase):

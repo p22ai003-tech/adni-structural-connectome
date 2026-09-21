@@ -175,4 +175,7 @@ def load_config(path: str | Path) -> SCForgeConfig:
         data = yaml.safe_load(handle)
     if not isinstance(data, dict):
         raise ValueError(f"Config did not parse as a mapping: {path}")
-    return SCForgeConfig.from_dict(data)
+    # ${repo} is the repository root, wherever it was cloned
+    from scforge.environment import expand
+
+    return SCForgeConfig.from_dict(expand(data, None))
