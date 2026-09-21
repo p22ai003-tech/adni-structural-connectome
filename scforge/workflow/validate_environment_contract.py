@@ -28,6 +28,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, Iterable
 
+import sys
+
 import yaml
 
 
@@ -61,6 +63,31 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise TypeError(f"{path} must contain a YAML mapping")
     return data
+
+
+def load_environment(path: Path = DEFAULT_ENVIRONMENT) -> dict[str, Any]:
+    """The contract as the workflow sees it.
+
+    For the reference contract that means this machine's
+    configs/environment.local.yaml laid over it; any other path is a run's
+    frozen contract and is read as it is. ${repo} is resolved either way.
+    """
+    if str(PROJECT_ROOT / "scforge") not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT / "scforge"))
+    from scforge.environment import expand, merged_contract
+
+    if Path(path).resolve() == DEFAULT_ENVIRONMENT.resolve():
+        return merged_contract()
+    return expand(_load_yaml(Path(path)), None)
+
+
+def load_recipe(path: Path, environment: dict[str, Any]) -> dict[str, Any]:
+    """The recipe with its ${repo} and ${env:...} references resolved."""
+    if str(PROJECT_ROOT / "scforge") not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT / "scforge"))
+    from scforge.environment import expand
+
+    return expand(_load_yaml(Path(path)), environment)
 
 
 def _nested(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
@@ -835,8 +862,8 @@ def audit_environment_contract(
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     try:
-        environment = _load_yaml(environment_path)
-        config = _load_yaml(config_path)
+        environment = load_environment(environment_path)
+        config = load_recipe(config_path, environment)
     except Exception as exc:
         return {
             "status": "FAIL",

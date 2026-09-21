@@ -98,6 +98,13 @@ def apply_study(args) -> "object | None":
     return study
 
 
+def cmd_lock_env(args) -> int:
+    argv = ["--check"] if args.check else []
+    if args.out:
+        argv += ["--out", str(args.out)]
+    return _delegate("sc_lock_environment", argv)
+
+
 def cmd_doctor(args) -> int:
     argv = ["--imaging"] if args.imaging_only else []
     study = getattr(args, "_study", None)
@@ -262,7 +269,11 @@ def cmd_freeze(args) -> int:
             "production_overwrite": False,
         })
 
-    normative = _yaml.safe_load(DEFAULT_WORKFLOW_CONFIG.read_text())
+    from scforge.environment import expand, load_config, merged_contract
+    frozen_env = contract_dir / "environment_contract.yaml"
+    environment = (expand(_yaml.safe_load(frozen_env.read_text()), None)
+                   if frozen_env.is_file() else merged_contract())
+    normative = load_config(DEFAULT_WORKFLOW_CONFIG, environment)
     pooling = normative["fod"]["response_estimation"]["calibration"]["pooling"]
     # The config pins the path and SHA-256 of the responsemean this recipe was
     # frozen against. Another site has a different MRtrix build, so when the
@@ -625,16 +636,28 @@ def cmd_run(args) -> int:
     # reported as data failures deep in the run -- "unable to extract WM-FOD l=0
     # coefficient" was exactly that -- so they are checked before launching.
     t = sc_config.tools()
-    for name, value in (("MRTRIX_BIN", t.mrtrix_bin), ("FSLDIR", t.fsl_dir),
-                        ("ANTSPATH", t.ants_path)):
+    tools = {"MRTRIX_BIN": t.mrtrix_bin, "FSLDIR": t.fsl_dir, "ANTSPATH": t.ants_path}
+    # An approved run carries the environment it was approved on; its tool
+    # locations fill anything the shell has not exported, so a machine set up
+    # with `lock-env` needs no env.sh to launch.
+    frozen_env = run_root / "contract" / "environment_contract.yaml"
+    if frozen_env.is_file():
+        import yaml as _yaml
+        recorded = _yaml.safe_load(frozen_env.read_text())
+        fallback = {
+            "MRTRIX_BIN": Path(recorded["mrtrix3"]["prefix"]) / "bin",
+            "FSLDIR": Path(recorded["fsl"]["prefix"]),
+            "ANTSPATH": Path(recorded["ants"]["prefix"]) / "bin",
+        }
+        tools = {k: v or fallback[k] for k, v in tools.items()}
+    for name, value in tools.items():
         if value:
             env[name] = str(value)
-    missing = [n for n, v in (("MRTRIX_BIN", t.mrtrix_bin), ("FSLDIR", t.fsl_dir),
-                              ("ANTSPATH", t.ants_path)) if not v]
+    missing = [n for n, v in tools.items() if not v]
     if missing and not args.dry_run:
         raise SystemExit(
-            f"not set: {', '.join(missing)}. Run `python run_imaging.py doctor`, "
-            "then `source env.sh`."
+            f"not set: {', '.join(missing)}. Run `python run_imaging.py lock-env` "
+            "(or export them, e.g. `source env.sh`), then approve the run again."
         )
 
     if approved:
@@ -817,8 +840,22 @@ def cmd_approve(args) -> int:
     }, indent=2) + "\n", encoding="utf-8")
 
     normative = PROJECT_ROOT / "configs" / "connectome_v2.yaml"
-    env_contract = PROJECT_ROOT / "scforge" / "workflow" / "environment_contract.yaml"
     src_manifest = PROJECT_ROOT / "scforge" / "workflow" / "workflow_source_manifest.tsv"
+
+    # Freeze the environment this run is approved on: the reference contract
+    # with this machine's tool locations laid over it. The run then reads this
+    # copy for its whole life, so regenerating configs/environment.local.yaml
+    # later cannot change what an approved run believes it is using.
+    sys.path.insert(0, str(PROJECT_ROOT / "scforge"))
+    from scforge.environment import local_contract_path, merged_contract
+    if local_contract_path() is None:
+        print("note: no configs/environment.local.yaml, so the reference contract's tool "
+              "locations are used as they are. That is only right on the reference machine; "
+              "elsewhere run `python run_imaging.py lock-env` first.", file=sys.stderr)
+    env_contract = contract_dir / "environment_contract.yaml"
+    env_contract.write_text(
+        "# Environment frozen for this run by `run_imaging.py approve`.\n"
+        + yaml.safe_dump(merged_contract(), sort_keys=False), encoding="utf-8")
 
     # The same authorisation record the audited path carries, filled from this
     # decision instead of from the project's governance process. The resource
@@ -934,8 +971,9 @@ def cmd_approve(args) -> int:
     # once; the pipeline now builds them per run from the approved subset, so
     # any cohort gets the same protection without shipping ours.
     import sc_source_lock
-    lock = sc_source_lock.build(subset_path, contract_dir / "source_lock",
-                                rehash=not args.no_content_hash)
+    # Content hashes are required: the workflow re-checks every source file
+    # against them before conversion and rejects a lock without them.
+    lock = sc_source_lock.build(subset_path, contract_dir / "source_lock", rehash=True)
     if lock["missing_files"]:
         print(f"FAIL: {len(lock['missing_files'])} approved source file(s) missing",
               file=sys.stderr)
@@ -948,6 +986,7 @@ def cmd_approve(args) -> int:
     overlay_path = contract_dir / "run_overlay.yaml"
     overlay_path.write_text(yaml.safe_dump({
         "portable_mode": True,
+        "environment": {"locked_paths": {"environment_contract": str(env_contract)}},
         "manifest_path": str(manifest),
         "execution_manifest_path": str(subset_path),
         "run_root": str(run_root),
@@ -1002,6 +1041,11 @@ def main(argv=None) -> int:
     d.add_argument("--imaging-only", action="store_true")
     d.set_defaults(func=cmd_doctor)
 
+    le = sub.add_parser("lock-env", help="record where this machine's imaging tools are")
+    le.add_argument("--check", action="store_true", help="verify the recorded tools, write nothing")
+    le.add_argument("--out", type=Path, default=None, help="default: configs/environment.local.yaml")
+    le.set_defaults(func=cmd_lock_env)
+
     s = sub.add_parser("discover", help="raw image folder -> acquisition manifest")
     s.add_argument("--raw-root", type=Path, default=None,
                    help="default: the study's input, else $SC_RAW_IMAGES_ROOT")
@@ -1042,9 +1086,6 @@ def main(argv=None) -> int:
     a.add_argument("--max-cores", type=int, default=8, help="core ceiling this approval permits")
     a.add_argument("--wall-clock-hours", type=int, default=72, help="wall-clock stop for the run")
     a.add_argument("--storage-gb", type=int, default=150, help="storage stop for the run")
-    a.add_argument("--no-content-hash", action="store_true",
-                   help="lock sources on size and stat identity only, without hashing "
-                        "their contents (much faster on large cohorts, weaker guarantee)")
     a.set_defaults(func=cmd_approve)
 
     fz = sub.add_parser("freeze", help="pool the phase-A responses phase B deconvolves against")

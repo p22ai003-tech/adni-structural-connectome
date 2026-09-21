@@ -50,6 +50,32 @@ from scforge.response_calibration import (  # noqa: E402
 )
 
 NORMATIVE_CONFIG = (PROJECT_ROOT / "configs" / "connectome_v2.yaml").resolve()
+
+# The recipe names tools indirectly (${env:...}) and repository files as
+# ${repo}/..., so it carries no machine's paths. Resolve both here, before any
+# rule reads the config. A run approved by run_imaging.py points at the frozen
+# contract written into its own contract/ directory; otherwise the reference
+# contract is used with this machine's configs/environment.local.yaml laid
+# over it.
+from scforge.environment import (  # noqa: E402
+    REFERENCE_CONTRACT as _REFERENCE_CONTRACT,
+    expand as _expand_env,
+    merged_contract as _merged_contract,
+)
+
+ENVIRONMENT_CONTRACT = Path(
+    _expand_env(config["environment"]["locked_paths"]["environment_contract"], None)
+).resolve()
+if ENVIRONMENT_CONTRACT == _REFERENCE_CONTRACT.resolve():
+    ENVIRONMENT_LOCK = _merged_contract()
+else:
+    with ENVIRONMENT_CONTRACT.open(encoding="utf-8") as _environment_handle:
+        ENVIRONMENT_LOCK = _expand_env(yaml.safe_load(_environment_handle), None)
+_resolved_config = _expand_env(dict(config), ENVIRONMENT_LOCK)
+config.clear()
+config.update(_resolved_config)
+
+
 def _project_path(value, default):
     """Resolve a configured path, treating a relative one as repo-relative."""
     candidate = Path(value) if value else Path(default)
@@ -61,11 +87,6 @@ def _project_path(value, default):
 MATRIX_DICTIONARY = _project_path(
     config.get("contract", {}).get("matrix_dictionary"), "docs/MATRIX_DICTIONARY.md"
 )
-ENVIRONMENT_CONTRACT = Path(
-    config["environment"]["locked_paths"]["environment_contract"]
-).resolve()
-with ENVIRONMENT_CONTRACT.open(encoding="utf-8") as _environment_handle:
-    ENVIRONMENT_LOCK = yaml.safe_load(_environment_handle)
 WORKFLOW_SOURCE_MANIFEST = Path(
     ENVIRONMENT_LOCK["workflow"]["source_manifest"]["path"]
 ).resolve()
@@ -130,6 +151,7 @@ ANTS_BIN = Path(ENVIRONMENT_LOCK["ants"]["prefix"]).resolve() / "bin"
 SS3T_PYTHON = Path(ENVIRONMENT_LOCK["execution_policy"]["ss3t_invocation"]["python"]).resolve()
 SS3T_SCRIPT = Path(ENVIRONMENT_LOCK["execution_policy"]["ss3t_invocation"]["script"]).resolve()
 EDDY_CPU = Path(ENVIRONMENT_LOCK["execution_policy"]["eddy_executor"]).resolve()
+MRTRIX_SCRIPT_PYTHON = Path(ENVIRONMENT_LOCK["execution_policy"]["mrtrix_script_python"]["path"])
 C3D_AFFINE_TOOL = Path(
     ENVIRONMENT_LOCK["convert3d"]["binaries"]["c3d_affine_tool"]["path"]
 ).resolve()

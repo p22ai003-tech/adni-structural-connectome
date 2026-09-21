@@ -11,7 +11,7 @@ contract:
   authorization_scope: "design_only_no_imaging"
   next_execution_gate: "SL-H04A"
   frozen_utc: null
-  matrix_dictionary: "docs/MATRIX_DICTIONARY.md"
+  matrix_dictionary: "${repo}/docs/MATRIX_DICTIONARY.md"
   hash_policy: "sha256_of_exact_file_bytes"
   change_policy: "new_recipe_id_and_decision_log_entry"
   failure_policy: "fail_closed"
@@ -35,18 +35,18 @@ environment:
     ss3t_csd_beta1_available: true
     gpu_driver_available: false
   locked_paths:
-    workflow_python: "/home/ec2-user/exp/.venv_connectome_workflow/bin/python"
-    mrtrix_script_python: "/usr/bin/python3.9"
-    snakemake: "/home/ec2-user/exp/.venv_connectome_workflow/bin/snakemake"
-    wheel_artifact_manifest: "/home/ec2-user/exp/scforge/workflow/wheel_artifacts.cp312-linux-x86_64.tsv"
-    workflow_source_manifest: "/home/ec2-user/exp/scforge/workflow/workflow_source_manifest.tsv"
-    ants_prefix: "/home/ec2-user/exp/.envs/ants-2.6.5"
-    ants_explicit_lock: "/home/ec2-user/exp/scforge/workflow/locks/ants-2.6.5-linux-64.explicit.txt"
-    convert3d_prefix: "/home/ec2-user/exp/.envs/convert3d-1.4.2"
-    convert3d_explicit_lock: "/home/ec2-user/exp/scforge/workflow/locks/convert3d-1.4.2-linux-64.explicit.txt"
-    mrtrix3tissue_prefix: "/home/ec2-user/MRtrix3Tissue"
-    ss3t_python: "/usr/bin/python3.9"
-    environment_contract: "/home/ec2-user/exp/scforge/workflow/environment_contract.yaml"
+    workflow_python: "${env:workflow.python.path}"
+    mrtrix_script_python: "${env:execution_policy.mrtrix_script_python.path}"
+    snakemake: "${env:workflow.snakemake.path}"
+    wheel_artifact_manifest: "${repo}/scforge/workflow/wheel_artifacts.cp312-linux-x86_64.tsv"
+    workflow_source_manifest: "${repo}/scforge/workflow/workflow_source_manifest.tsv"
+    ants_prefix: "${env:ants.prefix}"
+    ants_explicit_lock: "${repo}/scforge/workflow/locks/ants-2.6.5-linux-64.explicit.txt"
+    convert3d_prefix: "${env:convert3d.prefix}"
+    convert3d_explicit_lock: "${repo}/scforge/workflow/locks/convert3d-1.4.2-linux-64.explicit.txt"
+    mrtrix3tissue_prefix: "${env:mrtrix3tissue.prefix}"
+    ss3t_python: "${env:execution_policy.ss3t_invocation.python}"
+    environment_contract: "${repo}/scforge/workflow/environment_contract.yaml"
   implementation_state: "closed_world_raw_source_normalization_with_per_unit_terminal_outcomes"
 
 inputs:
@@ -59,7 +59,7 @@ inputs:
     required_row_count: 530
     processing_authorized_row_count: 530
   acquisition_schema:
-    path: "/home/ec2-user/exp/scforge/workflow/schemas/acquisition_manifest_v2.schema.json"
+    path: "${repo}/scforge/workflow/schemas/acquisition_manifest_v2.schema.json"
     sha256: "4d19d95a2c8ba62142c6a67610c27725f6c04acf512235f0b760178b364904a1"
     schema_version: "2.0.0"
   # The source content lock and the metadata projection describe one cohort's
@@ -155,7 +155,7 @@ dwi_preprocessing:
     missing_value_behavior: "per_unit_FAIL_before_eddy"
   eddy:
     executor_policy: "explicit_cpu_for_entire_recipe_no_runtime_switch"
-    executable: "/home/ec2-user/fsl/bin/eddy_cpu"
+    executable: "${env:fsl.binaries.eddy_cpu.path}"
     force_cpu_environment_variable: "DWIFSLPREPROC_FORCE_CPU=1"
     automatic_cuda_to_cpu_fallback_allowed: false
     rationale: "the current host has no functioning NVIDIA driver; a GPU executor requires a new recipe and equivalence decision"
@@ -217,8 +217,8 @@ registration:
     select_by_density: false
   mni_to_t1:
     direction: "MNI152_1mm_to_native_t1"
-    template: "/home/ec2-user/fsl/data/standard/MNI152_T1_1mm.nii.gz"
-    template_sha256: "d1f03e160c2548592a01d98d44d7e0ffa8a8ef58bc9b07d26369e214ba170edb"
+    template: "${env:fsl.mni_template.path}"
+    template_sha256: "${env:fsl.mni_template.sha256}"
     primary_method: "antsRegistrationSyN"
     transform: "rigid_affine_syn"
     select_by_density: false
@@ -239,13 +239,13 @@ registration:
 
 atlas:
   name: "AAL3v1"
-  source_image: "/home/ec2-user/exp/atlas/AAL/AAL3v1_1mm.nii.gz"
+  source_image: "${repo}/atlas/AAL/AAL3v1_1mm.nii.gz"
   source_image_sha256: "a3721422dffd9ca1345b9c33b95431d719a29d86ef0d5ef0c9806bdf31e9b700"
-  contiguous_source_image: "/home/ec2-user/exp/atlas/AAL/AAL3v1_1mm_166.nii.gz"
+  contiguous_source_image: "${repo}/atlas/AAL/AAL3v1_1mm_166.nii.gz"
   contiguous_source_image_sha256: "99185db14c0ed741c13a23306373cd4aa2478ff072ab4cbf05bd143f0511f415"
-  node_table: "/home/ec2-user/exp/atlas/AAL/AAL3_labels.csv"
+  node_table: "${repo}/atlas/AAL/AAL3_labels.csv"
   node_table_sha256: "d10b81494243eb0c639c143978177da5439b29c522e0292847e6752795886f4a"
-  node_map: "/home/ec2-user/exp/atlas/AAL/aal3_node_map_166.csv"
+  node_map: "${repo}/atlas/AAL/aal3_node_map_166.csv"
   node_map_sha256: "321391d605a4dc5b6742c156b3efdf815c37b124d677e6a058405d3b21d68939"
   original_label_range: [1, 170]
   excluded_original_labels: [35, 36, 81, 82]
@@ -281,8 +281,8 @@ fod:
       selection_uses_diagnosis_labels: false
       pooling:
         primary_method: "mrtrix_responsemean_nonlegacy_scale_compensated"
-        executable: "/home/ec2-user/mrtrix3/bin/responsemean"
-        executable_sha256: "2e4059800a0565184192d0d3e5ddfb29161af42a6fb5b579970a744cd5f1e788"
+        executable: "${env:mrtrix3.binaries.responsemean.path}"
+        executable_sha256: "${env:mrtrix3.binaries.responsemean.sha256}"
         legacy_option_allowed: false
         data_driven_method_switch_allowed: false
       fod_shell_compatibility:
@@ -510,9 +510,9 @@ qc:
 
 provenance:
   immutable_per_subject_sidecar: true
-  subject_schema: "/home/ec2-user/exp/scforge/workflow/schemas/provenance_v1.schema.json"
-  run_ledger_schema: "/home/ec2-user/exp/scforge/workflow/schemas/run_ledger_v1.schema.json"
-  supported_launcher: "/home/ec2-user/exp/scforge/workflow/run_connectome_v2.py"
+  subject_schema: "${repo}/scforge/workflow/schemas/provenance_v1.schema.json"
+  run_ledger_schema: "${repo}/scforge/workflow/schemas/run_ledger_v1.schema.json"
+  supported_launcher: "${repo}/scforge/workflow/run_connectome_v2.py"
   exact_command_capture: "snakemake_printshellcmds_combined_log_hashed_in_final_completion"
   run_id_derivation: "first_24_hex_of_sha256(recipe_id|acquisition_manifest_sha256|absolute_run_root)"
   failed_attempt_evidence: "immutable_attempt_end_record_plus_hashed_combined_execution_log"

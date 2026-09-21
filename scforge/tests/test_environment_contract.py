@@ -16,7 +16,8 @@ from validate_environment_contract import (  # noqa: E402
     DEFAULT_CONFIG,
     DEFAULT_ENVIRONMENT,
     _hashed_artifacts,
-    _load_yaml,
+    load_environment,
+    load_recipe,
     audit_environment_contract,
     policy_consistency_checks,
     validate_hashed_artifact,
@@ -26,7 +27,7 @@ from validate_environment_contract import (  # noqa: E402
 
 class EnvironmentArtifactTests(unittest.TestCase):
     def test_all_declared_artifact_hashes_match_current_host(self) -> None:
-        environment = _load_yaml(DEFAULT_ENVIRONMENT)
+        environment = load_environment(DEFAULT_ENVIRONMENT)
         mismatches = []
         for name, record, _ in _hashed_artifacts(environment):
             passed, observed = validate_hashed_artifact(
@@ -49,8 +50,8 @@ class EnvironmentArtifactTests(unittest.TestCase):
 class EnvironmentPolicyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.environment = _load_yaml(DEFAULT_ENVIRONMENT)
-        cls.config = _load_yaml(DEFAULT_CONFIG)
+        cls.environment = load_environment(DEFAULT_ENVIRONMENT)
+        cls.config = load_recipe(DEFAULT_CONFIG, cls.environment)
 
     def test_cross_file_fail_closed_policy_has_no_errors(self) -> None:
         checks = policy_consistency_checks(self.environment, self.config)

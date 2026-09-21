@@ -297,7 +297,7 @@ rule dwi_motion_eddy:
         test "$#" -eq 2
         pe="$1"
         readout="$2"
-        /usr/bin/python3.9 {MRTRIX_BIN:q}/dwifslpreproc {input.dwi:q} {output.dwi:q} \
+        {MRTRIX_SCRIPT_PYTHON:q} {MRTRIX_BIN:q}/dwifslpreproc {input.dwi:q} {output.dwi:q} \
           -rpe_none -pe_dir "$pe" -readout_time "$readout" \
           -config BZeroThreshold {BZERO_THRESHOLD} \
           -eddy_options {params.eddy_options:q} -eddyqc_all {output.eddy_qc:q} \

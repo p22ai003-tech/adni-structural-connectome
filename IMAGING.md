@@ -66,7 +66,23 @@ python run_imaging.py doctor
 ```
 
 It reports every binary with its version, every path with whether it exists,
-and every Python package. **A missing export is the single most common failure
+and every Python package.
+
+Then record where the tools are on this machine:
+
+```bash
+python run_imaging.py lock-env
+```
+
+This writes `configs/environment.local.yaml`: the location, version and SHA-256
+of every executable the workflow calls. It finds each toolkit from its usual
+variable (`MRTRIX_BIN`, `FSLDIR`, `ANTSPATH`, `MRTRIX3TISSUE`, `C3D_BIN`), then
+from `PATH`, and it tells you which versions differ from the machine the thesis
+cohort was processed on. The recipe never names a path on any particular
+machine; it refers to this file. Each approved run freezes a copy, so the run
+records exactly which executables produced it. Re-run `lock-env` after
+installing or upgrading a tool, and `lock-env --check` tells you whether the
+file is still true. **A missing export is the single most common failure
 here** — an unset `MRTRIX_BIN` once surfaced as "unable to extract WM-FOD l=0
 coefficient", which looks like a data problem and is not one. `doctor` exists
 so you find out in two seconds instead.

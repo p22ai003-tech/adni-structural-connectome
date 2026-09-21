@@ -1,6 +1,8 @@
-# Exact host-side execution contract for the connectome v2 blinded canary.
-# Every run hashes this file. A changed executable, dependency lock, or executor
-# policy requires a new recipe ID and a recorded decision.
+# Reference environment: the exact tools, versions and SHA-256s on the machine
+# the thesis cohort was processed on. It is a record, not a requirement of every
+# machine: `python run_imaging.py lock-env` writes configs/environment.local.yaml
+# for the machine you are on, whose sections replace the machine-specific ones
+# here (see scforge/scforge/environment.py). ${repo} is the repository root.
 
 schema_version: "2.0.0"
 generated_utc: null
@@ -24,8 +26,8 @@ execution_policy:
     - "/home/ec2-user/mrtrix3/bin"
     - "/usr/bin"
     - "/home/ec2-user/fsl/bin"
-    - "/home/ec2-user/exp/.envs/ants-2.6.5/bin"
-    - "/home/ec2-user/exp/.envs/convert3d-1.4.2/bin"
+    - "${repo}/.envs/ants-2.6.5/bin"
+    - "${repo}/.envs/convert3d-1.4.2/bin"
   mrtrix3tissue_global_path_allowed: false
   mrtrix_script_python:
     path: "/usr/bin/python3.9"
@@ -41,24 +43,24 @@ execution_policy:
 
 workflow:
   python:
-    path: "/home/ec2-user/exp/.venv_connectome_workflow/bin/python"
+    path: "${repo}/.venv_connectome_workflow/bin/python"
     version: "3.12.2"
     sha256: "2dafac2b7c9dfdba5474cd112a4df6a292cbe7c0005b99f561768c8d74b55df9"
   snakemake:
-    path: "/home/ec2-user/exp/.venv_connectome_workflow/bin/snakemake"
+    path: "${repo}/.venv_connectome_workflow/bin/snakemake"
     version: "9.23.1"
     sha256: "3a2dcbde7e2cd1a27db9b2285293f513b4b1851ab4ebdc90ed790bd9b761f439"
   requirements_lock:
-    path: "/home/ec2-user/exp/scforge/workflow/requirements.lock.txt"
+    path: "${repo}/scforge/workflow/requirements.lock.txt"
     sha256: "bf5836c99e3f97af2ea8da5bf320bf4998e70987e52b8b67fda7f2ba406ba342"
   wheel_artifact_manifest:
-    path: "/home/ec2-user/exp/scforge/workflow/wheel_artifacts.cp312-linux-x86_64.tsv"
+    path: "${repo}/scforge/workflow/wheel_artifacts.cp312-linux-x86_64.tsv"
     sha256: "333e5d86874524f1e798ae546b53f30f697605ae59d2c9066359e1a353a4b612"
     target: "CPython 3.12, Linux x86_64"
     index: "configured package index plus the verified local pip cache for connection_pool 0.0.3"
   source_manifest:
-    path: "/home/ec2-user/exp/scforge/workflow/workflow_source_manifest.tsv"
-    sha256: "0426f3172becc54e4b8a6dc682fa6e8186f343bb3437d0122cc2eb2b1690ed08"
+    path: "${repo}/scforge/workflow/workflow_source_manifest.tsv"
+    sha256: "404638622e94118726ebb3235045e70b8c3afd3a77b510a59504588e1ef4de09"
     rows: 29
     policy: "every listed source file is rehashed by execution_preflight before imaging"
   runtime_packages:
@@ -193,6 +195,11 @@ mrtrix3tissue:
 fsl:
   prefix: "/home/ec2-user/fsl"
   version: "6.0.7.18"
+  # The registration target ships inside FSL, so where it is and what its
+  # bytes are belong to the machine, like the binaries.
+  mni_template:
+    path: "/home/ec2-user/fsl/data/standard/MNI152_T1_1mm.nii.gz"
+    sha256: "d1f03e160c2548592a01d98d44d7e0ffa8a8ef58bc9b07d26369e214ba170edb"
   binaries:
     eddy_cpu:
       path: "/home/ec2-user/fsl/bin/eddy_cpu"
@@ -224,32 +231,32 @@ fsl:
       sha256: "e962a2d1f0880fff29d0c965eda3d07f675b949a1d6dad7f2be0e78b832012ac"
 
 ants:
-  prefix: "/home/ec2-user/exp/.envs/ants-2.6.5"
+  prefix: "${repo}/.envs/ants-2.6.5"
   version: "2.6.5.dev1-g89fa5be"
   explicit_conda_lock:
-    path: "/home/ec2-user/exp/scforge/workflow/locks/ants-2.6.5-linux-64.explicit.txt"
+    path: "${repo}/scforge/workflow/locks/ants-2.6.5-linux-64.explicit.txt"
     sha256: "5c3392c179f8d81ad825ea4b85d9f89842180d060f0ab6f14bd44880e596e632"
   binaries:
     antsRegistration:
-      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/antsRegistration"
+      path: "${repo}/.envs/ants-2.6.5/bin/antsRegistration"
       sha256: "92324b160447e6dc18093622810b60610ea60851e68697ffea33e98f8f2f4800"
     antsApplyTransforms:
-      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/antsApplyTransforms"
+      path: "${repo}/.envs/ants-2.6.5/bin/antsApplyTransforms"
       sha256: "d02a01a82928512cba18b9232ec6ad3ebaae8adb7a1ed2dd7e927fa1e670692f"
     antsRegistrationSyN_sh:
-      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/antsRegistrationSyN.sh"
+      path: "${repo}/.envs/ants-2.6.5/bin/antsRegistrationSyN.sh"
       sha256: "1b183b5365bc89821b5ec794090151cab4c8a305e262223041083a8aaf288819"
     N4BiasFieldCorrection:
-      path: "/home/ec2-user/exp/.envs/ants-2.6.5/bin/N4BiasFieldCorrection"
+      path: "${repo}/.envs/ants-2.6.5/bin/N4BiasFieldCorrection"
       sha256: "532ef9b1fd1b9071547a1d9e9ee4d438577fc5c2b0cf0458d2a3f27f7ee1ea57"
 
 convert3d:
-  prefix: "/home/ec2-user/exp/.envs/convert3d-1.4.2"
+  prefix: "${repo}/.envs/convert3d-1.4.2"
   version: "1.4.2"
   explicit_conda_lock:
-    path: "/home/ec2-user/exp/scforge/workflow/locks/convert3d-1.4.2-linux-64.explicit.txt"
+    path: "${repo}/scforge/workflow/locks/convert3d-1.4.2-linux-64.explicit.txt"
     sha256: "0ced82a6c4504388cce072814b884c9e8a26b425b01e2dcd30735234708de7db"
   binaries:
     c3d_affine_tool:
-      path: "/home/ec2-user/exp/.envs/convert3d-1.4.2/bin/c3d_affine_tool"
+      path: "${repo}/.envs/convert3d-1.4.2/bin/c3d_affine_tool"
       sha256: "fd67488a4f92cb3389695ce67e2deef948009626f863ad17f730a5300641815e"

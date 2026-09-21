@@ -202,9 +202,11 @@ class LauncherTerminalFinalizationTests(unittest.TestCase):
         )
         run_context = root / "contract" / "response_calibration_phase_a_run_context.json"
         run_context.parent.mkdir(parents=True)
-        environment = yaml.safe_load(
-            ENVIRONMENT_CONTRACT.read_text(encoding="utf-8")
-        )
+        # the contract as the launcher reads it: ${repo} resolved and this
+        # machine's tool sections laid over the reference
+        from scforge.environment import merged_contract
+
+        environment = merged_contract()
         run_context.write_text(
             json.dumps(
                 {

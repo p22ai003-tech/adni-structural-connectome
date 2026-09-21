@@ -150,6 +150,14 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
+def load_environment() -> dict[str, Any]:
+    """The reference contract with this machine's tool sections laid over it,
+    ${repo} resolved -- what the workflow itself reads."""
+    from scforge.environment import merged_contract
+
+    return merged_contract()
+
+
 def validate_normative_execution_lock(config: dict[str, Any]) -> None:
     """Require the immutable recipe to remain non-authoritative for imaging.
 
@@ -497,7 +505,12 @@ def prepare_execution_binding(
         if environment_contract_path is not None
         else ENVIRONMENT_CONTRACT
     ).expanduser().resolve()
-    environment = load_yaml(environment_path)
+    if environment_path == ENVIRONMENT_CONTRACT.resolve():
+        environment = load_environment()
+    else:
+        from scforge.environment import expand
+
+        environment = expand(load_yaml(environment_path), None)
     source_manifest_record = environment.get("workflow", {}).get(
         "source_manifest"
     )
@@ -1316,7 +1329,7 @@ def prepare_phase_b_binding(
             raise ValueError(f"phase-A run context differs at {key}")
     if phase_a_run_context.get("execution_binding") != execution_binding:
         raise ValueError("phase-A and current execution-subset bindings differ")
-    environment = load_yaml(ENVIRONMENT_CONTRACT)
+    environment = load_environment()
     if phase_a_run_context.get("workflow_source_manifest") != file_record(
         environment["workflow"]["source_manifest"]["path"]
     ):
@@ -2785,7 +2798,7 @@ def validate_existing_run_context(
         if record.get(name) != file_record(path):
             raise ValueError(f"existing run context {name} record differs")
     workflow_source_manifest = Path(
-        load_yaml(ENVIRONMENT_CONTRACT)["workflow"]["source_manifest"]["path"]
+        load_environment()["workflow"]["source_manifest"]["path"]
     )
     if record.get("workflow_source_manifest") != file_record(
         workflow_source_manifest
@@ -2807,7 +2820,7 @@ def run(args: argparse.Namespace) -> int:
     config = load_yaml(NORMATIVE_CONFIG)
     validate_normative_execution_lock(config)
     normative_config_sha256 = sha256_file(NORMATIVE_CONFIG)
-    environment = load_yaml(ENVIRONMENT_CONTRACT)
+    environment = load_environment()
     recipe_id = str(config["contract"]["recipe_id"])
     mode = str(args.mode)
     if mode not in RUN_MODES:

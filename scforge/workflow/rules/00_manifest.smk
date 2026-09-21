@@ -212,8 +212,11 @@ rule execution_preflight:
             failures.append("MRtrix3Tissue is forbidden on the normal global PATH")
         if not normal_path or normal_path[0] != str(MRTRIX_BIN):
             failures.append("locked MRtrix3 must be first on the normal PATH")
-        if "/usr/bin" not in normal_path or str(FSL_BIN) not in normal_path or normal_path.index("/usr/bin") > normal_path.index(str(FSL_BIN)):
-            failures.append("/usr/bin must precede FSL bin so MRtrix scripts use the locked system Python")
+        # FSL ships its own python3; if FSL's bin came first, MRtrix's Python
+        # scripts would run under it instead of the locked interpreter.
+        python_dir = str(MRTRIX_SCRIPT_PYTHON.parent)
+        if python_dir not in normal_path or str(FSL_BIN) not in normal_path or normal_path.index(python_dir) > normal_path.index(str(FSL_BIN)):
+            failures.append(f"{python_dir} must precede FSL bin so MRtrix scripts use the locked Python")
 
         try:
             normative_config = yaml.safe_load(Path(input.config).read_text(encoding="utf-8"))

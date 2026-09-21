@@ -176,3 +176,6 @@ configs/exclusions.local.yaml
 # dwifslpreproc scratch directories: created in the working directory by a
 # running job and deleted when it finishes. Never repository content.
 dwifslpreproc-tmp-*/
+
+# This machine's tool locations, written by `run_imaging.py lock-env`.
+configs/environment.local.yaml
