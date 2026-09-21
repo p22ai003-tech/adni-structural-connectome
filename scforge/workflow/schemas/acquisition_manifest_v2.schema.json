@@ -55,92 +55,377 @@
     "normalization_readiness"
   ],
   "properties": {
-    "manifest_schema_version": {"const": "2.0.0"},
-    "data_scope_decision": {"const": "SL-D01_local_only"},
-    "processing_authorized": {"const": true},
-    "analysis_role": {"type": "string", "minLength": 1},
-    "subject_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"},
-    "diagnosis_at_dti": {"type": ["string", "null"]},
-    "dti_image_id": {"type": "string", "pattern": "^[0-9]+$"},
-    "dti_study_date": {"type": "string", "format": "date"},
-    "dti_source_kind": {"enum": ["dicom_series", "nifti_bundle"]},
-    "dti_source_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"},
-    "dti_source_path": {"type": "string", "minLength": 1},
-    "dti_dicom_series_uid": {"type": ["string", "null"], "pattern": "^[0-9.]+$"},
-    "dti_raw_bundle_sha256": {"$ref": "#/$defs/sha256"},
-    "dti_raw_file_count": {"type": "integer", "minimum": 1},
-    "dti_raw_total_bytes": {"type": "integer", "minimum": 1},
-    "dwi_nifti_path": {"type": ["string", "null"]},
-    "dwi_bvec_path": {"type": ["string", "null"]},
-    "dwi_bval_path": {"type": ["string", "null"]},
-    "dwi_json_path": {"type": ["string", "null"]},
-    "dwi_nifti_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
-    "dwi_bvec_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
-    "dwi_bval_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
-    "dwi_json_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
-    "t1_image_id": {"type": "string", "pattern": "^[0-9]+$"},
-    "t1_study_date": {"type": "string", "format": "date"},
-    "t1_source_kind": {"enum": ["dicom_series", "nifti_single"]},
-    "t1_source_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"},
-    "t1_source_path": {"type": "string", "minLength": 1},
-    "t1_dicom_series_uid": {"type": ["string", "null"], "pattern": "^[0-9.]+$"},
-    "t1_raw_bundle_sha256": {"$ref": "#/$defs/sha256"},
-    "t1_raw_file_count": {"type": "integer", "minimum": 1},
-    "t1_raw_total_bytes": {"type": "integer", "minimum": 1},
-    "abs_pair_gap_days": {"type": "integer", "minimum": 0},
-    "timing_stratum": {"type": "string", "minLength": 1},
-    "phase": {"type": ["string", "null"]},
-    "site": {"type": ["string", "null"]},
-    "manufacturer": {"type": ["string", "null"]},
-    "scanner_model": {"type": ["string", "null"]},
-    "field_strength_t": {"type": ["number", "null"], "exclusiveMinimum": 0},
-    "protocol": {"type": ["string", "null"]},
-    "phase_encoding_direction": {"type": ["string", "null"], "enum": ["i", "i-", "j", "j-", "k", "k-", null]},
-    "phase_encoding_source": {"type": ["string", "null"]},
-    "total_readout_time": {"type": ["number", "null"], "exclusiveMinimum": 0, "exclusiveMaximum": 1},
-    "total_readout_time_source": {"type": ["string", "null"]},
-    "source_lock_status": {"const": "COMPLETE_SHA256"},
-    "pair_content_bundle_sha256": {"$ref": "#/$defs/sha256"},
-    "normalization_readiness": {"enum": ["READY", "FAIL_MISSING_PHASE_ENCODING", "FAIL_MISSING_TOTAL_READOUT_TIME", "FAIL_MISSING_PHASE_ENCODING_AND_TOTAL_READOUT_TIME"]}
+    "manifest_schema_version": {
+      "const": "2.0.0"
+    },
+    "data_scope_decision": {
+      "const": "SL-D01_local_only"
+    },
+    "processing_authorized": {
+      "const": true
+    },
+    "analysis_role": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subject_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    },
+    "diagnosis_at_dti": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dti_image_id": {
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+    "dti_study_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "dti_source_kind": {
+      "enum": [
+        "dicom_series",
+        "nifti_bundle"
+      ]
+    },
+    "dti_source_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    },
+    "dti_source_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dti_dicom_series_uid": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9.]+$"
+    },
+    "dti_raw_bundle_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "dti_raw_file_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "dti_raw_total_bytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "dwi_nifti_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dwi_bvec_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dwi_bval_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dwi_json_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dwi_nifti_sha256": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dwi_bvec_sha256": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dwi_bval_sha256": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dwi_json_sha256": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "t1_image_id": {
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+    "t1_study_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "t1_source_kind": {
+      "enum": [
+        "dicom_series",
+        "nifti_single"
+      ]
+    },
+    "t1_source_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    },
+    "t1_source_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "t1_dicom_series_uid": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9.]+$"
+    },
+    "t1_raw_bundle_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "t1_raw_file_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "t1_raw_total_bytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "abs_pair_gap_days": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "timing_stratum": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "site": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "manufacturer": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scanner_model": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "field_strength_t": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "exclusiveMinimum": 0
+    },
+    "protocol": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "phase_encoding_direction": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "i",
+        "i-",
+        "j",
+        "j-",
+        "k",
+        "k-",
+        null
+      ]
+    },
+    "phase_encoding_source": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "total_readout_time": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1
+    },
+    "total_readout_time_source": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_lock_status": {
+      "const": "COMPLETE_SHA256"
+    },
+    "pair_content_bundle_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "normalization_readiness": {
+      "enum": [
+        "READY",
+        "FAIL_MISSING_PHASE_ENCODING",
+        "FAIL_MISSING_TOTAL_READOUT_TIME",
+        "FAIL_MISSING_PHASE_ENCODING_AND_TOTAL_READOUT_TIME"
+      ]
+    }
   },
   "allOf": [
     {
-      "if": {"properties": {"dti_source_kind": {"const": "dicom_series"}}},
+      "if": {
+        "properties": {
+          "dti_source_kind": {
+            "const": "dicom_series"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "dti_dicom_series_uid": {"type": "string", "pattern": "^[0-9.]+$"},
-          "dwi_nifti_path": {"type": "null"},
-          "dwi_bvec_path": {"type": "null"},
-          "dwi_bval_path": {"type": "null"},
-          "dwi_json_path": {"type": "null"},
-          "dwi_nifti_sha256": {"type": "null"},
-          "dwi_bvec_sha256": {"type": "null"},
-          "dwi_bval_sha256": {"type": "null"},
-          "dwi_json_sha256": {"type": "null"}
+          "dti_dicom_series_uid": {
+            "type": "string",
+            "pattern": "^[0-9.]+$"
+          },
+          "dwi_nifti_path": {
+            "type": "null"
+          },
+          "dwi_bvec_path": {
+            "type": "null"
+          },
+          "dwi_bval_path": {
+            "type": "null"
+          },
+          "dwi_json_path": {
+            "type": "null"
+          },
+          "dwi_nifti_sha256": {
+            "type": "null"
+          },
+          "dwi_bvec_sha256": {
+            "type": "null"
+          },
+          "dwi_bval_sha256": {
+            "type": "null"
+          },
+          "dwi_json_sha256": {
+            "type": "null"
+          }
         }
       },
       "else": {
         "properties": {
-          "dti_dicom_series_uid": {"type": "null"},
-          "dwi_nifti_path": {"type": "string", "minLength": 1},
-          "dwi_bvec_path": {"type": "string", "minLength": 1},
-          "dwi_bval_path": {"type": "string", "minLength": 1},
-          "dwi_json_path": {"type": "string", "minLength": 1},
-          "dwi_nifti_sha256": {"$ref": "#/$defs/sha256"},
-          "dwi_bvec_sha256": {"$ref": "#/$defs/sha256"},
-          "dwi_bval_sha256": {"$ref": "#/$defs/sha256"},
-          "dwi_json_sha256": {"$ref": "#/$defs/sha256"}
+          "dti_dicom_series_uid": {
+            "type": "null"
+          },
+          "dwi_nifti_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dwi_bvec_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dwi_bval_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dwi_json_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dwi_nifti_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "dwi_bvec_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "dwi_bval_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "dwi_json_sha256": {
+            "$ref": "#/$defs/sha256"
+          }
         }
       }
     },
     {
-      "if": {"properties": {"t1_source_kind": {"const": "dicom_series"}}},
-      "then": {"properties": {"t1_dicom_series_uid": {"type": "string", "pattern": "^[0-9.]+$"}}},
-      "else": {"properties": {"t1_dicom_series_uid": {"type": "null"}}}
+      "if": {
+        "properties": {
+          "t1_source_kind": {
+            "const": "dicom_series"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "t1_dicom_series_uid": {
+            "type": "string",
+            "pattern": "^[0-9.]+$"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "t1_dicom_series_uid": {
+            "type": "null"
+          }
+        }
+      }
     }
   ],
   "$defs": {
-    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
   }
 }
-

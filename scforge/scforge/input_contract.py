@@ -68,6 +68,10 @@ INTEGER_FIELDS = frozenset(
         "abs_pair_gap_days",
     }
 )
+# A layout that does not record acquisition dates cannot report a gap between
+# the two scans. That is a property of the input, not a defect in the row: the
+# timing stratum says "undated" and an analysis can hold those subjects out.
+NULLABLE_INTEGER_FIELDS = frozenset({"abs_pair_gap_days"})
 
 
 def sha256_file(path: str | Path) -> str:
@@ -393,10 +397,13 @@ def _to_schema_record(row: Mapping[str, str]) -> dict[str, Any]:
             else:
                 record[key] = True
         elif key in INTEGER_FIELDS:
-            try:
-                record[key] = int(stripped)
-            except ValueError:
-                record[key] = stripped
+            if not stripped and key in NULLABLE_INTEGER_FIELDS:
+                record[key] = None
+            else:
+                try:
+                    record[key] = int(stripped)
+                except ValueError:
+                    record[key] = stripped
         elif key == "field_strength_t":
             if not stripped:
                 record[key] = None

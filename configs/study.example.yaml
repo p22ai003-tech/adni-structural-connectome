@@ -1,0 +1,36 @@
+# Study configuration. Everything the pipeline needs to find your data.
+# Copy this file, edit it, and pass it with --study to any of the runners.
+
+study:
+  name: my-study
+  # How the raw image folders are arranged. See docs/INPUT_LAYOUTS.md.
+  #   simple : <raw>/<subject>/{dwi,t1}/...
+  #   bids   : <raw>/sub-<id>/[ses-<x>/]{dwi,anat}/...
+  #   adni   : <raw>/{dti,mri}/<subject>/<protocol>/<date>/<image-id>/...
+  layout: simple
+
+input:
+  # Where the raw images are.
+  #   local : a directory on this machine, including anything mounted onto it
+  #   s3    : an s3:// URI, staged to stage_root before the run
+  source: local
+  path: /path/to/your/raw
+  # uri: s3://your-bucket/your-prefix       # required when source is s3
+  # stage_root: /path/to/staging            # required when source is s3
+  # subjects: [sub-001, sub-002]            # optional: restrict the study
+  # participants: participants.csv          # optional: subject_id,diagnosis,age,sex
+
+output:
+  # Everything the pipeline writes lives under here.
+  data_root: /path/to/your/work
+  # Anything below is derived from data_root unless you set it.
+  # deriv_root: /path/to/your/work/derivatives
+  # qc_root: /path/to/your/work/derivatives/qc
+  # analysis_root: /path/to/your/work/derivatives/qc/analysis_cohort
+  # connectomes_dir: /path/to/your/work/derivatives/connectomes
+
+pairing:
+  # A DWI and a T1 further apart than this are still processed, but are
+  # labelled so an analysis can hold them out.
+  max_gap_days: 180
+  sensitivity_days: 90

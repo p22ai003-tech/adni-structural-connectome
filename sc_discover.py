@@ -49,7 +49,7 @@ _DATE_DIR = re.compile(r"^(\d{4})-(\d{2})-(\d{2})_(\d{2})_(\d{2})_(\d{2})")
 _SUBJECT = re.compile(r"^\d{3}_S_\d{4,5}$")
 
 COLUMNS = [
-    "subject_id", "analysis_role",
+    "subject_id", "analysis_role", "diagnosis", "age", "sex",
     "dti_image_id", "dti_study_date", "dti_protocol", "dti_source_path", "dti_file_count",
     "t1_image_id", "t1_study_date", "t1_protocol", "t1_source_path", "t1_file_count",
     "abs_pair_gap_days", "timing_stratum",
@@ -298,6 +298,54 @@ def pair(dwi: list[Series], t1: list[Series], max_days: float,
     return rows, unpaired
 
 
+def attach_participants(rows: list[dict], path: Path) -> int:
+    """Join a participants table onto the manifest by subject id.
+
+    A study's grouping variable lives with the study, not in the folder names,
+    so this is how a generic cohort supplies diagnosis, age and sex. Columns are
+    matched case-insensitively and anything else in the file is ignored.
+    """
+    if not path.is_file():
+        raise SystemExit(f"participants file not found: {path}")
+    table: dict[str, dict] = {}
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        lower = {name.lower().strip(): name for name in (reader.fieldnames or [])}
+        key = lower.get("subject_id") or lower.get("participant_id") or lower.get("subject")
+        if key is None:
+            raise SystemExit(
+                f"{path} needs a subject_id (or participant_id) column; "
+                f"found: {', '.join(reader.fieldnames or [])}"
+            )
+        for record in reader:
+            subject = str(record[key]).strip()
+            aliases = {"diagnosis": ("diagnosis", "group", "dx", "diagnosis_at_dti"),
+                       "age": ("age", "age_at_scan"),
+                       "sex": ("sex", "gender")}
+            table[subject] = {}
+            for field_name, names in aliases.items():
+                value = ""
+                for name in names:
+                    column = lower.get(name)
+                    if column and str(record.get(column, "") or "").strip():
+                        value = str(record[column]).strip()
+                        break
+                table[subject][field_name] = value
+    matched = 0
+    for row in rows:
+        subject = row["subject_id"]
+        found = table.get(subject) or table.get(subject.replace("sub-", ""))
+        if found is None and not subject.startswith("sub-"):
+            found = table.get(f"sub-{subject}")
+        if found is None:
+            continue
+        matched += 1
+        for field_name, value in found.items():
+            if value:
+                row[field_name] = value
+    return matched
+
+
 def main(argv=None) -> int:
     p = sc_config.paths()
     ap = argparse.ArgumentParser(description=__doc__,
@@ -317,6 +365,11 @@ def main(argv=None) -> int:
                     help="hard limit: refuse to pair beyond this gap (default: no limit, "
                          "every pair is made and labelled with its stratum)")
     ap.add_argument("--limit", type=int, default=None, help="first N subjects only")
+    ap.add_argument("--subjects", nargs="*", default=None,
+                    help="restrict the scan to these subject folder names")
+    ap.add_argument("--participants", type=Path, default=None,
+                    help="CSV with subject_id and any of diagnosis, age, sex; joined "
+                         "onto the manifest so an analysis has its grouping variable")
     ap.add_argument("--no-meta", action="store_true",
                     help="skip reading DICOM headers (faster, no scanner metadata)")
     ap.add_argument("--report", action="store_true")
@@ -327,7 +380,7 @@ def main(argv=None) -> int:
         raise SystemExit(f"raw root not found: {raw}")
     print(f"raw root : {raw}")
 
-    subjects = None
+    subjects = set(args.subjects) if args.subjects else None
     if args.limit:
         d = raw / MODALITY_DIRS[args.layout]["dwi"]
         if args.layout == "bids":
@@ -347,6 +400,10 @@ def main(argv=None) -> int:
     rows, unpaired = pair(dwi, t1, args.max_days, args.sensitivity_days, args.max_gap_days)
     print(f"paired   : {len(rows)}   unpaired: {len(unpaired)}")
 
+    if args.participants:
+        attached = attach_participants(rows, args.participants)
+        print(f"participants: {attached}/{len(rows)} rows matched {args.participants.name}")
+
     if args.report:
         print("\ntiming stratum:")
         for k, c in Counter(r["timing_stratum"] for r in rows).most_common():
@@ -354,7 +411,8 @@ def main(argv=None) -> int:
         print("manufacturer:")
         for k, c in Counter(r["manufacturer"] or "(unknown)" for r in rows).most_common(8):
             print(f"   {k:<24} {c:>5}")
-        gaps = sorted(r["abs_pair_gap_days"] for r in rows)
+        gaps = sorted(r["abs_pair_gap_days"] for r in rows
+                      if isinstance(r["abs_pair_gap_days"], (int, float)))
         if gaps:
             print(f"pair gap days: min={gaps[0]:.1f} "
                   f"median={gaps[len(gaps)//2]:.1f} max={gaps[-1]:.1f}")

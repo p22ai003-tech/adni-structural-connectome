@@ -70,17 +70,55 @@ def find_snakemake() -> str | None:
     return shutil.which("snakemake")
 
 
+def apply_study(args) -> "object | None":
+    """Load --study, export the paths it implies and make the data readable.
+
+    The study file is the one place a user describes their data. Exporting the
+    SC_* variables here means every delegated tool sees the same locations
+    without any of them having to know about the file.
+    """
+    path = getattr(args, "study", None)
+    if not path:
+        return None
+    import sc_study
+
+    try:
+        study = sc_study.load_study(path)
+    except sc_study.StudyError as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(2)
+    study.apply_environment()
+    if getattr(args, "command", "") in {"discover", "run"} or getattr(args, "stage", False):
+        try:
+            study.ensure_available()
+        except sc_study.StudyError as error:
+            print(str(error), file=sys.stderr)
+            raise SystemExit(2)
+    return study
+
+
 def cmd_doctor(args) -> int:
     return _delegate("sc_doctor", ["--imaging"] if args.imaging_only else [])
 
 
 def cmd_discover(args) -> int:
+    study = getattr(args, "_study", None)
     out = args.out or sc_config.paths().manifest
-    argv = ["--raw-root", str(args.raw_root), "--out", str(out), "--report"]
+    raw_root = args.raw_root or (study.staged_root if study else sc_config.paths().raw_images_root)
+    layout = args.layout or (study.layout if study else "adni")
+    argv = ["--raw-root", str(raw_root), "--layout", layout, "--out", str(out), "--report"]
     if args.unpaired_out:
         argv += ["--unpaired-out", str(args.unpaired_out)]
-    if args.max_gap_days is not None:
-        argv += ["--max-gap-days", str(args.max_gap_days)]
+    gap = args.max_gap_days
+    if gap is None and study is not None:
+        gap = study.max_gap_days
+    if gap is not None:
+        argv += ["--max-gap-days", str(gap)]
+    if study is not None:
+        if study.subjects:
+            argv += ["--subjects", *study.subjects]
+        if study.participants and study.participants.is_file():
+            argv += ["--participants", str(study.participants)]
     return _delegate("sc_discover", argv)
 
 
@@ -519,6 +557,9 @@ def cmd_approve(args) -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="run_imaging", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--study", type=Path, default=os.environ.get("SC_STUDY") or None,
+                    help="study configuration describing where the data is and how it is "
+                         "laid out (see sc_study.py --init); also read from $SC_STUDY")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     d = sub.add_parser("doctor", help="check paths, toolchain and packages")
@@ -526,7 +567,10 @@ def main(argv=None) -> int:
     d.set_defaults(func=cmd_doctor)
 
     s = sub.add_parser("discover", help="raw image folder -> acquisition manifest")
-    s.add_argument("--raw-root", type=Path, default=sc_config.paths().raw_images_root)
+    s.add_argument("--raw-root", type=Path, default=None,
+                   help="default: the study's input, else $SC_RAW_IMAGES_ROOT")
+    s.add_argument("--layout", choices=("simple", "adni", "bids"), default=None,
+                   help="folder arrangement; default: the study's layout, else adni")
     s.add_argument("--out", type=Path, default=None)
     s.add_argument("--unpaired-out", type=Path, default=None)
     s.add_argument("--max-gap-days", type=float, default=None)
@@ -590,6 +634,8 @@ def main(argv=None) -> int:
         if not args.utc:
             import datetime
             args.utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    args.command = args.cmd
+    args._study = apply_study(args)
     return args.func(args)
 
 
