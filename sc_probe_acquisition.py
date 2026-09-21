@@ -45,7 +45,20 @@ if str(PROJECT_ROOT) not in sys.path:
 import sc_config  # noqa: E402
 
 FIELDS = ("phase_encoding_direction", "phase_encoding_source",
-          "total_readout_time", "total_readout_time_source")
+          "total_readout_time", "total_readout_time_source",
+          # The v2 manifest carries a readiness verdict alongside the values.
+          # The workflow reads THAT, not the values, when deciding whether a
+          # unit may enter eddy, so filling the values without updating the
+          # verdict leaves the unit fail-closed with its metadata present.
+          "normalization_readiness")
+
+# The schema's four allowed verdicts.
+READY = "READY"
+_NOT_READY = {
+    (False, False): "FAIL_MISSING_PHASE_ENCODING_AND_TOTAL_READOUT_TIME",
+    (False, True): "FAIL_MISSING_PHASE_ENCODING",
+    (True, False): "FAIL_MISSING_TOTAL_READOUT_TIME",
+}
 
 
 def find_dcm2niix() -> str:
@@ -139,6 +152,15 @@ def row_values(sidecar: dict) -> dict:
     elif sidecar.get("EstimatedTotalReadoutTime") is not None:
         out["total_readout_time"] = sidecar["EstimatedTotalReadoutTime"]
         out["total_readout_time_source"] = "dcm2niix_estimated"
+
+    # A unit is ready only with BOTH a phase-encoding direction that carries a
+    # polarity and a readout time. An axis without polarity is not enough for
+    # dwifslpreproc, so it stays fail-closed rather than being completed by a
+    # guess about the sign.
+    has_pe = bool(out["phase_encoding_direction"]) and \
+        out["phase_encoding_source"] != "dicom_header_axis_only_no_polarity"
+    has_trt = out["total_readout_time"] not in (None, "")
+    out["normalization_readiness"] = READY if (has_pe and has_trt) else _NOT_READY[(has_pe, has_trt)]
     return out
 
 
