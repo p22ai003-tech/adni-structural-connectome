@@ -55,6 +55,19 @@ Paths derive from at most three environment variables, resolved in
 `sc_config.py`; `python -c "import sc_config; print(sc_config.describe())"`
 prints what they resolve to and marks anything absent.
 
+## What is generic, and what is this thesis
+
+**The imaging pipeline is generic.** Any study laid out in one of the three
+supported layouts, on local disk, a mounted volume or S3, goes from raw scans
+to connectome matrices; nothing in it assumes ADNI or a particular machine.
+
+**The analysis reproduces this thesis.** Its stages compare three groups
+labelled `CN`, `MCI` and `AD`, taken from the `diagnosis` column of your
+participants table. A study with those groups runs it unchanged. A study with
+other groups still gets its connectome matrices, cohort table and QC, but the
+group comparisons, the length and exception analyses and the models are written
+for that three-group contrast and would need adapting.
+
 ## This repository ships no data
 
 No imaging, no participant tables, no acquisition manifests. Per-subject
