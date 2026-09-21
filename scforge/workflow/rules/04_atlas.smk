@@ -69,7 +69,9 @@ rule atlas_contract_qc:
         if not np.allclose(data, rounded, atol=1e-6):
             failures.append("atlas contains non-integer values")
         if labels != expected:
-            failures.append(f"atlas labels differ from 1..166: found {len(labels)} labels")
+            failures.append(
+                f"atlas labels differ from 1..{len(expected)}: found {len(labels)} labels"
+            )
         minimum = int(config["atlas"]["minimum_voxels_per_label_on_1mm_grid"])
         support_qc = assess_atlas_label_support(
             counts,

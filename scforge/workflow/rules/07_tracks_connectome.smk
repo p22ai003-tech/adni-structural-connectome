@@ -1,4 +1,8 @@
-"""Locked 10M ACT tractography, SIFT2, and nine connectome matrices."""
+"""ACT tractography, SIFT2, and the nine connectome matrices.
+
+Streamline count, length bounds, cutoff, angle and the assignment radius
+all come from the recipe in configs/connectome_v2.yaml.
+"""
 
 
 def _subject_rng_seed(wildcards):
@@ -108,7 +112,7 @@ rule connectome_count:
         mkdir -p "$(dirname {output.matrix:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
         tck2connectome {input.tracks:q} {input.atlas:q} {output.matrix:q} \
-          -assignment_radial_search 4 -symmetric -zero_diagonal -stat_edge sum \
+          -assignment_radial_search {ASSIGNMENT_RADIUS_MM} -symmetric -zero_diagonal -stat_edge sum \
           -out_assignments {output.assignments:q} -nthreads {threads} > {log:q} 2>&1
         """
 
@@ -129,7 +133,7 @@ rule connectome_fd_sum:
         mkdir -p "$(dirname {output:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
         tck2connectome {input.tracks:q} {input.atlas:q} {output:q} \
-          -assignment_radial_search 4 -symmetric -zero_diagonal -stat_edge sum \
+          -assignment_radial_search {ASSIGNMENT_RADIUS_MM} -symmetric -zero_diagonal -stat_edge sum \
           -tck_weights_in {input.weights:q} -nthreads {threads} > {log:q} 2>&1
         """
 
@@ -149,7 +153,7 @@ rule connectome_len_mean:
         mkdir -p "$(dirname {output:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
         tck2connectome {input.tracks:q} {input.atlas:q} {output:q} \
-          -assignment_radial_search 4 -symmetric -zero_diagonal \
+          -assignment_radial_search {ASSIGNMENT_RADIUS_MM} -symmetric -zero_diagonal \
           -scale_length -stat_edge mean -nthreads {threads} > {log:q} 2>&1
         """
 
@@ -169,7 +173,7 @@ rule connectome_invlen_mean:
         mkdir -p "$(dirname {output:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
         tck2connectome {input.tracks:q} {input.atlas:q} {output:q} \
-          -assignment_radial_search 4 -symmetric -zero_diagonal \
+          -assignment_radial_search {ASSIGNMENT_RADIUS_MM} -symmetric -zero_diagonal \
           -scale_invlength -stat_edge mean -nthreads {threads} > {log:q} 2>&1
         """
 
@@ -210,7 +214,7 @@ rule tensor_connectome:
         mkdir -p "$(dirname {output:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
         tck2connectome {input.tracks:q} {input.atlas:q} {output:q} \
-          -assignment_radial_search 4 -symmetric -zero_diagonal \
+          -assignment_radial_search {ASSIGNMENT_RADIUS_MM} -symmetric -zero_diagonal \
           -scale_file {input.samples:q} -stat_edge mean -nthreads {threads} > {log:q} 2>&1
         """
 
@@ -240,8 +244,11 @@ rule count_invnodevol:
             [np.count_nonzero(labels == node) * voxel_volume for node in range(1, 167)],
             dtype=float,
         )
-        if count.shape != (166, 166):
-            raise ValueError(f"count shape is {count.shape}, expected 166x166")
+        if count.shape != (EXPECTED_NODES, EXPECTED_NODES):
+            raise ValueError(
+                f"count shape is {count.shape}, expected "
+                f"{EXPECTED_NODES}x{EXPECTED_NODES}"
+            )
         if np.any(volumes <= 0):
             raise ValueError("one or more AAL3 nodes has non-positive physical volume")
         denominator = volumes[:, None] + volumes[None, :]

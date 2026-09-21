@@ -149,6 +149,11 @@ ATLAS_NODE_TABLE = Path(config["atlas"]["node_table"]).resolve()
 ATLAS_NODE_MAP = Path(config["atlas"]["node_map"]).resolve()
 
 EXPECTED_MATRICES = tuple(item["name"] for item in config["connectome"]["required_matrices"])
+# The atlas decides how many nodes a matrix has and the assignment radius is a
+# recipe parameter; neither belongs in a shell line, or a different atlas can
+# never be used.
+EXPECTED_NODES = int(config["atlas"]["expected_nodes"])
+ASSIGNMENT_RADIUS_MM = float(config["connectome"]["assignment"]["radius_mm"])
 TENSOR_METRICS = ("fa", "md", "rd", "ad")
 MEAN_MATRICES = ("len_mean", "invlen_mean", "fa_mean", "md_mean", "rd_mean", "ad_mean")
 RESPONSE_CALIBRATION = config["fod"]["response_estimation"]["calibration"]
