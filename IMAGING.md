@@ -55,6 +55,10 @@ source env.sh
 `env.sh` is gitignored because those paths belong to one machine. If your tools
 are already on `PATH` you can skip it.
 
+Where a study file and `env.sh` both say where data lives, the **study file
+wins**, so a machine-wide setting cannot quietly redirect one study's output.
+A command-line flag beats both.
+
 Then check the machine before touching any data:
 
 ```bash
