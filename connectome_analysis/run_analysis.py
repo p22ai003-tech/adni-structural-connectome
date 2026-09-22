@@ -449,16 +449,20 @@ def print_dag() -> int:
 
 
 def select(args: argparse.Namespace) -> list[str]:
+    # Optional stages run only when named with --stage: --all, --group and
+    # --from all leave them out, so none of them can start a multi-hour
+    # exploratory search that nobody asked for.
+    optional = {s.name for s in _stages.STAGES if s.optional}
     chosen: set[str] = set()
     if args.all:
-        chosen |= {s.name for s in _stages.STAGES if not s.optional}
+        chosen |= {s.name for s in _stages.STAGES} - optional
     for g in args.group:
-        chosen |= {s.name for s in _stages.STAGES if s.group == g}
-    chosen |= set(args.stage)
+        chosen |= {s.name for s in _stages.STAGES if s.group == g} - optional
     if args.from_stage:
         order = [s.name for s in _stages.topo_order()]
         start = order.index(_stages.by_name(args.from_stage).name)
-        chosen |= set(order[start:])
+        chosen |= set(order[start:]) - optional
+    chosen |= set(args.stage)
     if not chosen:
         raise SystemExit("nothing selected. Use --all, --group, --stage or --from "
                          "(--list shows the DAG).")

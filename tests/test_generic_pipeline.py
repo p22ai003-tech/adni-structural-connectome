@@ -386,3 +386,30 @@ def test_the_study_file_beats_an_exported_variable(tmp_path, monkeypatch):
     # A study with its own participants table owns its cohort directory, so it
     # can never join against another study's subjects.
     assert os.environ["SC_COHORT_DIR"] == str(tmp_path)
+
+
+# --------------------------------------------------------------------------
+# analysis stage selection
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("argv,expected", [
+    (["--all"], False),
+    (["--group", "ml"], False),
+    (["--from", "ml_diagnostics"], False),
+    (["--stage", "clinical_outcome_search"], True),
+])
+def test_the_optional_search_runs_only_when_named(argv, expected):
+    """The exploratory outcome search took half of a 14-hour --all run and
+    nothing reads its output, so only an explicit --stage runs it."""
+    from connectome_analysis.run_analysis import parse_args, select
+
+    assert ("clinical_outcome_search" in select(parse_args(argv))) is expected
+
+
+def test_all_still_runs_every_required_stage():
+    from connectome_analysis import stages
+    from connectome_analysis.run_analysis import parse_args, select
+
+    chosen = set(select(parse_args(["--all"])))
+    required = {s.name for s in stages.STAGES if not s.optional}
+    assert chosen == required

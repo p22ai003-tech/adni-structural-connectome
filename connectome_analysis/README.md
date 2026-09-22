@@ -328,8 +328,10 @@ needs and makes. It reads no data. The start looks like this:
 ```
 
 `[script]` marks a stage that runs a `hcp_analysis/build_*.py` script as a
-separate program. `[optional]` marks `literature_retrieval`, the one stage
-that `--all` leaves out.
+separate program. `[optional]` marks the two stages that `--all` leaves out:
+`literature_retrieval`, and `clinical_outcome_search`, an exploratory model
+search that took about 7½ hours of a 14-hour full run and whose output nothing
+else reads.
 
 ### Step 4. Do a dry run
 
@@ -361,19 +363,23 @@ plan          : 36 stage(s) [dry-run]
   [dry]   analysis_snapshot  -> 1 output(s)
   [dry]   master_cohort  -> 1 output(s)
   ...
-  [dry]   clinical_outcome_search  -> 0 output(s)
   ...
   [dry]   build_shap_overall  -> 6 output(s)
 
-dry-run=36   total 0.3s
+dry-run=35   total 0.3s
 ledger: <repo>/data/derivatives/qc/analysis_cohort/exports/stage_status.csv
 ```
 
 Read the first five lines carefully. They say which matrices, which cohort
 tables, which exclusions file and which output folder the real run will use.
 
-`--all` selects 36 stages, not 37: the optional `literature_retrieval` stage is
-left out unless you ask for it by name.
+`--all` selects 35 stages, not 37: the two optional stages are left out
+unless you name them. `--group` and `--from` leave them out too; only `--stage`
+runs one:
+
+```bash
+python -m connectome_analysis.run_analysis --stage clinical_outcome_search
+```
 
 ### Step 5. Run everything
 

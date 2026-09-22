@@ -201,9 +201,12 @@ _ML = [
           "Diagnostic ML sweep over the connectome feature families.",
           needs=("master_cohort", "edr_exceptions"),
           produces=("18_ml_diagnostics/cdr_classification_model_performance.csv",)),
+    # Optional: an exploratory model search that nothing downstream reads. It
+    # was half of a 14-hour --all run (about 7.5 h), so --all skips it; run it
+    # on request with --stage clinical_outcome_search.
     Stage("clinical_outcome_search", "ml",
-          "Model search against clinical outcomes on the dense cohort.",
-          needs=("ml_diagnostics",)),
+          "Exploratory model search against clinical outcomes (optional, ~7 h).",
+          needs=("ml_diagnostics",), optional=True),
 ]
 
 # --------------------------------------------------------------------------
