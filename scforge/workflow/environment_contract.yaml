@@ -60,7 +60,7 @@ workflow:
     index: "configured package index plus the verified local pip cache for connection_pool 0.0.3"
   source_manifest:
     path: "${repo}/scforge/workflow/workflow_source_manifest.tsv"
-    sha256: "f6fe3254a98d4f9862ff56c8bf0873a3b1b87ebb461dd0169f5e032784c8a1ad"
+    sha256: "60e1b482064a3fc9e45bdcf11cc2a565affad9ff9f0d27918e737fcfbd186e77"
     rows: 29
     policy: "every listed source file is rehashed by execution_preflight before imaging"
   runtime_packages:
@@ -200,6 +200,9 @@ fsl:
   mni_template:
     path: "/home/ec2-user/fsl/data/standard/MNI152_T1_1mm.nii.gz"
     sha256: "d1f03e160c2548592a01d98d44d7e0ffa8a8ef58bc9b07d26369e214ba170edb"
+  mni_brain_template:
+    path: "/home/ec2-user/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz"
+    sha256: "32d5be33460f995a5d305507053c8862c823d9ca6bfb543381308df14590f212"
   binaries:
     eddy_cpu:
       path: "/home/ec2-user/fsl/bin/eddy_cpu"

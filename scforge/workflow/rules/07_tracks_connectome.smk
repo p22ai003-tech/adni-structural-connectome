@@ -22,10 +22,10 @@ def _tensor_image(wildcards):
 
 rule tractography_10m:
     input:
-        preflight=rules.tractography_preflight.output,
+        preflight=rules.tractography_preflight.output[0],
         fod=rules.mtnormalise.output.wm,
         five_tt=rules.five_tt_dwi.output.five_tt,
-        dwi=rules.dwi_bias_correct.output,
+        dwi=rules.dwi_bias_correct.output[0],
     output:
         tracks=subject_path("{unit}", "07_tractography", "tracks_10m.tck"),
         metadata=subject_path("{unit}", "07_tractography", "tractography_parameters.json"),
@@ -99,7 +99,7 @@ rule sift2_weights:
 rule connectome_count:
     input:
         tracks=rules.tractography_10m.output.tracks,
-        atlas=rules.aal3_to_dwi_single_resample.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
     output:
         matrix=matrix_path("{unit}", "count"),
         assignments=subject_path("{unit}", "07_connectome", "assignments.csv"),
@@ -120,7 +120,7 @@ rule connectome_count:
 rule connectome_fd_sum:
     input:
         tracks=rules.tractography_10m.output.tracks,
-        atlas=rules.aal3_to_dwi_single_resample.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
         weights=rules.sift2_weights.output.weights,
     output:
         matrix_path("{unit}", "fd_sum"),
@@ -141,7 +141,7 @@ rule connectome_fd_sum:
 rule connectome_len_mean:
     input:
         tracks=rules.tractography_10m.output.tracks,
-        atlas=rules.aal3_to_dwi_single_resample.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
     output:
         matrix_path("{unit}", "len_mean"),
     log:
@@ -161,7 +161,7 @@ rule connectome_len_mean:
 rule connectome_invlen_mean:
     input:
         tracks=rules.tractography_10m.output.tracks,
-        atlas=rules.aal3_to_dwi_single_resample.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
     output:
         matrix_path("{unit}", "invlen_mean"),
     log:
@@ -201,8 +201,8 @@ rule tensor_streamline_samples:
 rule tensor_connectome:
     input:
         tracks=rules.tractography_10m.output.tracks,
-        atlas=rules.aal3_to_dwi_single_resample.output,
-        samples=rules.tensor_streamline_samples.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
+        samples=rules.tensor_streamline_samples.output[0],
     output:
         subject_path("{unit}", "07_connectome", "matrices", "{metric}_mean.csv"),
     log:
@@ -222,8 +222,8 @@ rule tensor_connectome:
 rule count_invnodevol:
     input:
         count_matrix=rules.connectome_count.output.matrix,
-        atlas=rules.aal3_to_dwi_single_resample.output,
-        atlas_qc=rules.atlas_contract_qc.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
+        atlas_qc=rules.atlas_contract_qc.output[0],
     output:
         matrix=matrix_path("{unit}", "count_invnodevol"),
         node_volumes=subject_path("{unit}", "07_connectome", "node_volumes.csv"),

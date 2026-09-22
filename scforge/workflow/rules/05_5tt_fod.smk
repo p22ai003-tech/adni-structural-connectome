@@ -93,7 +93,7 @@ rule five_tt_dwi:
     input:
         five_tt=rules.five_tt_t1.output.five_tt,
         transform=rules.invert_bbr_transform.output.mrtrix,
-        reference=rules.mean_b0.output,
+        reference=rules.mean_b0.output[0],
     output:
         five_tt=subject_path("{unit}", "05_model", "5tt_dwi.mif"),
         check=subject_path("{unit}", "05_model", "5tt_dwi_check.done"),
@@ -105,8 +105,15 @@ rule five_tt_dwi:
         set -euo pipefail
         mkdir -p "$(dirname {output.five_tt:q})" "$(dirname {log:q})"
         export PATH={TOOL_PATH:q}
-        mrtransform {input.five_tt:q} {output.five_tt:q} -linear {input.transform:q} \
-          -template {input.reference:q} -nthreads {threads} > {log:q} 2>&1
+        # Tissue fractions are resampled linearly and clipped to [0, 1]: the
+        # default cubic kernel overshoots at tissue edges, and 5ttcheck rightly
+        # rejects fractions outside the physical range.
+        raw="$(dirname {output.five_tt:q})/5tt_dwi_unclipped.partial.mif"
+        trap 'rm -f "$raw"' EXIT
+        mrtransform {input.five_tt:q} "$raw" -linear {input.transform:q} \
+          -template {input.reference:q} -interp linear -nthreads {threads} \
+          > {log:q} 2>&1
+        mrcalc "$raw" 0 -max 1 -min {output.five_tt:q} >> {log:q} 2>&1
         5ttcheck {output.five_tt:q} >> {log:q} 2>&1
         printf 'PASS\n' > {output.check:q}
         """
@@ -131,8 +138,8 @@ rule gmwmi_dwi:
 
 rule select_fod_shells:
     input:
-        dwi=rules.dwi_bias_correct.output,
-        contract=rules.gradient_contract.output,
+        dwi=rules.dwi_bias_correct.output[0],
+        contract=rules.gradient_contract.output[0],
     output:
         dwi=subject_path("{unit}", "05_model", "dwi_fod_shells.mif"),
         selection=subject_path("{unit}", "05_model", "fod_shell_selection.json"),
@@ -183,8 +190,8 @@ rule select_fod_shells:
 
 rule select_tensor_shells:
     input:
-        dwi=rules.dwi_bias_correct.output,
-        contract=rules.gradient_contract.output,
+        dwi=rules.dwi_bias_correct.output[0],
+        contract=rules.gradient_contract.output[0],
     output:
         dwi=subject_path("{unit}", "05_model", "dwi_tensor_shells.mif"),
         selection=subject_path("{unit}", "05_model", "tensor_shell_selection.json"),
@@ -237,7 +244,7 @@ rule subject_response:
     input:
         dwi=rules.select_fod_shells.output.dwi,
         fod_shell_selection=rules.select_fod_shells.output.selection,
-        mask=rules.dwi_brain_mask.output,
+        mask=rules.dwi_brain_mask.output[0],
         input_contract=rules.input_contract_gate.output[0],
         run_context=str(RUN_CONTEXT_PATH),
         attempt_context=str(ATTEMPT_CONTEXT_PATH),
@@ -467,11 +474,11 @@ rule fod_shell_compatibility_gate:
 rule ss3t_csd:
     input:
         dwi=rules.select_fod_shells.output.dwi,
-        mask=rules.dwi_brain_mask.output,
+        mask=rules.dwi_brain_mask.output[0],
         wm=rules.pooled_response.output.wm,
         gm=rules.pooled_response.output.gm,
         csf=rules.pooled_response.output.csf,
-        shell_compatibility=rules.fod_shell_compatibility_gate.output,
+        shell_compatibility=rules.fod_shell_compatibility_gate.output[0],
     output:
         wm=subject_path("{unit}", "05_model", "wmfod.mif"),
         gm=subject_path("{unit}", "05_model", "gm.mif"),
@@ -488,7 +495,9 @@ rule ss3t_csd:
           {input.gm:q} {output.gm:q} {input.csf:q} {output.csf:q} \
           -mask {input.mask:q} -lmax {config[fod][lmax]} \
           -config BZeroThreshold {BZERO_THRESHOLD} -nthreads {threads} > {log:q} 2>&1
-        grep -q . {output.wm:q}
+        test -s {output.wm:q}
+        test -s {output.gm:q}
+        test -s {output.csf:q}
         """
 
 
@@ -497,7 +506,7 @@ rule mtnormalise:
         wm=rules.ss3t_csd.output.wm,
         gm=rules.ss3t_csd.output.gm,
         csf=rules.ss3t_csd.output.csf,
-        mask=rules.dwi_brain_mask.output,
+        mask=rules.dwi_brain_mask.output[0],
     output:
         wm=subject_path("{unit}", "05_model", "wmfod_norm.mif"),
         gm=subject_path("{unit}", "05_model", "gm_norm.mif"),
@@ -519,7 +528,7 @@ rule mtnormalise:
 rule tensor_fit:
     input:
         dwi=rules.select_tensor_shells.output.dwi,
-        mask=rules.dwi_brain_mask.output,
+        mask=rules.dwi_brain_mask.output[0],
     output:
         subject_path("{unit}", "05_model", "tensor.mif"),
     log:

@@ -194,11 +194,13 @@ def build() -> tuple[dict, list[str], list[tuple]]:
             else:
                 problems.append(f"{section}: {path} is missing")
         if section == "fsl":
-            template = prefix / "data" / "standard" / "MNI152_T1_1mm.nii.gz"
-            if template.is_file():
-                new["mni_template"] = {"path": str(template), "sha256": sha256_file(template)}
-            else:
-                problems.append(f"fsl: registration template missing: {template}")
+            for key, name in (("mni_template", "MNI152_T1_1mm.nii.gz"),
+                              ("mni_brain_template", "MNI152_T1_1mm_brain.nii.gz")):
+                template = prefix / "data" / "standard" / name
+                if template.is_file():
+                    new[key] = {"path": str(template), "sha256": sha256_file(template)}
+                else:
+                    problems.append(f"fsl: registration template missing: {template}")
         found_version = version_of(section, prefix)
         new["version"] = found_version
         local[section] = new

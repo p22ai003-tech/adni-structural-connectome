@@ -1,4 +1,4 @@
-"""Frozen BBR and tissue-masked nonlinear MNI-to-T1 spatial transforms."""
+"""Frozen BBR and nonlinear MNI-to-T1 spatial transforms."""
 
 
 rule mean_b0_nifti:
@@ -19,13 +19,13 @@ rule mean_b0_nifti:
 
 rule b0_to_t1_bbr:
     input:
-        b0=rules.mean_b0_nifti.output[0],
+        b0=rules.mean_b0_nifti.output,
         t1=rules.t1_n4_bias_correct.output.t1,
         t1_brain=rules.t1_brain_extract.output.brain,
         wmseg=subject_path("{unit}", "05_model", "5tt_wmseg.nii.gz"),
     output:
         matrix=subject_path("{unit}", "03_spatial", "b0_to_t1_bbr.mat"),
-        image=subject_path("{unit}", "03_spatial", "b0_to_t1_bbr.nii.gz"),
+        image=subject_path("{unit}", "03_spatial", "b0_in_t1_bbr.nii.gz"),
     params:
         prefix=lambda wc: str(Path(subject_path(wc.unit, "03_spatial", "b0_to_t1_bbr"))).replace(".nii.gz", ""),
     log:
@@ -48,7 +48,7 @@ rule invert_bbr_transform:
     input:
         matrix=rules.b0_to_t1_bbr.output.matrix,
         t1=rules.t1_n4_bias_correct.output.t1,
-        b0=rules.mean_b0_nifti.output[0],
+        b0=rules.mean_b0_nifti.output,
     output:
         fsl=subject_path("{unit}", "03_spatial", "t1_to_b0_bbr.mat"),
         mrtrix=subject_path("{unit}", "03_spatial", "t1_to_b0_bbr_mrtrix.txt"),
@@ -69,51 +69,17 @@ rule invert_bbr_transform:
         """
 
 
-# The MNI brain template is registered to the T1 brain as the tissue model
-# defines it (5TT fractions summing to more than 0.5), not to the whole head.
-# The canary audit found full-head registration unreliable with the
-# over-inclusive brain-extraction masks; with this fixed image, 3/3
-# representative registrations kept all 166 atlas labels with centroid error
-# of at most 5 mm (research_audit, H04A recovery3).
-rule mni_registration_fixed_image:
-    input:
-        t1=rules.t1_n4_bias_correct.output.t1,
-        five_tt=subject_path("{unit}", "05_model", "5tt_t1_fsl.mif"),
-    output:
-        mask=subject_path("{unit}", "03_spatial", "mni_registration_5tt_mask.nii.gz"),
-        brain=subject_path("{unit}", "03_spatial", "t1_5tt_brain.nii.gz"),
-    log:
-        subject_log("{unit}", "03_mni_registration_fixed_image.log"),
-    threads: 4
-    shell:
-        r"""
-        set -euo pipefail
-        mkdir -p "$(dirname {output.mask:q})" "$(dirname {log:q})"
-        export PATH={TOOL_PATH:q}
-        export FSLDIR={FSL_DIR:q}
-        export FSLOUTPUTTYPE=NIFTI_GZ
-        five_tt_sum="$(dirname {output.mask:q})/mni_registration_5tt_sum.partial.mif"
-        trap 'rm -f "$five_tt_sum"' EXIT
-        mrmath {input.five_tt:q} sum "$five_tt_sum" -axis 3 -nthreads {threads} \
-          > {log:q} 2>&1
-        mrthreshold "$five_tt_sum" {output.mask:q} -abs 0.5 >> {log:q} 2>&1
-        fslmaths {input.t1:q} -mas {output.mask:q} {output.brain:q} >> {log:q} 2>&1
-        test -s {output.mask:q}
-        test -s {output.brain:q}
-        """
-
-
 rule mni_to_t1_nonlinear:
     input:
         gate=ancient(rules.execution_preflight.output.report),
-        moving=ancient(str(MNI_BRAIN_TEMPLATE)),
-        fixed=rules.mni_registration_fixed_image.output.brain,
-        fixed_mask=rules.mni_registration_fixed_image.output.mask,
+        moving=ancient(str(MNI_TEMPLATE)),
+        fixed=rules.t1_n4_bias_correct.output.t1,
+        fixed_mask=rules.t1_brain_extract.output.mask,
     output:
         affine=subject_path("{unit}", "03_spatial", "mni_to_t1_0GenericAffine.mat"),
         warp=subject_path("{unit}", "03_spatial", "mni_to_t1_1Warp.nii.gz"),
         inverse_warp=subject_path("{unit}", "03_spatial", "mni_to_t1_1InverseWarp.nii.gz"),
-        warped=subject_path("{unit}", "03_spatial", "mni_to_t1_Warped.nii.gz"),
+        warped=subject_path("{unit}", "03_spatial", "mni_in_t1.nii.gz"),
     params:
         prefix=lambda wc: subject_path(wc.unit, "03_spatial", "mni_to_t1_"),
         seed=lambda wc: subject_seed(wc.unit),

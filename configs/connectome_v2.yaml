@@ -219,6 +219,11 @@ registration:
     direction: "MNI152_1mm_to_native_t1"
     template: "${env:fsl.mni_template.path}"
     template_sha256: "${env:fsl.mni_template.sha256}"
+    # What is actually registered: the brain-extracted template, to the T1
+    # masked where the 5TT tissue fractions sum above 0.5.
+    brain_template: "${env:fsl.mni_brain_template.path}"
+    brain_template_sha256: "${env:fsl.mni_brain_template.sha256}"
+    fixed_image: "t1_n4_masked_by_5tt_tissue_sum_gt_0.5"
     primary_method: "antsRegistrationSyN"
     transform: "rigid_affine_syn"
     select_by_density: false

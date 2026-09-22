@@ -112,6 +112,7 @@ rule execution_preflight:
         node_table=str(ATLAS_NODE_TABLE),
         node_map=str(ATLAS_NODE_MAP),
         mni=str(MNI_TEMPLATE),
+        mni_brain=str(MNI_BRAIN_TEMPLATE),
     output:
         report=run_path("contract", "execution_preflight.json"),
         fsl_cpu_path=directory(run_path("contract", "fsl_cpu_path")),
@@ -375,6 +376,7 @@ rule execution_preflight:
             str(ATLAS_NODE_TABLE): str(config["atlas"]["node_table_sha256"]),
             str(ATLAS_NODE_MAP): str(config["atlas"]["node_map_sha256"]),
             str(MNI_TEMPLATE): str(config["registration"]["mni_to_t1"]["template_sha256"]),
+            str(MNI_BRAIN_TEMPLATE): str(config["registration"]["mni_to_t1"]["brain_template_sha256"]),
             str(ACQUISITION_SCHEMA): str(config["inputs"]["acquisition_schema"]["sha256"]),
             str(SOURCE_METADATA_PROJECTION): str(
                 config["inputs"]["source_metadata_projection"]["sha256"]

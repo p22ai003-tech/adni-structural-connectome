@@ -35,3 +35,15 @@ connectomes would be lost. Ambiguous items archived, not deleted.
 ## Final dataset
 **530/648 good** (AD 78 · MCI 201 · CN 251). EC2↔S3 mirrored (tck/tsf/csv/sift all match). The remaining
 118 are genuinely data/registration-limited (mid 5, low 113) and kept in band archives.
+
+## v2 imaging workflow: canary fixes brought back into the base rules (2026-09-22)
+The first end-to-end run of the base v2 rules failed where the audited H04A canary had not, because the
+canary ran on patched copies (`*_retry3`, `*_recovery1`, `*_recovery3`) whose fixes never reached the base.
+**Fixed in the base:** 52 inputs that passed another rule's whole output list where a Python rule body
+needed one path; `epi_reg` and `antsRegistrationSyN` outputs declared under names the tools never write;
+an SS3T output check calling `grep` on a PATH that deliberately has none. **Adopted as method (user
+decision):** 5TT moved to DWI space with linear interpolation clipped to [0, 1] (cubic overshoot failed
+`5ttcheck`), and MNI-to-T1 registration of the MNI *brain* template to the T1 masked where 5TT tissue
+sums above 0.5 (full-head registration was unreliable with over-inclusive masks; canary: 3/3 keep all
+166 labels, centroid error ≤ 5 mm). The per-subject ANTs seed is kept. `scforge/tests/
+test_workflow_rules_execute.py` fails on the old rules and guards each of these.

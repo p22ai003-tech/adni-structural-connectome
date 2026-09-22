@@ -3,7 +3,7 @@
 
 rule t1_n4_bias_correct:
     input:
-        gate=rules.input_contract_gate.output,
+        gate=rules.input_contract_gate.output[0],
         t1=rules.normalize_t1_source.output.t1,
     output:
         t1=subject_path("{unit}", "02_anat", "t1_n4.nii.gz"),

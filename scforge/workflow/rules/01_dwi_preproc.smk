@@ -3,7 +3,7 @@
 
 rule gradient_contract:
     input:
-        gate=rules.input_contract_gate.output,
+        gate=rules.input_contract_gate.output[0],
         dwi=rules.normalize_dwi_source.output.dwi,
         bvec=rules.normalize_dwi_source.output.bvec,
         bval=rules.normalize_dwi_source.output.bval,
@@ -234,7 +234,7 @@ rule gradient_contract:
 rule dwi_denoise:
     input:
         dwi=rules.normalize_dwi_source.output.dwi,
-        contract=rules.gradient_contract.output,
+        contract=rules.gradient_contract.output[0],
     output:
         dwi=subject_path("{unit}", "01_dwi", "dwi_denoised.mif"),
         noise=subject_path("{unit}", "01_dwi", "noise.mif"),
@@ -270,7 +270,7 @@ rule dwi_degibbs:
 
 rule dwi_motion_eddy:
     input:
-        dwi=rules.dwi_degibbs.output,
+        dwi=rules.dwi_degibbs.output[0],
         source_metadata=rules.normalize_dwi_source.output.metadata,
         fsl_cpu_path=ancient(rules.execution_preflight.output.fsl_cpu_path),
     output:

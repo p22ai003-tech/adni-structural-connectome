@@ -159,6 +159,7 @@ C3D_LOCK = Path(
     ENVIRONMENT_LOCK["convert3d"]["explicit_conda_lock"]["path"]
 ).resolve()
 MNI_TEMPLATE = Path(config["registration"]["mni_to_t1"]["template"]).resolve()
+MNI_BRAIN_TEMPLATE = Path(config["registration"]["mni_to_t1"]["brain_template"]).resolve()
 TOOL_PATH = ":".join(
     ENVIRONMENT_LOCK["execution_policy"]["normal_tool_path_order"]
 )

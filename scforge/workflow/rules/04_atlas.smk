@@ -20,7 +20,7 @@ rule b0_one_mm_world_grid:
 rule aal3_to_dwi_single_resample:
     input:
         atlas=ancient(str(ATLAS_IMAGE)),
-        reference=rules.b0_one_mm_world_grid.output,
+        reference=rules.b0_one_mm_world_grid.output[0],
         t1_to_b0=rules.invert_bbr_transform.output.itk,
         warp=rules.mni_to_t1_nonlinear.output.warp,
         affine=rules.mni_to_t1_nonlinear.output.affine,
@@ -44,8 +44,8 @@ rule aal3_to_dwi_single_resample:
 
 rule atlas_contract_qc:
     input:
-        atlas=rules.aal3_to_dwi_single_resample.output,
-        reference=rules.b0_one_mm_world_grid.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
+        reference=rules.b0_one_mm_world_grid.output[0],
         node_table=ancient(str(ATLAS_NODE_TABLE)),
         node_map=ancient(str(ATLAS_NODE_MAP)),
     output:
@@ -111,9 +111,9 @@ rule atlas_contract_qc:
 
 rule atlas_native_grid_qc_copy:
     input:
-        atlas=rules.aal3_to_dwi_single_resample.output,
-        reference=rules.mean_b0_nifti.output,
-        contract=rules.atlas_contract_qc.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
+        reference=rules.mean_b0_nifti.output[0],
+        contract=rules.atlas_contract_qc.output[0],
     output:
         subject_path("{unit}", "04_atlas", "aal3_nodes_166_native_b0_qc_only.nii.gz"),
     log:

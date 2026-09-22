@@ -14,7 +14,10 @@ OLD_PREFLIGHT = WORKFLOW / "extensions/h04a_r1_retry4_pretract/00_manifest.smk"
 NEW_PREFLIGHT = (
     WORKFLOW / "extensions/h04a_r1_retry4_pretract/00_manifest_recovery1.smk"
 )
-OLD_SPATIAL = WORKFLOW / "rules/03_spatial_contract.smk"
+# The base spatial rules as they stood when recovery1 was audited. The live
+# base has since absorbed the recovery fixes, so the attestation compares
+# against this frozen copy rather than the moving file.
+OLD_SPATIAL = ROOT / "tests/fixtures/h04a_audited_03_spatial_contract.smk"
 NEW_SPATIAL = WORKFLOW / "rules/03_spatial_contract_recovery1_h04a_r1.smk"
 
 

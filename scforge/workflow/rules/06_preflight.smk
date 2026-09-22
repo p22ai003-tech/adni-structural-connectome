@@ -4,8 +4,8 @@
 rule spatial_qc_images:
     input:
         five_tt=rules.five_tt_dwi.output.five_tt,
-        dwi_mask=rules.dwi_brain_mask.output,
-        one_mm_reference=rules.b0_one_mm_world_grid.output,
+        dwi_mask=rules.dwi_brain_mask.output[0],
+        one_mm_reference=rules.b0_one_mm_world_grid.output[0],
     output:
         five_tt_mask=subject_path("{unit}", "06_preflight", "5tt_mask.nii.gz"),
         dwi_mask=subject_path("{unit}", "06_preflight", "dwi_mask.nii.gz"),
@@ -33,8 +33,8 @@ rule spatial_quantitative_qc:
         five_tt_mask=rules.spatial_qc_images.output.five_tt_mask,
         dwi_mask=rules.spatial_qc_images.output.dwi_mask,
         dwi_mask_one_mm=rules.spatial_qc_images.output.dwi_mask_one_mm,
-        atlas=rules.aal3_to_dwi_single_resample.output,
-        atlas_contract=rules.atlas_contract_qc.output,
+        atlas=rules.aal3_to_dwi_single_resample.output[0],
+        atlas_contract=rules.atlas_contract_qc.output[0],
         bbr=rules.b0_to_t1_bbr.output.matrix,
     output:
         subject_path("{unit}", "06_preflight", "spatial_quantitative_qc.json"),
@@ -104,7 +104,7 @@ rule t1_in_b0_for_visual_qc:
     input:
         t1=rules.t1_n4_bias_correct.output.t1,
         transform=rules.invert_bbr_transform.output.mrtrix,
-        reference=rules.mean_b0_nifti.output,
+        reference=rules.mean_b0_nifti.output[0],
     output:
         subject_path("{unit}", "06_preflight", "t1_in_b0_qc.nii.gz"),
     log:
@@ -121,11 +121,11 @@ rule t1_in_b0_for_visual_qc:
 
 rule visual_review_bundle:
     input:
-        b0=rules.mean_b0_nifti.output,
-        t1=rules.t1_in_b0_for_visual_qc.output,
+        b0=rules.mean_b0_nifti.output[0],
+        t1=rules.t1_in_b0_for_visual_qc.output[0],
         five_tt=rules.spatial_qc_images.output.five_tt_mask,
-        atlas=rules.atlas_native_grid_qc_copy.output,
-        spatial_qc=rules.spatial_quantitative_qc.output,
+        atlas=rules.atlas_native_grid_qc_copy.output[0],
+        spatial_qc=rules.spatial_quantitative_qc.output[0],
     output:
         b0_t1=subject_path("{unit}", "06_preflight", "review_b0_vs_t1.png"),
         b0_5tt=subject_path("{unit}", "06_preflight", "review_b0_vs_5tt.png"),
@@ -150,9 +150,9 @@ rule visual_review_bundle:
 
 rule automated_pre_tractography_qc:
     input:
-        spatial=rules.spatial_quantitative_qc.output,
-        atlas=rules.atlas_contract_qc.output,
-        gradients=rules.gradient_contract.output,
+        spatial=rules.spatial_quantitative_qc.output[0],
+        atlas=rules.atlas_contract_qc.output[0],
+        gradients=rules.gradient_contract.output[0],
         wmfod=rules.mtnormalise.output.wm,
         gm=rules.mtnormalise.output.gm,
         csf=rules.mtnormalise.output.csf,
@@ -161,7 +161,7 @@ rule automated_pre_tractography_qc:
         rd=rules.tensor_metrics.output.rd,
         ad=rules.tensor_metrics.output.ad,
         five_tt=rules.five_tt_dwi.output.five_tt,
-        mask=rules.dwi_brain_mask.output,
+        mask=rules.dwi_brain_mask.output[0],
     output:
         report=subject_path("{unit}", "06_preflight", "automated_pre_tractography_qc.json"),
     log:
