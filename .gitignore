@@ -179,3 +179,23 @@ dwifslpreproc-tmp-*/
 
 # This machine's tool locations, written by `run_imaging.py lock-env`.
 configs/environment.local.yaml
+
+# Thesis, manuscript and literature documents are kept on the analysis machine
+# and never published with the code. Removed from the history on 2026-09-22
+# before the repository went public; these rules keep them from coming back.
+*.docx
+*.pptx
+*.pdf
+*.doc
+*.xlsx
+docs/iit_thesis/
+docs/literature/
+research_audit/manuscript_*.md
+research_audit/literature_review_v1.md
+research_audit/assemble_submission_package.py
+research_audit/build_author_ready_manuscript_*.py
+research_audit/build_author_ready_supplement_*.py
+research_audit/build_manuscript_two_axis_v2.py
+research_audit/render_author_*_docx.py
+research_audit/validate_*manuscript*.py
+research_audit/decisions/t24_hybrid_submission_strategy_*
