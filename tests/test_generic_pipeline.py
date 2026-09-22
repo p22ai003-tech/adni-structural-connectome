@@ -413,3 +413,141 @@ def test_all_still_runs_every_required_stage():
     chosen = set(select(parse_args(["--all"])))
     required = {s.name for s in stages.STAGES if not s.optional}
     assert chosen == required
+
+
+# --------------------------------------------------------------------------
+# imaging approvals and the run lifecycle
+# --------------------------------------------------------------------------
+
+def _portable_record(**overrides):
+    record = {
+        "approval_mode": "PORTABLE_LOCAL_APPROVAL",
+        "maximum_cores": 16,
+        "minimum_valid_response_calibration_units": 1,
+        "minimum_valid_manufacturer_families": 1,
+        "minimum_valid_t1_source_classes": 1,
+        "required_valid_t1_source_classes": ["dicom_series"],
+        "wall_clock_stop_hours": 48,
+        "storage_stop_gb": 100,
+        "tractography_authorized": False,
+        "matrix_generation_authorized": False,
+        "full_cohort_authorized": False,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_an_audited_approval_keeps_the_canary_limits():
+    """Naming the audited mode cannot carry looser limits in with it."""
+    from scforge.input_contract import AUDITED_POLICY, approval_policy
+
+    assert approval_policy(None) == AUDITED_POLICY
+    loosened = {"approval_mode": "H04A_BOUNDED_CANARY", "maximum_cores": 64, "minimum_units": 1}
+    assert approval_policy(loosened) == AUDITED_POLICY
+
+
+def test_a_portable_approval_is_held_to_what_it_states():
+    from scforge.input_contract import approval_policy, authorization_expected
+
+    policy = approval_policy(_portable_record())
+    assert policy["maximum_cores"] == 16
+    assert policy["minimum_units"] == 1
+    assert policy["required_valid_t1_source_classes"] == ["dicom_series"]
+    expected = authorization_expected(policy)
+    assert expected["wall_clock_stop_seconds"] == 48 * 3600
+    assert expected["storage_stop_bytes"] == 100 * 1_000_000_000
+    assert expected["tractography_authorized"] is False
+
+
+@pytest.mark.parametrize("overrides", [
+    {"maximum_cores": 0},
+    {"maximum_cores": True},
+    {"storage_stop_gb": "100"},
+    {"required_valid_t1_source_classes": ["nifti_single", "dicom_series"]},
+    {"required_valid_t1_source_classes": ["dicom_series", "analyze"],
+     "minimum_valid_t1_source_classes": 2},
+    {"minimum_valid_t1_source_classes": 2},
+    {"tractography_authorized": True},
+    {"matrix_generation_authorized": None},
+])
+def test_a_portable_approval_that_makes_no_sense_is_refused(overrides):
+    from scforge.input_contract import approval_policy
+
+    with pytest.raises(ValueError):
+        approval_policy(_portable_record(**overrides))
+
+
+def test_the_run_walks_its_gates_in_order(tmp_path):
+    import sc_lifecycle
+
+    run = tmp_path / "scforge_v2" / "run"
+    p = sc_lifecycle._paths(run)
+    steps = [
+        ("decision", "response-calibration-phase-a"),
+        ("phase_a_completion", None),                 # freeze
+        ("calibration_decision", "pre-tractography-canary"),
+        ("pre_completion", None),                     # review
+        ("human_qc", None),                           # continue
+        ("continuation_decision", "phase-b"),
+        ("run_completion", None),                     # publish
+    ]
+    assert sc_lifecycle.next_phase(run) == (None, "not approved yet: run `approve`")
+    for key, mode in steps:
+        p[key].parent.mkdir(parents=True, exist_ok=True)
+        p[key].write_text("{}")
+        assert sc_lifecycle.next_phase(run)[0] == mode, key
+    assert "publish" in sc_lifecycle.next_phase(run)[1]
+
+
+def test_each_phase_is_handed_the_decisions_it_needs(tmp_path):
+    import sc_lifecycle
+
+    run = tmp_path / "scforge_v2" / "run"
+    p = sc_lifecycle._paths(run)
+    p["contract"].mkdir(parents=True)
+    p["inputs"].write_text(json.dumps({"manifest": "/study/manifest.csv"}))
+    p["decision"].write_text(json.dumps({"minimum_valid_response_calibration_units": 3}))
+
+    phase_a = sc_lifecycle.launcher_command(run, "response-calibration-phase-a", 8)
+    pre = sc_lifecycle.launcher_command(run, "pre-tractography-canary", 8)
+    phase_b = sc_lifecycle.launcher_command(run, "phase-b", 8)
+
+    assert "--response-calibration-decision" not in phase_a
+    assert pre[pre.index("--response-calibration-minimum") + 1] == "3"
+    assert "--tractography-continuation-decision" not in pre
+    assert phase_b[phase_b.index("--human-qc-manifest") + 1] == str(p["human_qc"])
+    assert phase_b[phase_b.index("--tractography-continuation-decision") + 1] == str(p["continuation_decision"])
+    for command in (phase_a, pre, phase_b):
+        assert command[command.index("--cores") + 1] == "8"
+        assert command[command.index("--manifest") + 1] == "/study/manifest.csv"
+
+
+def test_a_review_covers_only_what_pre_tractography_made_reviewable(tmp_path):
+    import sc_lifecycle
+
+    run = tmp_path / "scforge_v2" / "run"
+    p = sc_lifecycle._paths(run)
+    with pytest.raises(sc_lifecycle.LifecycleError):
+        sc_lifecycle.review(run_root=run, reviewer="R", status="pass", units=None, utc=None, note="")
+
+    p["pre_manifest"].parent.mkdir(parents=True)
+    p["pre_manifest"].write_text(json.dumps({"ready_units": ["A_I1", "B_I2"]}))
+    sc_lifecycle.review(run_root=run, reviewer="R", status="pass", units=None, utc="2026-01-01T00:00:00Z", note="")
+    sc_lifecycle.review(run_root=run, reviewer="S", status="fail", units=["B_I2"], utc="2026-01-02T00:00:00Z",
+                        note="registration off")
+    rows = {row["unit"]: row for row in csv.DictReader(p["human_qc"].open(encoding="utf-8"))}
+    assert rows["A_I1"]["status"] == "PASS" and rows["A_I1"]["reviewer"] == "R"
+    assert rows["B_I2"]["status"] == "FAIL" and rows["B_I2"]["note"] == "registration off"
+
+    with pytest.raises(sc_lifecycle.LifecycleError, match="C_I3"):
+        sc_lifecycle.review(run_root=run, reviewer="R", status="pass", units=["C_I3"], utc=None, note="")
+
+
+def test_a_signed_decision_is_never_overwritten(tmp_path):
+    import sc_lifecycle
+
+    target = tmp_path / "decision.json"
+    sc_lifecycle._write_json(target, {"approved_by": "first"})
+    with pytest.raises(sc_lifecycle.LifecycleError):
+        sc_lifecycle._write_json(target, {"approved_by": "second"})
+    assert json.loads(target.read_text())["approved_by"] == "first"

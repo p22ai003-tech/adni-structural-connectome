@@ -156,21 +156,33 @@ python run_imaging.py run --run-root $RUN --cores 16
 Steps **a–d** take minutes and are all reversible. Step **f** is most of a day
 per subject, almost all of it in eddy-current and motion correction.
 
-Phase A stops there on purpose. Three short steps open phase B:
+Phase A stops there on purpose. What follows alternates between a person and
+the machine; `run` always works out which phase comes next, and says what a
+person has to do first when it is not its turn:
 
 ```bash
-# pool the per-subject responses into the one phase B deconvolves against
+# g. pool the per-subject responses into the one the FODs are fitted against
 python run_imaging.py freeze --run-root $RUN --by "Your Name"
 
-# look at <run>/subjects/*/06_preflight/ and record your verdict
+# h. pre-tractography: FODs, tissue segmentation, atlas registration, and
+#    three overlay images per subject for you to look at
+python run_imaging.py run --run-root $RUN --cores 16
+
+# i. look at <run>/subjects/*/06_preflight/review_b0_vs_{t1,5tt,aal3}.png
+#    and record your verdict (--status fail --units ... for the ones that are off)
 python run_imaging.py review --run-root $RUN --reviewer "Your Name"
 
-# authorise tractography for the subjects that passed
+# j. authorise tractography for the subjects that passed
 python run_imaging.py continue --run-root $RUN --by "Your Name"
 
-# phase B: FOD, tractography, SIFT2, the nine matrices
+# k. phase B: tractography, SIFT2, the nine matrices
 python run_imaging.py run --run-root $RUN --cores 16
 ```
+
+Each person-step writes a signed decision under `<run>/contract/`, and every
+later phase re-checks it along with the hashes of the recipe, the workflow
+source and the tools frozen at approval. A decision is never overwritten: to
+change one, start a new run root.
 
 Finally, put the matrices where the analysis reads them:
 
@@ -196,16 +208,20 @@ configs/acquisition_manifest.csv   the input contract: 47 fields per subject
 ## 5. Two gates you cannot skip
 
 **Approval.** `run` will not start without an approval record. `approve` writes
-one naming the subjects, who authorised them, the core and wall-clock ceilings,
-and a SHA-256 of every raw file involved. This is not ceremony: it is what
+one naming the subjects, who authorised them, the core, wall-clock and storage
+ceilings (`--max-cores`, `--wall-clock-hours`, `--storage-gb`), how many
+subjects must yield a usable response function for the calibration to stand
+(`--min-valid-calibration`, default half the batch), and a SHA-256 of every raw
+file involved. It also freezes this machine's tool locations into the run, so a
+later `lock-env` cannot change a run already under way. This is not ceremony: it is what
 makes a run reproducible and what stops a half-configured command from
 consuming a week of compute on the wrong cohort.
 
 **The run root.** Its path must contain `scforge_v2`, and it may not overlap a
 production tree. A long run cannot scatter output somewhere unintended.
 
-`run --dry-run` plans the whole DAG without either, so you can always see what
-would happen first.
+`run --dry-run` prints which phase is next and the exact launcher command,
+without starting it.
 
 ## 6. Minimum acquisition
 
