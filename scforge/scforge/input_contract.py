@@ -110,6 +110,113 @@ def stable_unit(row: Mapping[str, str]) -> str:
     return f"{subject}_I{image_id}"
 
 
+AUDITED_APPROVAL_MODE = "H04A_BOUNDED_CANARY"
+PORTABLE_APPROVAL_MODE = "PORTABLE_LOCAL_APPROVAL"
+APPROVAL_AUTHORIZED_MODES = ("response-calibration-phase-a", "pre-tractography-canary")
+APPROVAL_AUTHORIZED_THROUGH = "pre_tractography_review_bundle_only"
+T1_SOURCE_CLASSES = ("dicom_series", "nifti_single")
+
+# The audited canary's limits, exactly as signed for the thesis cohort.
+AUDITED_POLICY = {
+    "approval_mode": AUDITED_APPROVAL_MODE,
+    "authorized_modes": list(APPROVAL_AUTHORIZED_MODES),
+    "authorized_through": APPROVAL_AUTHORIZED_THROUGH,
+    "maximum_cores": 4,
+    "minimum_valid_response_calibration_units": 12,
+    "minimum_valid_manufacturer_families": 2,
+    "minimum_valid_t1_source_classes": 2,
+    "required_valid_t1_source_classes": ["dicom_series", "nifti_single"],
+    "wall_clock_stop_hours": 72,
+    "storage_stop_gb": 150,
+    "tractography_authorized": False,
+    "matrix_generation_authorized": False,
+    "full_cohort_authorized": False,
+    "minimum_units": 12,
+    "maximum_units": 24,
+}
+
+
+def approval_policy(record: Mapping[str, Any] | None) -> dict[str, Any]:
+    """The limits an approval is held to.
+
+    The audited canary was signed with fixed limits -- 12 to 24 units, 4 cores,
+    12 valid calibrations across two manufacturers and both T1 source classes --
+    and every approval that names that mode is still held to exactly those.
+
+    A portable approval (``run_imaging.py approve``) is a study's own decision
+    about its own data. It states its limits, and they are checked for sense
+    rather than against the canary's: at least one unit, a positive core and
+    time budget, a calibration minimum no larger than the batch, and T1 classes
+    drawn from the two the workflow supports. Nothing else relaxes: the same
+    two human gates, the same hashes, the same fail-closed checks.
+    """
+    if record is None or record.get("approval_mode") != PORTABLE_APPROVAL_MODE:
+        return copy.deepcopy(AUDITED_POLICY)
+
+    def positive_int(key: str, *aliases: str) -> int:
+        for name in (key, *aliases):
+            value = record.get(name)
+            if value is not None:
+                break
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"portable approval {key} must be a positive integer: {value!r}")
+        return value
+
+    required = record.get("required_valid_t1_source_classes")
+    if (
+        not isinstance(required, list)
+        or not required
+        or required != sorted(set(required))
+        or not set(required).issubset(T1_SOURCE_CLASSES)
+    ):
+        raise ValueError(f"portable approval required_valid_t1_source_classes is invalid: {required!r}")
+    minimum_classes = positive_int("minimum_valid_t1_source_classes")
+    if minimum_classes != len(required):
+        raise ValueError("portable approval T1 class minimum must equal the required classes")
+    for flag in ("tractography_authorized", "matrix_generation_authorized", "full_cohort_authorized"):
+        if record.get(flag) is not False:
+            raise ValueError(f"portable approval must leave {flag} false; phase B has its own gate")
+    return {
+        "approval_mode": PORTABLE_APPROVAL_MODE,
+        "authorized_modes": list(APPROVAL_AUTHORIZED_MODES),
+        "authorized_through": APPROVAL_AUTHORIZED_THROUGH,
+        "maximum_cores": positive_int("maximum_cores"),
+        "minimum_valid_response_calibration_units": positive_int(
+            "minimum_valid_response_calibration_units"),
+        "minimum_valid_manufacturer_families": positive_int("minimum_valid_manufacturer_families"),
+        "minimum_valid_t1_source_classes": minimum_classes,
+        "required_valid_t1_source_classes": list(required),
+        "wall_clock_stop_hours": positive_int("wall_clock_stop_hours", "h04a_wall_clock_stop_hours"),
+        "storage_stop_gb": positive_int("storage_stop_gb", "h04a_storage_stop_gb"),
+        "tractography_authorized": False,
+        "matrix_generation_authorized": False,
+        "full_cohort_authorized": False,
+        "minimum_units": 1,
+        "maximum_units": 100_000,
+    }
+
+
+def authorization_expected(policy: Mapping[str, Any]) -> dict[str, Any]:
+    """The fields a signed authorization must carry under a policy."""
+    return {
+        "approval_mode": policy["approval_mode"],
+        "authorized_modes": list(policy["authorized_modes"]),
+        "authorized_through": policy["authorized_through"],
+        "maximum_cores": policy["maximum_cores"],
+        "minimum_valid_response_calibration_units": policy["minimum_valid_response_calibration_units"],
+        "minimum_valid_manufacturer_families": policy["minimum_valid_manufacturer_families"],
+        "minimum_valid_t1_source_classes": policy["minimum_valid_t1_source_classes"],
+        "required_valid_t1_source_classes": list(policy["required_valid_t1_source_classes"]),
+        "wall_clock_stop_hours": policy["wall_clock_stop_hours"],
+        "wall_clock_stop_seconds": policy["wall_clock_stop_hours"] * 60 * 60,
+        "storage_stop_gb": policy["storage_stop_gb"],
+        "storage_stop_bytes": policy["storage_stop_gb"] * 1_000_000_000,
+        "tractography_authorized": False,
+        "matrix_generation_authorized": False,
+        "full_cohort_authorized": False,
+    }
+
+
 def validate_resolved_runtime_config(
     normative_config: Mapping[str, Any],
     resolved_config: Mapping[str, Any],
@@ -162,6 +269,24 @@ def validate_resolved_runtime_config(
         raise ValueError("approved_pair_manifest contract is missing")
     resolved["inputs"]["approved_pair_manifest"] = copy.deepcopy(normative_inputs)
 
+    # Fields that belong to one run rather than to the recipe: the content lock
+    # over this run's source files, the environment frozen when it was
+    # approved, and whether it was approved portably. Each must be present in
+    # the form the run implies, and is then set aside so the comparison below
+    # still sees the recipe untouched.
+    for section in ("locked_file_inventory", "source_metadata_projection"):
+        run_value = resolved.get("inputs", {}).get(section)
+        if run_value is not None:
+            if not isinstance(run_value, Mapping) or not run_value.get("path") or not run_value.get("sha256"):
+                raise ValueError(f"resolved inputs.{section} must name a path and a SHA-256")
+            resolved["inputs"][section] = copy.deepcopy(normative.get("inputs", {}).get(section))
+    locked_paths = resolved.get("environment", {}).get("locked_paths", {})
+    if isinstance(locked_paths, Mapping) and "environment_contract" in locked_paths:
+        resolved["environment"]["locked_paths"]["environment_contract"] = copy.deepcopy(
+            normative.get("environment", {}).get("locked_paths", {}).get("environment_contract"))
+    portable_flag = resolved.pop("portable_mode", False)
+    normative.pop("portable_mode", None)
+
     execution_binding = resolved.pop("execution_binding", None)
     locked_execution_binding = run_context.get("execution_binding")
     h04a_authorization = (
@@ -169,26 +294,10 @@ def validate_resolved_runtime_config(
         if isinstance(execution_binding, Mapping)
         else None
     )
-    h04a_expected = {
-        "approval_mode": "H04A_BOUNDED_CANARY",
-        "authorized_modes": [
-            "response-calibration-phase-a",
-            "pre-tractography-canary",
-        ],
-        "authorized_through": "pre_tractography_review_bundle_only",
-        "maximum_cores": 4,
-        "minimum_valid_response_calibration_units": 12,
-        "minimum_valid_manufacturer_families": 2,
-        "minimum_valid_t1_source_classes": 2,
-        "required_valid_t1_source_classes": ["dicom_series", "nifti_single"],
-        "wall_clock_stop_hours": 72,
-        "wall_clock_stop_seconds": 72 * 60 * 60,
-        "storage_stop_gb": 150,
-        "storage_stop_bytes": 150 * 1_000_000_000,
-        "tractography_authorized": False,
-        "matrix_generation_authorized": False,
-        "full_cohort_authorized": False,
-    }
+    # The limits come from the approval's own mode: the audited canary's fixed
+    # values, or the ones a portable approval states for itself.
+    policy = approval_policy(h04a_authorization if isinstance(h04a_authorization, Mapping) else None)
+    h04a_expected = authorization_expected(policy)
     h04a_semantics_valid = isinstance(h04a_authorization, Mapping)
     if h04a_semantics_valid:
         h04a_semantics_valid = all(
@@ -224,21 +333,23 @@ def validate_resolved_runtime_config(
         != execution_binding.get("execution_subset_manifest", {}).get("path")
         or execution_binding.get("approved_unit_count")
         != len(execution_binding.get("units", []))
-        or (not portable and not 12 <= execution_binding.get("approved_unit_count", 0) <= 24)
+        or not policy["minimum_units"] <= execution_binding.get("approved_unit_count", 0) <= policy["maximum_units"]
         or execution_binding.get("approved_unit_count", 0) < 1
         or execution_binding.get("units")
         != sorted(execution_binding.get("units", []))
-        or (not portable and not h04a_semantics_valid)
+        or not h04a_semantics_valid
     ):
         raise ValueError("resolved canary execution binding semantics differ")
-    if not portable:
-        if mode in {
-            "response-calibration-phase-a",
-            "pre-tractography-canary",
-        } and mode not in h04a_authorization["authorized_modes"]:
-            raise ValueError("resolved H04A launcher mode is not signed")
-        if mode == "phase-b" and mode in h04a_authorization["authorized_modes"]:
-            raise ValueError("H04A authorization must not include phase-b")
+    if mode in {
+        "response-calibration-phase-a",
+        "pre-tractography-canary",
+    } and mode not in h04a_authorization["authorized_modes"]:
+        raise ValueError("resolved launcher mode is not signed")
+    if mode == "phase-b" and mode in h04a_authorization["authorized_modes"]:
+        raise ValueError("the first approval must not include phase-b")
+
+    if bool(portable_flag) != (policy["approval_mode"] == PORTABLE_APPROVAL_MODE):
+        raise ValueError("resolved portable_mode disagrees with the approval mode")
 
     binding = resolved.pop("response_calibration_binding", None)
     if mode == "response-calibration-phase-a":

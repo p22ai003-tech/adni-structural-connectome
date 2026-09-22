@@ -29,7 +29,14 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--minimum-valid-subjects", type=int, required=True)
     args = parser.parse_args()
-    config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    # The recipe names responsemean indirectly; resolve it against the run's
+    # frozen environment when there is one, else against this machine's.
+    from scforge.environment import expand, load_config, merged_contract
+
+    frozen = args.output_dir.expanduser().resolve().parent / "contract" / "environment_contract.yaml"
+    environment = (expand(yaml.safe_load(frozen.read_text(encoding="utf-8")), None)
+                   if frozen.is_file() else merged_contract())
+    config = load_config(CONFIG_PATH, environment)
     pooling = config["fod"]["response_estimation"]["calibration"]["pooling"]
     result = freeze_response_calibration_from_phase_a(
         args.phase_a_completion,

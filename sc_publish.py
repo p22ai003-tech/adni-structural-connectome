@@ -130,8 +130,13 @@ def write_provenance(run_root: Path, destination: Path, record: dict,
                      *, dry_run: bool) -> Path | None:
     if dry_run or not record["published"]:
         return None
-    context_path = run_root / "contract" / "run_context.json"
-    context = json.loads(context_path.read_text()) if context_path.is_file() else {}
+    # The launcher writes one context per phase; the matrices come from phase B.
+    context = {}
+    for name in ("phase_b_run_context.json", "run_context.json"):
+        context_path = run_root / "contract" / name
+        if context_path.is_file():
+            context = json.loads(context_path.read_text())
+            break
     sidecar = destination / f"SC_AAL_{record['subject_id']}_I{record['image_id']}_generation_provenance.json"
     sidecar.write_text(
         json.dumps(

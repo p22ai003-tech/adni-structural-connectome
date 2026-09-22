@@ -53,7 +53,12 @@ from scforge.provenance import (  # noqa: E402
     write_immutable_json,
     write_immutable_jsonl,
 )
-from scforge.input_contract import load_acquisition_manifest  # noqa: E402
+from scforge.input_contract import (  # noqa: E402
+    PORTABLE_APPROVAL_MODE,
+    approval_policy,
+    authorization_expected,
+    load_acquisition_manifest,
+)
 from scforge.response_calibration import (  # noqa: E402
     TISSUES,
     build_valid_pool_technical_diversity,
@@ -463,8 +468,15 @@ def prepare_execution_binding(
     run_root: Path,
     normative_config_path: Path | None = None,
     environment_contract_path: Path | None = None,
+    draft_policy: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
-    """Validate one immutable, signed H04A 12--24 unit canary authority."""
+    """Validate one immutable, signed execution-subset approval.
+
+    With ``draft_policy`` nothing is read from ``execution_subset_decision_path``:
+    the function instead returns the decision it would accept -- every field but
+    the signature -- so a tool drafting an approval produces exactly the format
+    checked here rather than a copy of it that can drift.
+    """
 
     subset_path = execution_subset_manifest_path.expanduser().resolve()
     subset_rows = list(
@@ -474,11 +486,21 @@ def prepare_execution_binding(
             run_root=run_root,
         )
     )
-    if not CANARY_MIN_UNITS <= len(subset_rows) <= CANARY_MAX_UNITS:
-        raise ValueError(
-            "approved canary execution subset must contain "
-            f"{CANARY_MIN_UNITS}--{CANARY_MAX_UNITS} units, found {len(subset_rows)}"
+    decision_path = execution_subset_decision_path.expanduser().resolve()
+    if draft_policy is not None:
+        decision = dict(draft_policy)
+    else:
+        decision = _load_json_mapping(
+            decision_path, label="canary execution-subset decision"
         )
+    policy = approval_policy(decision)
+    if not policy["minimum_units"] <= len(subset_rows) <= policy["maximum_units"]:
+        raise ValueError(
+            "approved execution subset must contain "
+            f"{policy['minimum_units']}--{policy['maximum_units']} units, found {len(subset_rows)}"
+        )
+    if policy["minimum_valid_response_calibration_units"] > len(subset_rows):
+        raise ValueError("the calibration minimum exceeds the number of approved units")
     parent_by_unit = {row["unit"]: row for row in parent_rows}
     if len(parent_by_unit) != len(parent_rows):
         raise ValueError("parent acquisition manifest contains duplicate units")
@@ -491,10 +513,6 @@ def prepare_execution_binding(
                 f"canary execution row differs from exact parent-manifest row: {unit}"
             )
 
-    decision_path = execution_subset_decision_path.expanduser().resolve()
-    decision = _load_json_mapping(
-        decision_path, label="canary execution-subset decision"
-    )
     parent_record = file_record(parent_manifest_path)
     subset_record = file_record(subset_path)
     config_path = (
@@ -532,7 +550,7 @@ def prepare_execution_binding(
         "schema_version": "2.0.0",
         "decision_type": "connectome_canary_execution_subset_approval",
         "status": "APPROVED",
-        "approval_mode": "H04A_BOUNDED_CANARY",
+        "approval_mode": policy["approval_mode"],
         "execution_scope": "canary",
         "recipe_id": recipe_id,
         "parent_acquisition_manifest_sha256": parent_record["sha256"],
@@ -541,23 +559,23 @@ def prepare_execution_binding(
         "diagnosis_labels_used": False,
         "selection_locked": True,
         "proposed_run_root": str(run_root.resolve()),
-        "authorized_modes": list(H04A_AUTHORIZED_MODES),
-        "authorized_through": H04A_AUTHORIZED_THROUGH,
-        "maximum_cores": H04A_MAXIMUM_CORES,
+        "authorized_modes": list(policy["authorized_modes"]),
+        "authorized_through": policy["authorized_through"],
+        "maximum_cores": policy["maximum_cores"],
         "minimum_valid_response_calibration_units": (
-            H04A_MINIMUM_VALID_RESPONSE_UNITS
+            policy["minimum_valid_response_calibration_units"]
         ),
         "minimum_valid_manufacturer_families": (
-            H04A_MINIMUM_VALID_MANUFACTURER_FAMILIES
+            policy["minimum_valid_manufacturer_families"]
         ),
         "minimum_valid_t1_source_classes": (
-            H04A_MINIMUM_VALID_T1_SOURCE_CLASSES
+            policy["minimum_valid_t1_source_classes"]
         ),
         "required_valid_t1_source_classes": list(
-            H04A_REQUIRED_VALID_T1_SOURCE_CLASSES
+            policy["required_valid_t1_source_classes"]
         ),
-        "h04a_wall_clock_stop_hours": H04A_WALL_CLOCK_STOP_HOURS,
-        "h04a_storage_stop_gb": H04A_STORAGE_STOP_GB,
+        "h04a_wall_clock_stop_hours": policy["wall_clock_stop_hours"],
+        "h04a_storage_stop_gb": policy["storage_stop_gb"],
         "tractography_authorized": False,
         "matrix_generation_authorized": False,
         "full_cohort_authorized": False,
@@ -565,6 +583,8 @@ def prepare_execution_binding(
         "workflow_source_manifest_sha256": actual_source_manifest_sha256,
         "environment_contract_sha256": sha256_file(environment_path),
     }
+    if draft_policy is not None:
+        return decision_expected, subset_rows
     for key, value in decision_expected.items():
         if decision.get(key) != value:
             raise ValueError(
@@ -586,36 +606,12 @@ def prepare_execution_binding(
         raise ValueError("H04A approved_utc must include a timezone")
     units = sorted(row["unit"] for row in subset_rows)
     h04a_authorization = {
-        "approval_mode": decision_expected["approval_mode"],
+        **authorization_expected(policy),
         "approved_by": decision["approved_by"].strip(),
         "approved_utc": decision["approved_utc"].strip(),
         "user_response": decision["user_response"].strip(),
         "proposed_run_root": decision_expected["proposed_run_root"],
-        "authorized_modes": list(H04A_AUTHORIZED_MODES),
-        "authorized_through": H04A_AUTHORIZED_THROUGH,
-        "maximum_cores": H04A_MAXIMUM_CORES,
-        "minimum_valid_response_calibration_units": (
-            H04A_MINIMUM_VALID_RESPONSE_UNITS
-        ),
-        "minimum_valid_manufacturer_families": (
-            H04A_MINIMUM_VALID_MANUFACTURER_FAMILIES
-        ),
-        "minimum_valid_t1_source_classes": (
-            H04A_MINIMUM_VALID_T1_SOURCE_CLASSES
-        ),
-        "required_valid_t1_source_classes": list(
-            H04A_REQUIRED_VALID_T1_SOURCE_CLASSES
-        ),
-        "wall_clock_stop_hours": H04A_WALL_CLOCK_STOP_HOURS,
-        "wall_clock_stop_seconds": H04A_WALL_CLOCK_STOP_HOURS * 60 * 60,
-        "storage_stop_gb": H04A_STORAGE_STOP_GB,
-        "storage_stop_bytes": H04A_STORAGE_STOP_GB * DECIMAL_GB_BYTES,
-        "tractography_authorized": False,
-        "matrix_generation_authorized": False,
-        "full_cohort_authorized": False,
-        "normative_config_sha256": decision_expected[
-            "normative_config_sha256"
-        ],
+        "normative_config_sha256": decision_expected["normative_config_sha256"],
         "workflow_source_manifest_sha256": decision_expected[
             "workflow_source_manifest_sha256"
         ],
@@ -647,31 +643,7 @@ def _validated_h04a_authorization(
     authorization = execution_binding.get("h04a_authorization")
     if not isinstance(authorization, dict):
         raise PermissionError("execution binding lacks signed H04A authorization")
-    expected = {
-        "approval_mode": "H04A_BOUNDED_CANARY",
-        "authorized_modes": list(H04A_AUTHORIZED_MODES),
-        "authorized_through": H04A_AUTHORIZED_THROUGH,
-        "maximum_cores": H04A_MAXIMUM_CORES,
-        "minimum_valid_response_calibration_units": (
-            H04A_MINIMUM_VALID_RESPONSE_UNITS
-        ),
-        "minimum_valid_manufacturer_families": (
-            H04A_MINIMUM_VALID_MANUFACTURER_FAMILIES
-        ),
-        "minimum_valid_t1_source_classes": (
-            H04A_MINIMUM_VALID_T1_SOURCE_CLASSES
-        ),
-        "required_valid_t1_source_classes": list(
-            H04A_REQUIRED_VALID_T1_SOURCE_CLASSES
-        ),
-        "wall_clock_stop_hours": H04A_WALL_CLOCK_STOP_HOURS,
-        "wall_clock_stop_seconds": H04A_WALL_CLOCK_STOP_HOURS * 60 * 60,
-        "storage_stop_gb": H04A_STORAGE_STOP_GB,
-        "storage_stop_bytes": H04A_STORAGE_STOP_GB * DECIMAL_GB_BYTES,
-        "tractography_authorized": False,
-        "matrix_generation_authorized": False,
-        "full_cohort_authorized": False,
-    }
+    expected = authorization_expected(approval_policy(authorization))
     for key, value in expected.items():
         if authorization.get(key) != value:
             raise PermissionError(
@@ -1210,10 +1182,15 @@ def prepare_phase_b_binding(
     phase_a_completion_path: Path,
     response_calibration_manifest_path: Path,
     minimum_valid_subjects: int,
-    response_calibration_decision_path: Path,
+    response_calibration_decision_path: Path | None,
     execution_binding: dict[str, Any],
+    draft: bool = False,
 ) -> dict[str, Any]:
-    """Validate and bind the exact diagnosis-blind phase-A-to-B handoff."""
+    """Validate and bind the exact diagnosis-blind phase-A-to-B handoff.
+
+    With ``draft`` every check still runs, and the return value is the
+    calibration decision this handoff would accept, unsigned.
+    """
 
     if (
         not isinstance(minimum_valid_subjects, int)
@@ -1480,10 +1457,6 @@ def prepare_phase_b_binding(
         expected_technical_diversity=expected_technical_diversity,
     )
 
-    decision_path = response_calibration_decision_path.expanduser().resolve()
-    decision = _load_json_mapping(
-        decision_path, label="phase-B response-calibration decision"
-    )
     decision_expected = {
         "schema_version": "2.0.0",
         "decision_type": "response_calibration_phase_b_approval",
@@ -1507,6 +1480,12 @@ def prepare_phase_b_binding(
             technical_diversity_sha256(expected_technical_diversity)
         ),
     }
+    if draft:
+        return decision_expected
+    decision_path = response_calibration_decision_path.expanduser().resolve()
+    decision = _load_json_mapping(
+        decision_path, label="phase-B response-calibration decision"
+    )
     for key, value in decision_expected.items():
         if decision.get(key) != value:
             raise ValueError(
@@ -1692,9 +1671,14 @@ def prepare_tractography_continuation_binding(
     response_calibration_binding: dict[str, Any],
     pre_tractography_completion_path: Path,
     human_qc_manifest_path: Path,
-    continuation_decision_path: Path,
+    continuation_decision_path: Path | None,
+    draft: bool = False,
 ) -> dict[str, Any]:
-    """Validate H04B review evidence before any tractography is scheduled."""
+    """Validate H04B review evidence before any tractography is scheduled.
+
+    With ``draft`` every check still runs, and the return value is the
+    continuation decision this evidence would accept, unsigned.
+    """
 
     valid_pool_technical_diversity = (
         validate_response_calibration_diversity_binding(
@@ -1841,10 +1825,6 @@ def prepare_tractography_continuation_binding(
             raise ValueError(f"human visual-QC identity/time is blank for {row['unit']}")
 
     human_qc_record = file_record(human_qc_path)
-    decision_path = continuation_decision_path.expanduser().resolve()
-    decision = _load_json_mapping(
-        decision_path, label="tractography continuation decision"
-    )
     decision_expected = {
         "schema_version": "2.0.0",
         "decision_type": "connectome_canary_tractography_continuation_approval",
@@ -1875,6 +1855,12 @@ def prepare_tractography_continuation_binding(
         "diagnosis_labels_used": False,
         "all_reviewed_units_pass": True,
     }
+    if draft:
+        return decision_expected
+    decision_path = continuation_decision_path.expanduser().resolve()
+    decision = _load_json_mapping(
+        decision_path, label="tractography continuation decision"
+    )
     for key, value in decision_expected.items():
         if decision.get(key) != value:
             raise ValueError(
@@ -2816,11 +2802,66 @@ def validate_existing_run_context(
         raise ValueError("pre-continuation run context contains continuation evidence")
 
 
+def _frozen_environment_path(run_root: Path) -> Path | None:
+    """The environment contract ``run_imaging.py approve`` froze into a run."""
+    frozen = run_root / "contract" / "environment_contract.yaml"
+    return frozen if frozen.is_file() else None
+
+
+def _peek_approval_mode(decision_arg: Any) -> str | None:
+    """Read only the approval mode, before the decision is fully validated."""
+    if decision_arg is None:
+        return None
+    try:
+        return json.loads(Path(decision_arg).read_text(encoding="utf-8")).get("approval_mode")
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def _run_source_lock(run_root: Path) -> dict[str, Any] | None:
+    """The per-run content lock over the approved source files, if present."""
+    lock = run_root / "contract" / "source_lock"
+    inventory = lock / "source_content_inventory.csv"
+    projection = lock / "source_metadata_projection.csv"
+    validation = lock / "source_metadata_projection_validation.json"
+    if not (inventory.is_file() and projection.is_file() and validation.is_file()):
+        return None
+    with inventory.open(encoding="utf-8") as handle:
+        inventory_rows = sum(1 for _ in handle) - 1
+    with projection.open(encoding="utf-8") as handle:
+        projection_rows = sum(1 for _ in handle) - 1
+    return {
+        "locked_file_inventory": {
+            "path": str(inventory), "sha256": sha256_file(inventory),
+            "row_count": inventory_rows,
+        },
+        "source_metadata_projection": {
+            "path": str(projection), "sha256": sha256_file(projection),
+            "row_count": projection_rows,
+            "validation_path": str(validation), "validation_sha256": sha256_file(validation),
+        },
+    }
+
+
 def run(args: argparse.Namespace) -> int:
+    # The recipe stays raw here: the resolved config is compared with it field
+    # by field, so machine references must stay as references in both. Paths
+    # the launcher itself opens are taken from ``paths``, the resolved copy.
     config = load_yaml(NORMATIVE_CONFIG)
     validate_normative_execution_lock(config)
     normative_config_sha256 = sha256_file(NORMATIVE_CONFIG)
-    environment = load_environment()
+    run_root_early = args.run_root.expanduser().resolve()
+    frozen_environment = _frozen_environment_path(run_root_early)
+    if frozen_environment is not None:
+        from scforge.environment import expand
+
+        environment = expand(load_yaml(frozen_environment), None)
+    else:
+        environment = load_environment()
+    from scforge.environment import expand as _expand_paths
+
+    paths = _expand_paths(copy.deepcopy(config), environment)
+    portable = _peek_approval_mode(getattr(args, "execution_subset_decision", None)) == PORTABLE_APPROVAL_MODE
     recipe_id = str(config["contract"]["recipe_id"])
     mode = str(args.mode)
     if mode not in RUN_MODES:
@@ -2844,9 +2885,11 @@ def run(args: argparse.Namespace) -> int:
     parent_rows = list(
         load_acquisition_manifest(
             manifest,
-            Path(config["inputs"]["acquisition_schema"]["path"]),
+            Path(paths["inputs"]["acquisition_schema"]["path"]),
             run_root=run_root,
-            expected_rows=int(
+            # The audited canary was drawn from the 530-row thesis cohort; a
+            # portable study's manifest is whatever size the study is.
+            expected_rows=None if portable else int(
                 config["inputs"]["approved_pair_manifest"]["required_row_count"]
             ),
         )
@@ -2866,8 +2909,9 @@ def run(args: argparse.Namespace) -> int:
         parent_rows=parent_rows,
         execution_subset_manifest_path=Path(subset_manifest_arg),
         execution_subset_decision_path=Path(subset_decision_arg),
-        acquisition_schema_path=Path(config["inputs"]["acquisition_schema"]["path"]),
+        acquisition_schema_path=Path(paths["inputs"]["acquisition_schema"]["path"]),
         run_root=run_root,
+        environment_contract_path=frozen_environment,
     )
     h04a_authorization = _validated_h04a_authorization(execution_binding)
     if mode in H04A_AUTHORIZED_MODES:
@@ -3095,6 +3139,23 @@ def run(args: argparse.Namespace) -> int:
         )
     resolved_config["inputs"]["approved_pair_manifest"]["path"] = str(manifest)
     resolved_config["inputs"]["approved_pair_manifest"]["sha256"] = manifest_hash
+    # Per-run fields the recipe deliberately leaves empty: the content lock over
+    # this run's source files, and the environment frozen when it was
+    # approved. The workflow refuses to start without the lock.
+    source_lock = _run_source_lock(run_root)
+    if source_lock is None:
+        raise FileNotFoundError(
+            f"no source content lock under {run_root / 'contract' / 'source_lock'}; "
+            "approve the run with `python run_imaging.py approve`, which builds it"
+        )
+    for section, record in source_lock.items():
+        resolved_config["inputs"][section].update(record)
+    if frozen_environment is not None:
+        resolved_config["environment"]["locked_paths"]["environment_contract"] = str(
+            frozen_environment
+        )
+    if portable:
+        resolved_config["portable_mode"] = True
     if mode in {"pre-tractography-canary", "phase-b"}:
         validate_phase_b_calibration(resolved_config)
     if sha256_file(NORMATIVE_CONFIG) != normative_config_sha256:
