@@ -44,7 +44,18 @@ NETWORKS = [
     "Frontoparietal", "DMN", "Subcortical", "Cerebellar", "Brainstem",
 ]
 MICRO = {"fa_mean": "FA", "md_mean": "MD", "rd_mean": "RD", "ad_mean": "AxD"}
-LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+# A subject limit for quick checks, as --limit N. It used to be read as a bare
+# first argument, which broke the moment the runner passed --analysis-root:
+# the script died converting "--analysis-root" to an integer.
+def _limit_from_argv() -> int:
+    import argparse
+    ap = argparse.ArgumentParser(add_help=False)
+    ap.add_argument("--limit", type=int, default=0)
+    known, _ = ap.parse_known_args()
+    return known.limit
+
+
+LIMIT = _limit_from_argv()
 
 
 def cliffs_delta(a: np.ndarray, b: np.ndarray) -> float:

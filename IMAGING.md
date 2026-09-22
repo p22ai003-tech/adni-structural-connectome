@@ -11,9 +11,13 @@ before.
 ## 1. What you need
 
 **A Linux machine** (or macOS) with at least 8 cores, 32 GB of RAM, and disk
-space. Budget roughly **2 GB per subject** for the run tree, plus the raw data.
-The slowest step is distortion and motion correction; on CPU it takes a few
-hours per subject, so a large cohort is a multi-day run. This is normal.
+space. Budget roughly **15 GB per subject** for a complete run tree (see
+[Running a large cohort](#11-running-a-large-cohort)), plus the raw data.
+The slowest step is distortion and motion correction, and on CPU it is slow:
+on this project's data it took **8 hours** for a 60-direction Siemens scan and
+**13 hours** for a 55-volume GE scan with a larger matrix, one core each. Many
+subjects can run at once, so a cohort is a multi-day run rather than a
+multi-month one, but a single subject is most of a day. This is normal.
 
 **Four imaging toolkits**, none of which are Python packages:
 
@@ -149,8 +153,8 @@ python run_imaging.py approve --run-root $RUN --all --by "Your Name"
 python run_imaging.py run --run-root $RUN --cores 16
 ```
 
-Steps **a–d** take minutes and are all reversible. Step **f** is hours per
-subject, mostly in eddy-current and motion correction.
+Steps **a–d** take minutes and are all reversible. Step **f** is most of a day
+per subject, almost all of it in eddy-current and motion correction.
 
 Phase A stops there on purpose. Three short steps open phase B:
 
