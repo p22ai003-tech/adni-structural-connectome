@@ -79,6 +79,15 @@ def bh_fdr(p: list[float]) -> list[float]:
 CONTRASTS = (("cn_mci", "CN", "MCI"), ("cn_ad", "CN", "AD"), ("mci_ad", "MCI", "AD"))
 
 
+def _kruskal_p(*arrays: np.ndarray) -> float:
+    # a measure that is constant in every group has no test (on uniformly rebuilt connectomes the brainstem has no
+    # short-range exceptions, so SRexc-Degree and SRexc-Strength are 0 for everyone); scipy raises instead of returning NaN
+    try:
+        return float(sps.kruskal(*arrays).pvalue)
+    except ValueError:
+        return float("nan")
+
+
 def group_stats(frame: pd.DataFrame, value: str, keys: list[str]) -> pd.DataFrame:
     """CN/MCI/AD stats per key combination, BH-FDR corrected within each measure.
 
@@ -94,7 +103,7 @@ def group_stats(frame: pd.DataFrame, value: str, keys: list[str]) -> pd.DataFram
         rec.update(
             mean_CN=float(np.mean(arrays["CN"])), mean_MCI=float(np.mean(arrays["MCI"])),
             mean_AD=float(np.mean(arrays["AD"])),
-            kw_p=float(sps.kruskal(arrays["CN"], arrays["MCI"], arrays["AD"]).pvalue),
+            kw_p=_kruskal_p(arrays["CN"], arrays["MCI"], arrays["AD"]),
             n_CN=len(arrays["CN"]), n_MCI=len(arrays["MCI"]), n_AD=len(arrays["AD"]),
         )
         for prefix, first, second in CONTRASTS:
