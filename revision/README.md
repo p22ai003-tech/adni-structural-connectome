@@ -21,6 +21,9 @@ in the scripts are those of the analysis machine (`/data/derivatives/...`, `/hom
 | `tools/phase5/` | Robustness: DKT network labels by voxel overlap (`p5_dkt_map.py`), Phase 1 features for any parcellation or edge weight (`p5_features.py`, validated against the pipeline to 1e-9), `run_phase5.sh` (DKT, streamline-count and FA weights), `run_cap245.sh` (edges at the 250-mm tracking limit removed), `p5_act.py` (ACT against unconstrained tracking). |
 | `tools/phase6/` | Manuscript figures (300 dpi). |
 | `tools/phase7/` | `p7_numbers.py`: every number the revised manuscript quotes, from the phase outputs. |
+| `tools/iit_chain.py`, `sc_cohort_settings.py` (repository root) | One root variable (`IIT_ROOT`) and one set of settings per chain: density floor, SMC handling, primary sample, length measure, nodes analysed, label hiding. Unset, every script resolves today's paths and settings. Launchers refuse connectomes whose recorded recipe hash differs from the signed recipe, and builders refuse to overwrite a Word file. |
+| `tools/narrative_guard.py` | A document builder stops when computed numbers contradict a fixed sentence such as "no crossover" or "at every stage". |
+| `tools/run_chain.sh`, `tools/chain_lib.sh`, `tools/test_chain_guards.py` | The whole chain under one root with a ledger of every stage's result; helpers; tests of the guards on invented tables. |
 | `notebooks/` | Phase 1–3 notebooks (outputs removed; built by `build_phase*_notebook.py`, kernel with the packages below). |
 
 `tools/docx2txt.py` extracts Word text with insertions and deletions marked. Fix in the pipeline that came with this work:

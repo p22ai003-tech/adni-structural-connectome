@@ -1,16 +1,18 @@
 """Phase 7 step 1 — every number the revised manuscript quotes, from the rebuilt-connectome results of Phases 1-5,
 written to phase7_uniform/numbers.json (so the text step never recomputes anything)."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import json
 from pathlib import Path
 import numpy as np, pandas as pd
 from scipy import stats
 
-U = Path("/home/ec2-user/exp/docs/iit_dipanjan"); O = U / "phase7_uniform"; O.mkdir(exist_ok=True)
-P1, P2, P3, P4, P5 = (U / f"phase{k}_uniform" for k in range(1, 6))
-A = Path("/data/derivatives/qc/analysis_cohort_uniform")
+U = Path("/home/ec2-user/exp/docs/iit_dipanjan"); O = chain.P(7); O.mkdir(exist_ok=True)
+P1, P2, P3, P4, P5 = (chain.P(k) for k in range(1, 6))
+A = chain.aroot()
 N = {}
 cov = pd.read_csv(P1 / "covariates.csv").set_index("subject_id"); qc = pd.read_csv(P1 / "qc.csv", index_col=0).reindex(cov.index)
-keep = cov[qc.qc_fail == 0]; prim = keep[keep.adni34 == 1]
+keep = cov[qc.qc_fail == 0]; prim = keep[chain.primary(keep) == 1]
 G = ["CN", "MCI", "AD"]
 N["n_sessions"] = len(cov); N["n_excl"] = int((qc.qc_fail == 1).sum())
 N["pooled"] = {g: int((keep.group == g).sum()) for g in G}; N["pooled_n"] = len(keep)
@@ -22,7 +24,7 @@ N["female"] = {g: [int(keep[keep.group == g].female.sum()), round(100 * keep[kee
 N["female_all"] = [int(keep.female.sum()), round(100 * keep.female.mean(), 1)]
 N["age_kw_p"] = float(stats.kruskal(*[keep[keep.group == g].age for g in G]).pvalue)
 N["female_chi2_p"] = float(stats.chi2_contingency(pd.crosstab(keep.group, keep.female))[1])
-p4 = pd.read_csv(P4 / "p4_data.csv", index_col=0); pp = p4[p4.adni34 == 1]; pk = p4
+p4 = pd.read_csv(P4 / "p4_data.csv", index_col=0); pp = p4[chain.primary(p4) == 1]; pk = p4
 N["cdrsb_n_primary"] = {g: int(pp[pp.cdrsb.notna() & (pp.group == g)].shape[0]) for g in G}
 N["cdrsb_n_pooled"] = {g: int(pk[pk.cdrsb.notna() & (pk.group == g)].shape[0]) for g in G}
 N["score_lag_median"] = float(pp.cdrsb_lag.median())
@@ -30,7 +32,7 @@ N["score_n_range"] = [int(pp[t].notna().sum()) for t in ("cdrsb", "adas13", "phc
 
 # ---------------- lengths, exceptions, core
 E = dict(np.load(P2 / "edges_uniform_v3.npz", allow_pickle=True)); L, W = E["len"].astype(float), E["fd"].astype(float); sid = E["sid"]
-cv = cov.loc[sid]; qv = qc.loc[sid]; kp = (qv.qc_fail == 0).values; pr = kp & (cv.adni34 == 1).values; coh = (qv.in_cohort == 1).values
+cv = cov.loc[sid]; qv = qc.loc[sid]; kp = (qv.qc_fail == 0).values; pr = kp & (chain.primary(cv) == 1).values; coh = (qv.in_cohort == 1).values
 th = pd.read_csv(A / "17_edr_exceptions/edr_exception_thresholds.csv").iloc[0]; SR, LR = float(th.short_max_mm), float(th.long_min_mm)
 cnm = pr & (cv.group == "CN").values
 vals = L[cnm][np.isfinite(L[cnm])]; N["len_q"] = [round(float(x), 1) for x in np.percentile(vals, [25, 50, 75])]
@@ -88,7 +90,9 @@ ep = pd.read_csv(U / "phase1/effects_long.csv"); ep = ep[ep.condition.str.starts
 
 
 def eff(c, f, ct):
-    r = e[(e.c == c) & (e.feature == f) & (e.contrast == ct)].iloc[0]; return [round(float(r.delta), 3), float(r.q)]
+    r = e[(e.c == c) & (e.feature == f) & (e.contrast == ct)]
+    if r.empty: return [float("nan"), float("nan")]       # not estimable in this sample (under 5 per group)
+    r = r.iloc[0]; return [round(float(r.delta), 3), float(r.q)]
 
 
 KEYF = {"limbic_axd": "WB|Limbic|AxD", "subc_axd": "WB|Subcortical|AxD", "sal_axd": "WB|Salience_VAN|AxD", "dmn_axd": "WB|DMN|AxD",
@@ -108,6 +112,9 @@ for kind in ("WB", "TR", "EX"):
     for ct in ("CN-MCI", "CN-AD", "MCI-AD"):
         x = e[(e.c == "C2") & (e.kind == kind) & (e.contrast == ct) & (e.q < 0.05)]
         if kind == "TR": x = x[x.feature.str.contains("-")]
+        if x.empty:                            # nothing significant in this contrast: the largest effect, whose q says so
+            x = e[(e.c == "C2") & (e.kind == kind) & (e.contrast == ct) & e.delta.notna()]
+            if kind == "TR": x = x[x.feature.str.contains("-")]
         x = x.reindex(x.delta.abs().sort_values(ascending=False).index)
         top = x.iloc[0]; ties = x[(x.delta.abs() >= abs(top.delta) - 0.005)]
         leaders[f"{kind}|{ct}"] = [[f.split("|")[1], f.split("|")[2], round(float(d), 3), float(q)] for f, d, q in zip(ties.feature, ties.delta, ties.q)][:2]

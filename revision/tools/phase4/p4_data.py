@@ -16,10 +16,13 @@ quality control (qc.csv) are dropped.
 
 Env: IIT_AROOT (analysis tree), IIT_P1 (Phase 1 run: covariates, qc, features), IIT_P4 (output), IIT_AM2 (ADNIMERGE2 data).
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import warnings
 from pathlib import Path
 import numpy as np, pandas as pd, pyreadr
+import sc_cohort_settings as cohort_settings
 
 warnings.filterwarnings("ignore")
 A = Path(os.environ.get("IIT_AROOT", "/data/derivatives/qc/analysis_cohort_uniform"))
@@ -58,6 +61,10 @@ SCORES = {"cdrsb": ("CDR", "CDRSB", "VISDATE"), "cdr_global": ("CDR", "CDGLOBAL"
 D = cov.set_index("subject_id")[["group", "phase", "adni34", "vendor", "age", "female", "education"]].copy()
 for name, (t, col, dcol) in SCORES.items():
     v, lag = nearest(t, col, dcol); D[name] = v; D[f"{name}_lag"] = lag
+donors = cohort_settings.donor_map(A)       # labels shuffled: the scores move with the diagnosis, each person takes their donor's
+if donors is not None:
+    scores = [c for name in SCORES for c in (name, f"{name}_lag")]
+    D[scores] = D[scores].reindex([donors.get(s, s) for s in D.index]).values
 D["cdr_impaired"] = np.where(D.cdr_global.notna(), (D.cdr_global >= 0.5).astype(float), np.nan)
 
 
@@ -98,12 +105,12 @@ fam = {c: ("F1" if c.startswith("WB_") else "F2" if c.startswith(("SR_", "LR_"))
 pd.Series(fam, name="family").rename_axis("feature").to_csv(O / "feature_families.csv")
 D.join(F).to_csv(O / "p4_data.csv")
 
-prim = D[D.adni34 == 1]
-print(f"participants after Phase 1 QC: {len(D)} (ADNI-3/4 {len(prim)}); features {F.shape[1]} "
+prim = D[chain.primary(D) == 1]
+print(f"participants after Phase 1 QC: {len(D)} ({chain.sample_label()} {len(prim)}); features {F.shape[1]} "
       f"(F1 {sum(v == 'F1' for v in fam.values())}, F2 {sum(v == 'F2' for v in fam.values())}, F3 {sum(v == 'F3' for v in fam.values())}, "
       f"F4 {sum(v == 'F4' for v in fam.values())}); dropped for >50% missing: {list(high[high].index)}")
 for s in list(SCORES) + ["cdr_impaired"]:
     lag = D.get(f"{s}_lag", D["cdr_global_lag"])
-    print(f"  {s:12s} pooled n = {D[s].notna().sum():3d}  ADNI-3/4 n = {prim[s].notna().sum():3d} "
+    print(f"  {s:12s} pooled n = {D[s].notna().sum():3d}  {chain.sample_label()} n = {prim[s].notna().sum():3d} "
           f"(CN {prim[prim.group == 'CN'][s].notna().sum()}, MCI {prim[prim.group == 'MCI'][s].notna().sum()}, AD {prim[prim.group == 'AD'][s].notna().sum()})"
           f"  median lag {lag[D[s].notna()].median():.0f} d")

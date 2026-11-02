@@ -1,9 +1,11 @@
 """Build notebooks/phase3_exception_nulls<suffix>.ipynb (then execute with nbconvert)."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import nbformat as nbf
 from pathlib import Path
 
-NB = Path(f"/home/ec2-user/exp/docs/iit_dipanjan/notebooks/phase3_exception_nulls{os.environ.get('IIT_SUFFIX', '')}.ipynb")
+NB = Path(os.environ.get("IIT_NOTEBOOKS", "/home/ec2-user/exp/docs/iit_dipanjan/notebooks")) / f"phase3_exception_nulls{os.environ.get('IIT_SUFFIX', '')}.ipynb"
 cells = []
 md = lambda s: cells.append(nbf.v4.new_markdown_cell(s.strip()))
 code = lambda s: cells.append(nbf.v4.new_code_cell(s.strip()))
@@ -86,7 +88,10 @@ code(r"""
 def cliff(a, b):
     a, b = a[np.isfinite(a)], b[np.isfinite(b)]; r = rankdata(np.concatenate([a, b])); u = r[:len(a)].sum() - len(a) * (len(a) + 1) / 2
     return 2 * u / (len(a) * len(b)) - 1
-prim = np.flatnonzero(((cov.adni34 == 1) & (qc.qc_fail == 0)).values); g = cov.group.values[prim]
+sys.path.insert(0, "/home/ec2-user/exp/docs/iit_dipanjan/tools")
+import iit_chain as chain
+chain.boot()
+prim = np.flatnonzero(((chain.primary(cov) == 1) & (qc.qc_fail == 0)).values); g = cov.group.values[prim]
 cn = np.flatnonzero(g == "CN")
 def one_split():
     perm = rng.permutation(cn); disc = perm[: len(cn) // 2]; core = X3[prim[disc]].mean(0) > 0.5

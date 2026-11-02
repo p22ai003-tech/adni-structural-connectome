@@ -25,6 +25,8 @@ Conditions (option 2 of 24 Oct: coverage handled by checks, not by rebuilding):
 
 Usage: python p2_engine.py <source> <condition> [B]     e.g.  p2_engine.py published P2 2000
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json, sys, time
 from pathlib import Path
@@ -47,7 +49,7 @@ NETS = ["Visual", "Somatomotor", "DorsalAttention", "Salience_VAN", "Limbic", "F
 L = E["len"].astype(float); ni, nj = E["net_i"], E["net_j"]; ei, ej = E["i"], E["j"]
 
 # ---------------- condition: participants and covariates
-a34 = (cov.adni34 == 1) & (qc.qc_fail == 0)
+a34 = (chain.primary(cov) == 1) & (qc.qc_fail == 0)
 covs = None
 if COND == "P0":   keep = (qc.in_cohort == 1).values if "in_cohort" in qc else np.ones(len(cov), bool)
 elif COND == "P2": keep = a34.values; covs = COVS
@@ -92,6 +94,7 @@ def cliff_cols(A, Bm):
 
 # ---------------- A and B: length bins
 cn_all = cov.group.values == "CN"
+if chain.root() is not None and "in_cohort" in qc: cn_all = cn_all & (qc.in_cohort == 1).values     # the length audit's engine: outside the cohort shapes no bin
 pool = L[cn_all & (a34.values if COND != "P0" else True)]
 edges_q = np.nanpercentile(pool[np.isfinite(pool)], np.linspace(0, 100, 11)); edges_q[0], edges_q[-1] = 0, np.inf
 centres = np.array([np.nanmedian(pool[(pool > edges_q[k]) & (pool <= edges_q[k + 1])]) for k in range(10)])

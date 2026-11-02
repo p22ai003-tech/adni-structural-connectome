@@ -20,6 +20,8 @@ for age, sex and education (primary).
 
 Usage: python p3_engine.py <source> [R]          source = published | uniform_v3
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json, sys, time
 from pathlib import Path
@@ -61,7 +63,8 @@ def exceptions(k_sd, min_bin_edges=120, max_bins=30):
 t0 = time.time()
 EXC = {k: exceptions(k) for k in (2.5, 3.0, 3.5)}
 X3 = EXC[3.0]
-val = {"exceptions_per_participant_median": float(np.median(X3.sum(1)))}
+HAS_MATRICES = np.isfinite(L).any(1)         # someone without matrices has no exceptions to average: they are not zeros
+val = {"exceptions_per_participant_median": float(np.median(X3[HAS_MATRICES].sum(1)))}
 if SRC == "published":                    # validation against the published edge-level exception table
     pub = pd.read_csv("/home/ec2-user/exp/data/derivatives/qc/analysis_cohort/17_edr_exceptions/edr_exception_edge_level_fd_sum_len_mean.csv",
                       usecols=["subject_id", "i", "j"])
@@ -99,9 +102,10 @@ def contrasts(y, g):
     return {f"{a}-{b}": (cliff(y[g == a], y[g == b]), bm(y[g == a], y[g == b])) for a, b in CT}
 
 
-density = (np.isfinite(L) & np.isfinite(W)).mean(1); total_w = np.log(np.nansum(W, 1))
+density = (np.isfinite(L) & np.isfinite(W) if chain.S.get("length_measure") == "per_person" else np.isfinite(W)).mean(1)   # a fixed measure leaves some edges without length
+total_w = np.log(np.nansum(W, 1))
 has = np.isfinite(L).any(1) & ((qc.in_cohort == 1).values if "in_cohort" in qc else True)   # in the analysis cohort
-cond = {"P0": (has, None), "P2": (((cov.adni34 == 1) & (qc.qc_fail == 0)).values & has, COVS)}
+cond = {"P0": (has, None), "P2": (((chain.primary(cov) == 1) & (qc.qc_fail == 0)).values & has, COVS)}
 out = {"validation": val}
 rows_A, rows_B, rows_C, rows_D, rows_E, rows_F, core_tab = [], [], [], [], [], [], []
 DIST = {}                                 # per-split / null values, for the figures
@@ -201,8 +205,9 @@ for name, rows in [("A_core_coverage", rows_A), ("B_controls_only_split", rows_B
                    ("E_matched_null", rows_E), ("F_connectivity_adjusted", rows_F), ("core_edges", core_tab)]:
     pd.DataFrame(rows).to_csv(RES / f"{name}_{SRC}.csv", index=False)
 # per-edge exception frequency, for the figures
-pd.DataFrame({"i": E["i"] + 1, "j": E["j"] + 1, "freq_all": X3.mean(0), "freq_cn": X3[cov.group.values == "CN"].mean(0),
-              "freq_ad": X3[cov.group.values == "AD"].mean(0), "freq_mci": X3[cov.group.values == "MCI"].mean(0)}).to_csv(RES / f"edge_frequency_{SRC}.csv", index=False)
+GR = cov.group.values
+pd.DataFrame({"i": E["i"] + 1, "j": E["j"] + 1, "freq_all": X3[HAS_MATRICES].mean(0), "freq_cn": X3[HAS_MATRICES & (GR == "CN")].mean(0),
+              "freq_ad": X3[HAS_MATRICES & (GR == "AD")].mean(0), "freq_mci": X3[HAS_MATRICES & (GR == "MCI")].mean(0)}).to_csv(RES / f"edge_frequency_{SRC}.csv", index=False)
 np.savez_compressed(RES / f"distributions_{SRC}.npz", **{k.replace("|", "__").replace(" ", "_"): v for k, v in DIST.items()})
 out["seconds"] = round(time.time() - t0)
 json.dump(out, open(RES / f"summary_{SRC}.json", "w"), indent=1, default=float)

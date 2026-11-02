@@ -1,6 +1,8 @@
 """Phase 5 step 3 — robustness tables and figures: the rebuilt AAL3 results against the second parcellation (DKT76) and
 other edge weights for the exception rule (streamline count, FA), and, once available, ACT tractography (p5_act.py).
 Reads the Phase 1-3 outputs of each variant (run_phase5.sh) and of the main rebuilt run."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json
 from pathlib import Path
@@ -9,7 +11,7 @@ import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 U = Path("/home/ec2-user/exp/docs/iit_dipanjan"); P5 = Path(os.environ.get("IIT_P5", U / "phase5_uniform")); T = P5 / "tables"; T.mkdir(exist_ok=True)
-VAR = {"aal3": ("Rebuilt, AAL3 (main)", U / "phase1_uniform", U / "phase2_uniform", "uniform_v3", U / "phase3_uniform", "uniform_v3"),
+VAR = {"aal3": ("Rebuilt, AAL3 (main)", chain.P(1), chain.P(2), "uniform_v3", chain.P(3), "uniform_v3"),
        "dkt": ("DKT parcellation", P5 / "dkt/phase1", P5 / "dkt/phase2", "uniform_v3_dkt", P5 / "dkt/phase3", "uniform_v3_dkt"),
        "count": ("Streamline-count weights", P5 / "aal3_count/phase1", None, None, P5 / "aal3_count/phase3", "uniform_v3"),
        "fa": ("FA weights", P5 / "aal3_fa/phase1", None, None, P5 / "aal3_fa/phase3", "uniform_v3")}
@@ -69,7 +71,7 @@ for k, v in VAR.items():
 pd.DataFrame(rows).to_csv(T / "sr_lr_variants.csv", index=False)
 
 # ---------------- T4 Phase 2 length slopes, primary analysis: AAL3 against DKT
-ia = pd.read_csv(U / "phase2_uniform/tables/interaction_uniform_v3.csv"); ia = ia[ia.condition == "P2"]
+ia = pd.read_csv(chain.P(2) / "tables/interaction_uniform_v3.csv"); ia = ia[ia.condition == "P2"]
 idk = pd.read_csv(P5 / "dkt/phase2/results/interaction_uniform_v3_dkt_P2.csv")
 f3 = lambda x: f"{x:+.3f}".replace("-", "−"); fp = lambda p: "< 0.001" if p < 0.001 else f"{p:.3f}"
 rows = []

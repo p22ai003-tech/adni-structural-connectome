@@ -96,3 +96,30 @@ machine reboots (finished participants are skipped).
   ACT subset: rb_act_subject.py / rb_act_run.sh → /data/derivatives/connectomes_uniform_v3_act (45 participants);
   tools/phase5/after_act.sh runs the comparison and refreshes the Phase 5 report when the re-tracking ends.
 - Phase 6 `tools/phase6/` (p6_figures.py with the pipeline venv, p6_docx.py) → `phase6_uniform/fig_ms*.png`, Phase6_Figures.docx.
+
+## Update 2 Nov 2026 — one root, one set of settings, guards (recipe v4 preparation)
+Nothing below changes a default: with `IIT_ROOT` unset every script resolves the paths it always did, and the master cohort, the
+Phase 1 features and the audit come out byte-identical on the existing data.
+- `IIT_ROOT`: the single root variable (`tools/iit_chain.py`). A chain reads its connectomes from and writes everything under this
+  root: `connectomes/`, `analysis_tree/`, `phase1/`..`phase7/`, `docs/`, `notebooks/`, `logs/`. One root per recipe arm.
+- Settings (`sc_cohort_settings.py` at the repository root), fixed once per chain in `chain_settings.json`; a later step with another
+  value stops: `SC_DENSITY_FLOOR` (0.6; `none` = no floor), `SC_SMC` (`mci`; `hold_out`), `IIT_PRIMARY_SAMPLE` (`adni34`; `adni3`,
+  `pooled`), `IIT_LENGTH_MEASURE` (`per_person`; `mni_distance`, `control_median_act`), `SC_N_NODES` (166; 154 leaves out the 12 brainstem
+  nuclei), `SC_LABELS` + `SC_LABEL_SEED`, `IIT_R4_FIELD` + `IIT_R4_MIN`. A new chain must state the first five; defaults belong to today's outputs.
+- Launchers refuse (exit 3) unless every connectome's `recipe_sha256` (in its `_qc.json`) equals the one in
+  `/data/derivatives/recipe_v4/SIGNED_RECIPE.json`; a missing file means refuse. This includes today's default paths: re-running them
+  needs a root of its own. `IIT_REHEARSAL=1` / `--rehearsal` bypasses the check, only with its own root; the bypass is written into
+  `chain_settings.json`, `REHEARSAL_UNSIGNED.txt` and the first line of every document.
+- Labels: under a root, real diagnoses are joined only with `SC_LABELS=real`. `SC_LABELS=shuffled SC_LABEL_SEED=n` permutes diagnosis and
+  clinical scores together between participants (recorded in `00_master/label_mode.json`, map in `label_donor_map.csv`).
+- Exclusions under a root come from the rule (`iit_chain.py exclusions`): registration below its minimum, or density below the floor.
+- Length measure and nodes: a view of the matrices (`connectomes/matrices_view`) with `len_mean` replaced by the fixed per-edge ruler on the
+  edges each person has, and nodes beyond `SC_N_NODES` at zero. The no-ACT arm takes the ACT arm's ruler with `IIT_LENGTH_REF`. DKT keeps
+  per-person length: MNI centres exist only for AAL3.
+- What a recipe run hands over: `SC_AAL166_<unit>_<kind>.csv` and `SC_AAL166_<unit>_qc.json` per session (`iit_chain.py export-matrices`), the
+  qc.json carrying `recipe_sha256`. Under a root, covariates come from each session's `stats/aseg+DKT.stats` in `IIT_FASTSURFER`/`<unit>`: the CPU
+  route runs `--seg_only`, so head size is FastSurfer's mask volume, not eTIV.
+- Documents: builders take a new version name (`--version=NAME`, `IIT_DOC_VERSION`, or the launcher's argument) and never overwrite;
+  in-place editors accept only a working copy (`iit_chain.py work-copy`, then `publish`). `p1_docx.py` refuses to run.
+- Narrative guard (`tools/narrative_guard.py`): a document is saved only if its fixed sentences hold on this chain's numbers.
+- `tools/run_chain.sh` runs everything under a root with a ledger (`logs/chain_status.tsv`). `tools/test_chain_guards.py` tests the guards.

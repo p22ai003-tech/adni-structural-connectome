@@ -6,6 +6,8 @@
 
 Primary sample of the rebuilt run (ADNI-3/4, passing quality control). Reads both audits (IIT_P1_COMPARE and IIT_P1).
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 from pathlib import Path
 import numpy as np, pandas as pd
@@ -17,8 +19,8 @@ cov = pd.read_csv(O / "covariates.csv").set_index("subject_id")
 qc = pd.read_csv(O / "qc.csv", index_col=0).reindex(cov.index)
 new = pd.read_csv(O / "audit/audit_participants.csv", index_col=0).reindex(cov.index)
 old = pd.read_csv(A1 / "audit/audit_participants.csv", index_col=0).reindex(cov.index)
-P = cov.index[(cov.adni34 == 1) & (qc.qc_fail == 0)]
-route = qc.loc[P, "route"]
+P = cov.index[(chain.primary(cov) == 1) & (qc.qc_fail == 0)]
+route = qc.loc[P, "route"] if chain.root() is None else pd.read_csv(A1 / "qc.csv", index_col=0).route.reindex(P)   # the earlier analysis's route
 GCOL = {"CN": "#38bdf8", "MCI": "#84cc16", "AD": "#fb7185"}
 RCOL = {"legacy_step7": "#a855f7", "legacy_r4": "#f59e0b", "new": "#2563eb"}
 RLAB = {"legacy_step7": "legacy route A", "legacy_r4": "legacy route B", "new": "current route"}

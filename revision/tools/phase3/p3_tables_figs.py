@@ -2,6 +2,8 @@
 
 Usage: python p3_tables_figs.py [source]
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json, sys
 from pathlib import Path

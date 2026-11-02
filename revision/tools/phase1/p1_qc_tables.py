@@ -10,6 +10,8 @@ On the uniformly rebuilt connectomes (IIT_SRC != published): the exclusions carr
 comparison is published connectomes (IIT_P1_COMPARE, after quality control) against rebuilt connectomes for the pooled
 (C0q), primary (C2) and atrophy-adjusted (C5) analyses, and tables/rebuild_comparison.csv replaces coverage_by_group.csv.
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json
 from pathlib import Path
@@ -106,7 +108,7 @@ pd.DataFrame(rows).to_csv(T / "what_changed.csv", index=False)
 if REBUILT:
     # ---------------- published against rebuilt connectomes, primary sample of the rebuilt run
     au1 = pd.read_csv(A1 / "audit/audit_participants.csv", index_col=0).reindex(cov.index)
-    P = cov[(cov.adni34 == 1) & (qc.qc_fail == 0)]
+    P = cov[(chain.primary(cov) == 1) & (qc.qc_fail == 0)]
     med = lambda d, c, g: float(d.loc[P.index[P.group == g], c].median())
     rows = []
     for lab, c, fmt in [("Edges carrying diffusion values (median)", "md_coverage", "{:.0%}"), ("Edge density (median)", "density", "{:.2f}"),
@@ -119,7 +121,7 @@ if REBUILT:
     pd.DataFrame(rows).to_csv(T / "rebuild_comparison.csv", index=False)
     from scipy import stats
     both = P.index[au1.loc[P.index, "wb_md_median"].notna() & au.loc[P.index, "wb_md_median"].notna()]
-    route = qc.loc[P.index, "route"]
+    route = qc.loc[P.index, "route"] if chain.root() is None else pd.read_csv(A1 / "qc.csv", index_col=0).route.reindex(P.index)   # the earlier analysis's route
     S = dict(n_excluded=int(qc.qc_fail.sum()), excluded_adni34=AUS["qc_fail_adni34"], by_reason=AUS["qc_by_reason"],
              values_masked=AUS["values_masked_among_kept"], fences=AUS["fences"],
              reg_retained_min=float(qc.loc[qc.qc_fail == 0, "reg_fa_corr_rebuild"].min()),
@@ -145,7 +147,7 @@ if REBUILT:
     print(json.dumps({k: S[k] for k in S if k.startswith(("reg_", "cov_", "len_", "fa_", "rho_"))}, indent=1))
     raise SystemExit
 # ---------------- coverage and route by group (primary sample)
-P = cov[(cov.adni34 == 1) & (qc.qc_fail == 0)].join(qc[["md_coverage", "route"]])
+P = cov[(chain.primary(cov) == 1) & (qc.qc_fail == 0)].join(qc[["md_coverage", "route"]])
 cg = P.groupby("group").agg(n=("md_coverage", "size"), median=("md_coverage", "median"),
                             q1=("md_coverage", lambda v: v.quantile(0.25)), q3=("md_coverage", lambda v: v.quantile(0.75)),
                             below5=("md_coverage", lambda v: 100 * (v < 0.05).mean()), below25=("md_coverage", lambda v: 100 * (v < 0.25).mean()),

@@ -1,10 +1,12 @@
 """Build notebooks/phase1_confound_control.ipynb (then execute with nbconvert)."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import nbformat as nbf
 from pathlib import Path
 
 import os
-NB = Path(f"/home/ec2-user/exp/docs/iit_dipanjan/notebooks/phase1_confound_control{os.environ.get('IIT_SUFFIX', '')}.ipynb")
+NB = Path(os.environ.get("IIT_NOTEBOOKS", "/home/ec2-user/exp/docs/iit_dipanjan/notebooks")) / f"phase1_confound_control{os.environ.get('IIT_SUFFIX', '')}.ipynb"
 NB.parent.mkdir(exist_ok=True)
 cells = []
 md = lambda s: cells.append(nbf.v4.new_markdown_cell(s.strip()))
@@ -53,10 +55,10 @@ T0 = time.time()
 EXP = Path("/home/ec2-user/exp")
 A = Path(os.environ.get("IIT_AROOT", "/home/ec2-user/exp/data/derivatives/qc/analysis_cohort"))           # analysis tree
 CONN = Path(os.environ.get("IIT_CONN", "/data/derivatives/connectomes"))               # 166 x 166 edge matrices
-FS = Path("/data/derivatives/fastsurfer")                  # FastSurfer segmentations
+FS = Path(os.environ.get("IIT_FASTSURFER", "/data/derivatives/fastsurfer"))   # FastSurfer segmentations
 AM2 = EXP / "cohort/adnimerge/extracted/ADNIMERGE2/data"   # ADNIMERGE2 tables (.rda)
 OUT = Path(os.environ.get("IIT_P1", "/home/ec2-user/exp/docs/iit_dipanjan/phase1"))
-B_BOOT = 2000                                              # bootstrap resamples (as in the manuscript)
+B_BOOT = int(os.environ.get("IIT_B", 2000))                # bootstrap resamples (2000 as in the manuscript)
 PUBLISHED = str(CONN) == "/data/derivatives/connectomes"   # the published matrices (validation checks apply)
 print("data:", CONN, "| analysis root:", A, "| outputs:", OUT)
 rng = np.random.default_rng(20261024)
@@ -97,6 +99,10 @@ cov["vendor"] = (cov.image_id.map(dti["Imaging Protocol"]).astype(str).str.extra
                  .str.upper().map({"SIEMENS": "Siemens", "PHILIPS": "Philips", "GE": "GE"}).fillna("unrecorded"))
 cov["phase"] = cov.phase.astype(str).str.replace("ADNI ", "ADNI-")
 cov["adni34"] = cov.phase.isin(["ADNI-3", "ADNI-4"]).astype(int)
+sys.path.insert(0, "/home/ec2-user/exp/docs/iit_dipanjan/tools")
+import iit_chain as chain
+chain.boot(); PL = chain.sample_label()
+cov["adni34"] = chain.primary(cov)                         # the primary-sample flag (IIT_PRIMARY_SAMPLE; default ADNI-3/4)
 
 ed = am2("PTDEMOG")[["RID", "PTEDUCAT"]]; ed = ed[pd.to_numeric(ed.PTEDUCAT, errors="coerce") > 0]
 cov["education"] = cov.RID.map(ed.groupby("RID").PTEDUCAT.median())
@@ -135,6 +141,9 @@ cov["wmh_cm3"] = nearest("UCD_WMH", "TOTAL_WMH", "EXAMDATE")
 cov["amyloid_pos"] = nearest("UCBERKELEY_AMY_6MM", "AMYLOID_STATUS", "SCANDATE")
 cov["wmh_log"] = np.log(cov.wmh_cm3 / (cov.etiv / 1e3) * 100 + 0.01)
 cov = cov.set_index("subject_id")
+if chain.root() is not None:      # a chain's covariates are one file: the engines and this notebook read the same values
+    _c = pd.read_csv(OUT / "covariates.csv").set_index("subject_id").loc[cov.index]
+    cov = _c[cov.columns.intersection(_c.columns)].copy(); cov["adni34"] = chain.primary(_c)
 
 print("Participants by phase, vendor and diagnosis")
 display(pd.crosstab([cov.phase, cov.vendor], cov.group))
@@ -239,18 +248,19 @@ def tensor_bad(X, stem, tol):
     bad = (FA > 1) | (AD < RD) | (MD > FREE_WATER) | (AD > FREE_WATER) | (RD > FREE_WATER)
     if tol is not None: bad |= (MD - (AD + 2 * RD) / 3).abs() / MD > tol
     return bad.fillna(False)
-iu = np.triu_indices(166, 1)
+import sc_cohort_settings as cohort_settings
+K = cohort_settings.n_nodes(); FLOOR = cohort_settings.density_floor(); iu = np.triu_indices(K, 1)
 qc = pd.DataFrame(index=cov.index)
 qc["wb_md_median"] = pub.filter(regex=r"^WB\|.*\|MD$").median(axis=1) * 1e3
 qc["n_wb_tensor_fail"] = sum(tensor_bad(pub, f"WB|{n}|", 0.01).astype(int) for n in NETS)
-pres = {s_: (mats[s_][0] > 0) & (mats[s_][1] > 0) for s_ in cov.index}
+pres = {s_: (mats[s_][0] > 0) & (mats[s_][1] > 0) if cohort_settings.get("length_measure") == "per_person" else mats[s_][1] > 0 for s_ in cov.index}
 qc["density"] = [pres[s_][iu].mean() for s_ in cov.index]
-qc["zero_nodes"] = [int((pres[s_].sum(1) == 0).sum()) for s_ in cov.index]
-lo_md, hi_md = far_out(qc.wb_md_median); lo_den, _ = far_out(qc.density); lo_den = min(lo_den, 0.6)
+qc["zero_nodes"] = [int((pres[s_][:K, :K].sum(1) == 0).sum()) for s_ in cov.index]
+lo_md, hi_md = far_out(qc.wb_md_median); lo_den, _ = far_out(qc.density); lo_den = min(lo_den, FLOOR)
 qc["R0"] = ~cov.index.isin(m.subject_id)          # outside the analysis tree's cohort (pipeline density floor 0.6)
 qc["R1"], qc["R2"], qc["R3"] = qc.wb_md_median > hi_md, qc.n_wb_tensor_fail >= 2, qc.density < lo_den
-reg = {s_: json.loads(q.read_text()).get("reg_fa_corr") for s_ in cov.index if (q := CONN / f"SC_AAL166_{fsid[s_]}_qc.json").is_file()}
-qc["R4"] = cov.index.map(reg).astype(float) < 0.4     # rebuilt data only: atlas registration failed
+reg = {s_: json.loads(q.read_text()).get(chain.r4_field()) for s_ in cov.index if chain.r4_field() and (q := CONN / f"SC_AAL166_{fsid[s_]}_qc.json").is_file()}
+qc["R4"] = cov.index.map(reg).astype(float) < chain.r4_min()     # rebuilt data only: atlas registration failed
 qc["qc_fail"] = (qc.R0 | qc.R1 | qc.R2 | qc.R3 | qc.R4).astype(int)
 print(f"R1 fence: median whole-brain MD > {hi_md:.3f} × 10⁻³ mm²/s   R3 fence: density < {lo_den:.3f}")
 print("whole-brain networks breaking the tensor identities, participants per count:", qc.n_wb_tensor_fail.value_counts().sort_index().to_dict())
@@ -464,7 +474,7 @@ The next cell prints the exact numbers remaining under each.
 code(r"""
 rem = []
 A_ = (cov.adni34 == 1) & (cov.qc_fail == 0)
-for lab, idx in [("C0q pooled after QC", cov.index[cov.qc_fail == 0]), ("C1 ADNI-3/4 after QC", cov.index[A_]),
+for lab, idx in [("C0q pooled after QC", cov.index[cov.qc_fail == 0]), (f"C1 {PL} after QC", cov.index[A_]),
                  ("C5 with MTL + WMH", cov.index[A_ & cov.mtl_ratio.notna() & cov.wmh_log.notna()]),
                  ("C7 amyloid-defined", cov.index[A_ & (((cov.group == "CN") & (cov.amyloid_pos == 0)) | (cov.group.isin(["MCI", "AD"]) & (cov.amyloid_pos == 1)))]),
                  ("C8 Siemens only", cov.index[A_ & (cov.vendor == "Siemens")]),
@@ -718,8 +728,8 @@ P = a34q.index
 C0TAG = "C0 Pooled 530 (published)" if PUBLISHED else "C0 Pooled, rebuilt connectomes"
 spec = [(C0TAG, cov.index, pub, None, None),
         ("C0q Pooled after QC", cov.index[cov.qc_fail == 0], pubq, None, None),
-        ("C1 ADNI-3/4", P, pubq, None, None),
-        ("C2 ADNI-3/4 + age, sex, education", P, pubq, COVS, None),
+        (f"C1 {PL}", P, pubq, None, None),
+        (f"C2 {PL} + age, sex, education", P, pubq, COVS, None),
         ("C3 + vendor ComBat", P, pubq, COVS, "combat"),
         ("C4 Propensity-matched", P, pubq, None, "match"),
         ("C5 + MTL volume + WMH", P, pubq, COVS + ["mtl_ratio", "wmh_log"], None),
@@ -829,7 +839,7 @@ def boot(X, g, a, b, kind, B=B_BOOT):
 
 code(r"""
 t1 = time.time(); live, dists = [], {}
-for tag in [C0TAG, "C2 ADNI-3/4 + age, sex, education"]:
+for tag in [C0TAG, f"C2 {PL} + age, sex, education"]:
     X, g, _ = DATA[tag]
     for kind in ["TR", "EX"]:
         for a, b in CONTRASTS:
@@ -991,7 +1001,7 @@ md(r"""
 
 code(r"""
 tab = {}
-for c in ["C2 ADNI-3/4 + age, sex, education"] + [x for x in SENS if not x.startswith("C0q")]:
+for c in [f"C2 {PL} + age, sex, education"] + [x for x in SENS if not x.startswith("C0q")]:
     col = {}
     for lab, feat, ct in KEY[:10]:
         r = eff[(eff.condition == c) & (eff.feature == feat) & (eff.contrast == ct)].iloc[0]; col[lab] = f"{r.delta:+.3f}{'*' if r.q < 0.05 else ''}"
@@ -1013,7 +1023,7 @@ code(r"""
 C0 = eff[eff.condition.str.split().str[0] == "C0"]
 if not PUBLISHED:
     print("rebuilt matrices: the checks against the published numbers do not apply;")
-    print("quality control matches p1_audit.py (checked in Section 2.3); primary sample:", dict(DATA["C2 ADNI-3/4 + age, sex, education"][1].value_counts()))
+    print("quality control matches p1_audit.py (checked in Section 2.3); primary sample:", dict(DATA[f"C2 {PL} + age, sex, education"][1].value_counts()))
 else:
     v = lambda f, ct: C0[(C0.feature == f) & (C0.contrast == ct)].iloc[0]
     assert [int(((C0.kind == "WB") & (C0.measure == "FA") & (C0.contrast == ct) & (C0.q < 0.05)).sum()) for ct in CT] == [4, 9, 9]
@@ -1021,7 +1031,7 @@ else:
     assert round(v("COV|core|coverage", "CN-AD").delta, 3) == 0.393
     s_, l_ = cells(X0, g0, "CN", "AD"); assert (round(s_.mean(), 3), round(l_.mean(), 3), int((s_ > l_).sum())) == (0.434, 0.340, 37)
     n_of = lambda tag: dict(DATA[tag][1].value_counts())
-    assert n_of("C2 ADNI-3/4 + age, sex, education") == {"CN": 244, "MCI": 199, "AD": 44} and n_of("C0q Pooled after QC") == {"CN": 246, "MCI": 200, "AD": 73}
+    assert n_of(f"C2 {PL} + age, sex, education") == {"CN": 244, "MCI": 199, "AD": 44} and n_of("C0q Pooled after QC") == {"CN": 246, "MCI": 200, "AD": 73}
     assert cov.qc_fail.sum() == 11 and cov[(cov.qc_fail == 1) & (cov.adni34 == 1)].group.value_counts().to_dict() == {"CN": 4, "MCI": 1, "AD": 1}
     print("All validation checks passed: the pooled analysis reproduces the published Table 2, Table 3, Table 4 and Table 6 values;")
     print("quality control matches p1_audit.py and leaves the primary sample at CN 244, MCI 199, AD 44.")

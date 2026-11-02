@@ -1,9 +1,11 @@
 """Build notebooks/phase2_length_test.ipynb (then execute with nbconvert)."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import nbformat as nbf
 from pathlib import Path
 
 import os
-NB = Path(f"/home/ec2-user/exp/docs/iit_dipanjan/notebooks/phase2_length_test{os.environ.get('IIT_SUFFIX', '')}.ipynb")
+NB = Path(os.environ.get("IIT_NOTEBOOKS", "/home/ec2-user/exp/docs/iit_dipanjan/notebooks")) / f"phase2_length_test{os.environ.get('IIT_SUFFIX', '')}.ipynb"
 cells = []
 md = lambda s: cells.append(nbf.v4.new_markdown_cell(s.strip()))
 code = lambda s: cells.append(nbf.v4.new_code_cell(s.strip()))
@@ -58,7 +60,10 @@ qc = pd.read_csv(P1 / "qc.csv", index_col=0).reindex(cov.index)
 L = E["len"].astype(float)
 print("participants x edges:", L.shape, "| structural edges present:", f"{np.isfinite(L).mean():.3f}",
       "| of those with an MD value:", f"{np.isfinite(E['md']).sum() / np.isfinite(L).sum():.3f}")
-prim = ((cov.adni34 == 1) & (qc.qc_fail == 0)).values
+sys.path.insert(0, "/home/ec2-user/exp/docs/iit_dipanjan/tools")
+import iit_chain as chain
+chain.boot()
+prim = ((chain.primary(cov) == 1) & (qc.qc_fail == 0)).values
 rows = np.flatnonzero(prim); g = cov.group.values[rows]
 print("primary sample:", dict(pd.Series(g).value_counts()))
 MD = E["md"][rows].astype(float); MD[MD > 3e-3] = np.nan                     # quality control: impossible single values

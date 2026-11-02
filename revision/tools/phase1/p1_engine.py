@@ -22,6 +22,8 @@ networks of each measure within a contrast; coverage = its three contrasts.
 Covariate adjustment keeps group differences and removes covariate effects: value ~ group + covariates is fitted
 on the analysis sample and only the covariate terms are subtracted (the approach used for route control).
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json, sys
 from pathlib import Path
@@ -191,14 +193,15 @@ def sr_lr_summary(X, g, tag, kind="TR"):
 # ------------------------------------------------------------------ conditions
 COVS = ["age", "female", "education"]
 qc = cov.qc_fail == 0
-a34 = (cov.adni34 == 1) & qc                  # primary sample: ADNI-3/4 after quality control
+a34 = (chain.primary(cov) == 1) & qc          # primary sample after quality control (IIT_PRIMARY_SAMPLE; default ADNI-3/4)
+PL = chain.sample_label()
 conds = []
 inc = (qcd.in_cohort == 1) if "in_cohort" in qcd else pd.Series(True, index=cov.index)   # analysis-tree cohort
 conds.append(("C0 Pooled 530 (published)" if os.environ.get("IIT_SRC", "published") == "published" else "C0 Pooled, rebuilt connectomes",
               cov.index[inc], pub, None, None))
 conds.append(("C0q Pooled after QC", cov.index[qc], pubq, None, None))
-conds.append(("C1 ADNI-3/4", cov.index[a34], pubq, None, None))
-conds.append(("C2 ADNI-3/4 + age, sex, education", cov.index[a34], pubq, COVS, None))
+conds.append((f"C1 {PL}", cov.index[a34], pubq, None, None))
+conds.append((f"C2 {PL} + age, sex, education", cov.index[a34], pubq, COVS, None))
 conds.append(("C3 + vendor ComBat", cov.index[a34], pubq, COVS, "combat"))
 conds.append(("C4 Propensity-matched", cov.index[a34], pubq, None, "match"))
 conds.append(("C5 + MTL volume + WMH", cov.index[a34], pubq, COVS + ["mtl_ratio", "wmh_log"], None))

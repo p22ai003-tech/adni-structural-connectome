@@ -14,6 +14,8 @@ edges at or below the CN first quartile / above the third quartile of edge lengt
 3 SD of its adaptive equal-count length bin (>= 120 edges, <= 30 bins) in the participant's own connectome; core = edges
 that are exceptions in more than half of the cohort; coverage = share of core edges a participant expresses.
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json, sys
 from pathlib import Path
@@ -82,7 +84,7 @@ def networks(p, mask):
 
 
 pres_all = np.isfinite(L) & (L > 0) & np.isfinite(E["fd"]) & (E["fd"] > 0)
-a34 = np.isin(sid, cov.index[cov.adni34 == 1]) & cohort
+a34 = np.isin(sid, cov.index[chain.primary(cov) == 1]) & cohort
 keep = pres_all[a34].mean(0) >= 0.90
 rows, rows_c = {}, {}
 for p in np.flatnonzero(has):

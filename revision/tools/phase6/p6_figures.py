@@ -8,6 +8,8 @@
   fig_ms6_prediction.png out-of-sample R^2 by feature family with the diagnosis-only reference
 Run with the pipeline environment (nibabel): /home/ec2-user/exp/.venv_connectome_app/bin/python -I p6_figures.py
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import json
 from pathlib import Path
 import numpy as np, pandas as pd, nibabel as nib
@@ -16,9 +18,10 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 from matplotlib import cm, colors
 
-U = Path("/home/ec2-user/exp/docs/iit_dipanjan"); O = U / "phase6_uniform"; O.mkdir(exist_ok=True)
-P1, P2, P3, P4, P5 = (U / f"phase{k}_uniform" for k in range(1, 6))
-A = Path("/data/derivatives/qc/analysis_cohort_uniform")
+U = Path("/home/ec2-user/exp/docs/iit_dipanjan"); O = chain.P(6); O.mkdir(exist_ok=True)
+P1, P2, P3, P4, P5 = (chain.P(k) for k in range(1, 6))
+A = chain.aroot()
+PL = chain.sample_label()
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 9, "axes.spines.top": False, "axes.spines.right": False})
 GCOL = {"CN": "#38bdf8", "MCI": "#84cc16", "AD": "#fb7185"}
 NETS = ["Visual", "Somatomotor", "DorsalAttention", "Salience_VAN", "Limbic", "Frontoparietal", "DMN", "Subcortical", "Cerebellar", "Brainstem"]
@@ -40,13 +43,22 @@ def box(x, y, w, h, text, fc="#eff6ff", ec="#2563eb", fs=8.5, bold=False):
 def arrow(x0, y0, x1, y1): ax.annotate("", (x1, y1), (x0, y0), arrowprops=dict(arrowstyle="-|>", color="#374151", lw=1.1))
 
 
-box(0.2, 5.0, 3.0, 0.95, "ADNI diffusion MRI\n530 sessions (CN 251, MCI 201, AD 78)\nADNI-2, ADNI-3, ADNI-4", bold=False)
-box(3.8, 5.0, 3.4, 0.95, "Uniform reconstruction (one recipe)\nCSD, 3M iFOD2 streamlines, SIFT2\nFA, MD, AxD, RD along every streamline")
+cv_ = pd.read_csv(P1 / "covariates.csv"); qc_ = pd.read_csv(P1 / "qc.csv", index_col=0)
+box(0.2, 5.0, 3.0, 0.95, ("ADNI diffusion MRI\n530 sessions (CN 251, MCI 201, AD 78)\nADNI-2, ADNI-3, ADNI-4" if chain.root() is None else
+                         f"ADNI diffusion MRI\n{len(cv_)} sessions ({', '.join(f'{g} {int((cv_.group == g).sum())}' for g in ('CN', 'MCI', 'AD'))})\n{', '.join(sorted(cv_.phase.astype(str).unique()))}"), bold=False)
+if chain.root() is None:
+    TRACKS = "CSD, 3M iFOD2 streamlines, SIFT2"
+else:                                   # what this chain's connectomes record about their recipe
+    import narrative_guard
+    rec_ = narrative_guard.Evidence().recipe() or {}
+    TRACKS = f"{'ACT, ' if 'act' in str(rec_.get('recipe', '')).lower() and 'noact' not in str(rec_.get('recipe', '')).lower() else ''}CSD, {float(rec_.get('select') or 0) / 1e6:g}M iFOD2 streamlines, SIFT2"
+box(3.8, 5.0, 3.4, 0.95, f"Uniform reconstruction (one recipe)\n{TRACKS}\nFA, MD, AxD, RD along every streamline")
 box(7.8, 5.0, 3.0, 0.95, "Two parcellations, same streamlines\nAAL3 (166 regions, 10 networks)\nDKT (76 regions, 8 networks)")
 arrow(3.2, 5.47, 3.8, 5.47); arrow(7.2, 5.47, 7.8, 5.47)
-box(3.6, 3.6, 3.8, 1.0, "Quality control\n10 failed reconstructions (registration, density)\n+ 1 diffusivity outlier", fc="#fef2f2", ec="#dc2626")
+box(3.6, 3.6, 3.8, 1.0, ("Quality control\n10 failed reconstructions (registration, density)\n+ 1 diffusivity outlier" if chain.root() is None else
+                         f"Quality control\n{int(qc_.qc_fail.sum())} excluded of {len(qc_)}"), fc="#fef2f2", ec="#dc2626")
 arrow(5.5, 5.0, 5.5, 4.6)
-box(3.2, 2.3, 4.6, 1.0, f"{sum(n0.values()) - 1} participants analysed\nprimary sample ADNI-3/4: n = {sum(n2.values())}\n"
+box(3.2, 2.3, 4.6, 1.0, f"{sum(n0.values()) - 1 if chain.root() is None else int((qc_.qc_fail == 0).sum())} participants analysed\nprimary sample {PL}: n = {sum(n2.values())}\n"
                          f"(CN {n2['CN']}, MCI {n2['MCI']}, AD {n2['AD']})", fc="#f0fdf4", ec="#16a34a", bold=True)
 arrow(5.5, 3.6, 5.5, 3.3)
 ANA = [("Network contrasts\n10 networks × 4 measures\nall / short / long / exception\nedges; 9 confound controls"),
@@ -80,7 +92,7 @@ for ax, ct in zip(axes, CT):
     ax.set_xticks(range(len(xl))); ax.set_xticklabels(xl, rotation=90, fontsize=7); ax.set_title(ctn(ct), fontsize=10)
 axes[0].set_yticks(range(len(NETS))); axes[0].set_yticklabels([NICE.get(n, n) for n in NETS])
 cb = fig.colorbar(im, ax=axes, fraction=0.015, pad=0.01); cb.set_label("Cliff's δ, signed so that > 0 = abnormal in the later group")
-fig.suptitle(f"Primary analysis (ADNI-3/4, adjusted for age, sex and education); • q < 0.05", fontsize=10, y=0.99)
+fig.suptitle(f"Primary analysis ({PL}, adjusted for age, sex and education); • q < 0.05", fontsize=10, y=0.99)
 plt.savefig(O / "fig_ms2_heatmap.png", dpi=300, bbox_inches="tight"); plt.close()
 
 # ---------------- Figure 3: core on a glass brain and network effects by stage
@@ -107,7 +119,7 @@ def exceptions(k_sd=3.0, min_bin_edges=120, max_bins=30):
 
 
 X = exceptions(); coh = (qc.in_cohort == 1).values; core = X[coh].mean(0) > 0.5
-prim = coh & (cov.adni34 == 1).values & (qc.qc_fail == 0).values
+prim = coh & (chain.primary(cov) == 1).values & (qc.qc_fail == 0).values
 f_cn = X[prim & (cov.group == "CN").values].mean(0); f_ad = X[prim & (cov.group == "AD").values].mean(0)
 loss = (f_cn - f_ad)[core]; ci_, cj_ = E["i"][core], E["j"][core]
 fig = plt.figure(figsize=(14, 8.6)); gs = fig.add_gridspec(2, 3, height_ratios=[1.1, 1])
@@ -157,7 +169,7 @@ for i, m in enumerate(MEAS):
             sg = 1 if m == "FA" else -1; y, lo, hi = sg * d.delta, sg * d.lo, sg * d.hi
             if sg < 0: lo, hi = hi, lo
             ax.plot(d.centre_mm, y, color=col, ls=ls, marker="o", ms=3, lw=1.8 if c == "P2" else 1.1,
-                    label={"P0": "pooled, unadjusted", "P2": "primary (ADNI-3/4, adjusted)"}[c] if (i == 0 and j == 0) else None)
+                    label={"P0": "pooled, unadjusted", "P2": f"primary ({PL}, adjusted)"}[c] if (i == 0 and j == 0) else None)
             if c == "P2": ax.fill_between(d.centre_mm, lo, hi, color=col, alpha=0.15, lw=0)
         ax.axhline(0, color="#9ca3af", lw=0.8); ax.set_xscale("log"); ax.set_xticks([50, 100, 200]); ax.set_xticklabels(["50", "100", "200"])
         ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
@@ -172,8 +184,8 @@ s1 = pd.read_csv(P1 / "sr_lr_summary.csv").assign(c=lambda d: d.condition.str.sp
 sp = pd.read_csv(U / "phase1/sr_lr_summary.csv"); sp = sp[sp.condition.str.startswith("C0 ")].assign(c="Published")
 sd = pd.read_csv(P5 / "dkt/phase1/sr_lr_summary.csv").assign(c=lambda d: "DKT " + d.condition.str.split().str[0])
 S = pd.concat([sp, s1, sd]); S = S[S.kind == "TR"]
-ROWS = [("Published", "Published connectomes, pooled 530"), ("C0", "Rebuilt, pooled"), ("C1", "Rebuilt, ADNI-3/4"),
-        ("C2", "Rebuilt, primary (ADNI-3/4 adjusted)"), ("C3", "+ vendor ComBat"), ("C4", "Propensity-matched"),
+ROWS = [("Published", "Published connectomes, pooled 530"), ("C0", "Rebuilt, pooled"), ("C1", f"Rebuilt, {PL}"),
+        ("C2", f"Rebuilt, primary ({PL} adjusted)"), ("C3", "+ vendor ComBat"), ("C4", "Propensity-matched"),
         ("C5", "+ atrophy and lesions"), ("C8", "Siemens only"), ("DKT C2", "DKT parcellation, primary")]
 COL3 = {"CN-MCI": "#2563eb", "CN-AD": "#ea580c", "MCI-AD": "#16a34a"}
 fig, ax = plt.subplots(figsize=(8.5, 6))

@@ -1,10 +1,12 @@
 """Old (pooled 530, as published) -> new (ADNI-3/4 adjusted, primary) for every headline number."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 from pathlib import Path
 import os
 import numpy as np, pandas as pd
 O = Path(os.environ.get("IIT_P1", "/home/ec2-user/exp/docs/iit_dipanjan/phase1"))
 e = pd.read_csv(O / "effects_long.csv"); s = pd.read_csv(O / "sr_lr_summary.csv")
-C0, C2 = "C0 Pooled 530 (published)", "C2 ADNI-3/4 + age, sex, education"
+C0, C2 = "C0 Pooled 530 (published)", f"C2 {chain.sample_label()} + age, sex, education"
 if os.environ.get("IIT_SRC", "published") != "published":      # rebuilt connectomes: the old column is the published C0
     P0 = Path(os.environ.get("IIT_P1_COMPARE", "/home/ec2-user/exp/docs/iit_dipanjan/phase1"))
     e0, s0 = pd.read_csv(P0 / "effects_long.csv"), pd.read_csv(P0 / "sr_lr_summary.csv")

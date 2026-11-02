@@ -1,5 +1,7 @@
 """Phase 1 step 3b — assemble the per-condition engine outputs into effects_long.csv, sr_lr_summary.csv and
 condition_notes.json (canonical condition order), then move the per-condition files to phase1/runs/."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json, shutil
 from pathlib import Path

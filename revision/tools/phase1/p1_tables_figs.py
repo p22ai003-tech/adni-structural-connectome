@@ -13,6 +13,8 @@ On the uniformly rebuilt connectomes (IIT_SRC=uniform_v3) the reference is still
 published-data run in IIT_P1_COMPARE): every rebuilt condition, C0 included, is judged against what the manuscript
 reported, and the published values appear as an extra first column/row labelled "Published".
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json
 from pathlib import Path

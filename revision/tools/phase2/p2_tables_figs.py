@@ -6,6 +6,8 @@ For the uniformly rebuilt connectomes (source uniform_v3) the tables and figures
 beside the same two conditions on the published connectomes (phase2/tables/*_published.csv, suffix "pub"); P10 and P11
 are left out because every rebuilt connectome carries diffusion values on all connected edges (they equal P2).
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json, sys
 from pathlib import Path
@@ -16,7 +18,8 @@ import matplotlib.pyplot as plt
 SRC = sys.argv[1] if len(sys.argv) > 1 else "published"
 O = Path(os.environ.get("IIT_P2", "/home/ec2-user/exp/docs/iit_dipanjan/phase2")); R = O / "results"; T = O / "tables"; T.mkdir(exist_ok=True)
 CONDS = ["P0", "P2", "P10", "P11"]
-LABEL = {"P0": "P0 pooled 530, published, unadjusted", "P2": "P2 primary: ADNI-3/4 after QC, adjusted",
+PL = chain.sample_label()
+LABEL = {"P0": "P0 pooled 530, published, unadjusted", "P2": f"P2 primary: {PL} after QC, adjusted",
          "P10": "P10 primary + microstructure coverage", "P11": "P11 primary, coverage ≥ 25%"}
 COL = {"P0": "#111827", "P2": "#2563eb", "P10": "#ea580c", "P11": "#16a34a"}
 CT = ["CN-MCI", "CN-AD", "MCI-AD"]; MEAS = ["MD", "AxD", "RD", "FA"]
@@ -33,7 +36,7 @@ if SRC != "published":                       # add the published-connectome P0 a
                                       .assign(condition=lambda d: d.condition + "pub")], ignore_index=True)
     cur, itx, cut = add(cur, "curves"), add(itx, "interaction"), add(cut, "cutoffs")
     TAB, FIG = ["P2", "P0", "P2pub", "P0pub"], ["P0pub", "P2pub", "P0", "P2"]
-    LABEL.update({"P0": "P0 pooled, rebuilt connectomes, unadjusted", "P2": "P2 primary (ADNI-3/4 after QC, adjusted), rebuilt connectomes",
+    LABEL.update({"P0": "P0 pooled, rebuilt connectomes, unadjusted", "P2": f"P2 primary ({PL} after QC, adjusted), rebuilt connectomes",
                   "P0pub": "published connectomes: pooled 530, unadjusted (as published)", "P2pub": "published connectomes: primary"})
     COL.update({"P0pub": "#111827", "P2pub": "#7dd3fc", "P0": "#6b7280"})
     HEAD = {"P2": "Rebuilt: primary (P2)", "P0": "Rebuilt: pooled (P0)", "P2pub": "Published: primary (P2)", "P0pub": "Published: pooled (P0)"}

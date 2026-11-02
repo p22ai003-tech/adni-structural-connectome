@@ -48,6 +48,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 from connectome_analysis.analysis_config import GROUP_ORDER, AnalysisPaths
+import sc_cohort_settings
 from connectome_analysis.analysis_edges import load_connectome_stack
 from connectome_analysis.analysis_plots import save_dataframe, write_inference_markdown
 
@@ -1107,6 +1108,8 @@ def _read_clinical_score_rows(paths: AnalysisPaths) -> pd.DataFrame:
     clinical = pd.concat(rows, ignore_index=True)
     clinical = clinical.dropna(subset=["subject_id"]).copy()
     clinical["subject_id"] = clinical["subject_id"].astype(str)
+    # These rows come straight from the cohort exports: with shuffled labels each participant takes their donor's.
+    clinical = sc_cohort_settings.hide_clinical_rows(clinical, "subject_id", paths.output_root)
     dedupe_cols = ["subject_id", "clinical_date", "clinical_source", *AUDIT_SCORE_TARGETS]
     return clinical.drop_duplicates(dedupe_cols).reset_index(drop=True)
 

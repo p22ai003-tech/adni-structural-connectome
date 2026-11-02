@@ -6,6 +6,8 @@
 (c) the same recipe restricted to 'consistent' edges: present (SIFT2 weight > 0) in >= 90% of ADNI-3/4
     participants (sir's item 1: remove effects of which edges happen to be reconstructed).
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import glob, re
 from pathlib import Path
@@ -80,7 +82,7 @@ def networks(L, W, micro, keep=None):
     return out
 
 subs = [s for s in cov.subject_id if s in fsid]
-a34 = set(cov[cov.adni34 == 1].subject_id)
+a34 = set(cov[chain.primary(cov) == 1].subject_id)     # the primary sample (IIT_PRIMARY_SAMPLE; default ADNI-3/4)
 pres = np.zeros((166, 166)); n34 = 0; cache = {}
 for s in subs:
     L, W, mic = load(s); cache[s] = (L, W, mic)

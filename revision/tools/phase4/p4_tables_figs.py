@@ -1,4 +1,6 @@
 """Phase 4 step 3 — report tables and figures from results/ (p4_engine.py)."""
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 import json
 from pathlib import Path
@@ -20,9 +22,9 @@ fp = lambda p: "" if not np.isfinite(p) else ("< 0.002" if p < 0.002 else f"{p:.
 rows = []
 for t in TARGETS:
     lagc = f"{t}_lag" if t != "cdr_impaired" else "cdr_global_lag"
-    for s, m in (("primary", D.adni34 == 1), ("pooled", D.index.notnull())):
+    for s, m in (("primary", chain.primary(D) == 1), ("pooled", D.index.notnull())):
         x = D[m & D[t].notna()]
-        rows.append({"Score": TN[t].replace(" (AUC)", ""), "Sample": "ADNI-3/4" if s == "primary" else "pooled", "n": len(x),
+        rows.append({"Score": TN[t].replace(" (AUC)", ""), "Sample": chain.sample_label() if s == "primary" else "pooled", "n": len(x),
                      **{g: int((x.group == g).sum()) for g in ("CN", "MCI", "AD")}, "Median days from scan": f"{x[lagc].median():.0f}"})
 pd.DataFrame(rows).to_csv(T / "scores.csv", index=False)
 
@@ -59,7 +61,7 @@ for s in ("primary", "pooled"):
 rows = []
 for s in ("primary", "pooled"):
     for g in ("CN", "MCI", "AD"):
-        r = {"Sample": "ADNI-3/4" if s == "primary" else "pooled", "Group": g}
+        r = {"Sample": chain.sample_label() if s == "primary" else "pooled", "Group": g}
         for t in TARGETS:
             x = Cm[(Cm["sample"] == s) & (Cm.group == g) & (Cm.target == t)]
             r[TN[t]] = "" if not len(x) else f"{f3(x['diff'].iloc[0])} [{f3(x.diff_lo.iloc[0])}, {f3(x.diff_hi.iloc[0])}]; p {fp(x.perm_p.iloc[0])}"
@@ -91,7 +93,7 @@ for ax, t in zip(axes, TARGETS):
     ax.set_ylabel("AUC" if t == "cdr_impaired" else "out-of-sample R²", fontsize=8.5)
 axes[-1].axis("off")
 h, l = axes[0].get_legend_handles_labels(); axes[-1].legend(h, l, loc="center", fontsize=9, frameon=False,
-                                                           title="ADNI-3/4 after quality control;\nbars: 2.5–97.5% over 20 repeats of 5-fold CV",
+                                                           title=f"{chain.sample_label()} after quality control;\nbars: 2.5–97.5% over 20 repeats of 5-fold CV",
                                                            title_fontsize=8.5)
 plt.tight_layout(); plt.savefig(O / "fig_p4_ladder.png", dpi=300); plt.close()
 

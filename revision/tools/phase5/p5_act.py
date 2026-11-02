@@ -8,29 +8,44 @@ exceptions and core with the main recipe, cut-offs from each setting's own CN ed
   effects     Cliff's delta, CN versus MCI and CN versus AD, for the leading network values, under both settings
 Writes phase5_uniform/tables/act_agreement.csv, act_key_effects.csv, act_summary.txt.
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os, subprocess, sys
 from pathlib import Path
 import numpy as np, pandas as pd
 from scipy.stats import rankdata
+import sc_cohort_settings as cohort_settings
 
-U = Path("/home/ec2-user/exp/docs/iit_dipanjan"); P5 = U / "phase5_uniform"; T = P5 / "tables"; Q = P5 / "act"; Q.mkdir(exist_ok=True)
-ACT = Path("/data/derivatives/connectomes_uniform_v3_act"); units = [u for u in open(ACT / "units.txt").read().split() if u]
-units = [u for u in units if (ACT / f"matrices/SC_AAL166_{u}_qc.json").is_file()]
+U = Path("/home/ec2-user/exp/docs/iit_dipanjan"); P5 = chain.P(5); T = P5 / "tables"; T.mkdir(parents=True, exist_ok=True); Q = P5 / "act"; Q.mkdir(exist_ok=True)
+if chain.root() is None:
+    ACT = Path("/data/derivatives/connectomes_uniform_v3_act"); units = [u for u in open(ACT / "units.txt").read().split() if u]
+    units = [u for u in units if (ACT / f"matrices/SC_AAL166_{u}_qc.json").is_file()]
+    MATS = ACT / "matrices"
+    E = dict(np.load(U / "phase2_uniform/edges_uniform_v3.npz", allow_pickle=True))
+else:                 # a chain compares its own connectomes with the other arm's edge cache (IIT_OTHER_ARM_EDGES), on the people in both
+    MATS = Path(os.environ["IIT_CONN_RAW"])
+    E = dict(np.load(os.environ["IIT_OTHER_ARM_EDGES"], allow_pickle=True))
+    units = sorted(f.name[len("SC_AAL166_"):-len("_len_mean.csv")] for f in MATS.glob("SC_AAL166_*_len_mean.csv"))
+    units = [u for u in units if u[:10] in set(E["sid"])]
 sids = [u[:10] for u in units]
-E = dict(np.load(U / "phase2_uniform/edges_uniform_v3.npz", allow_pickle=True))
 rows = [list(E["sid"]).index(s) for s in sids]; iu = (E["i"], E["j"])
 main = {k: (v[rows] if k in ("len", "fd", "count", "fa", "md", "rd", "ad") else v) for k, v in E.items()}
-main["sid"] = np.array(sids, dtype=object); np.savez_compressed(Q / "edges_main45.npz", **main)
+main["sid"] = np.array(sids, dtype=object)
 KINDS = {"len": "len_mean", "fd": "fd_sum", "count": "count", "fa": "fa_mean", "md": "md_mean", "rd": "rd_mean", "ad": "ad_mean"}
 act = {k: np.full((len(units), len(iu[0])), np.nan, np.float32) for k in KINDS}
 for r, u in enumerate(units):
     for k, kind in KINDS.items():
-        v = np.loadtxt(ACT / f"matrices/SC_AAL166_{u}_{kind}.csv", delimiter=",")[iu]; act[k][r] = np.where(v > 0, v, np.nan)
+        v = np.loadtxt(MATS / f"SC_AAL166_{u}_{kind}.csv", delimiter=",")[iu]; act[k][r] = np.where(v > 0, v, np.nan)
 pres = np.isfinite(act["len"]) & np.isfinite(act["fd"])
 for k in ["fa", "md", "rd", "ad"]: act[k][~pres] = np.nan
+NODES = cohort_settings.n_nodes()
+if NODES < 166:                                # nodes this chain does not analyse stay out of both arms
+    out = (iu[0] >= NODES) | (iu[1] >= NODES)
+    for k in KINDS: act[k][:, out] = np.nan; main[k] = np.where(out, np.nan, main[k]).astype(np.float32)
+np.savez_compressed(Q / "edges_main45.npz", **main)
 act.update(sid=np.array(sids, dtype=object), i=E["i"], j=E["j"], net_i=E["net_i"], net_j=E["net_j"])
 np.savez_compressed(Q / "edges_act45.npz", **act)
-PY = U / "tools/.venv/bin/python"; env = dict(os.environ, IIT_P1=str(U / "phase1_uniform"))
+PY = U / "tools/.venv/bin/python"; env = dict(os.environ, IIT_P1=str(chain.P(1)))
 for name in ("main45", "act45"):
     subprocess.run([str(PY), "-I", str(U / "tools/phase5/p5_features.py"), str(Q / f"edges_{name}.npz"), str(P5 / "aal3_network_mapping.csv"),
                     str(Q / name), "fd"], check=True, env=env)
@@ -57,7 +72,7 @@ for fam, pref in (("whole brain", "WB|"), ("short range", "TR|"), ("long range",
 pd.DataFrame(rows).to_csv(T / "act_agreement.csv", index=False)
 cm_ = pd.read_csv(Q / "main45/core_edges.csv"); ca = pd.read_csv(Q / "act45/core_edges.csv")
 km, ka = set(zip(cm_.i, cm_.j)), set(zip(ca.i, ca.j)); dice = 2 * len(km & ka) / max(len(km) + len(ka), 1)
-grp = pd.read_csv(U / "phase1_uniform/covariates.csv").set_index("subject_id").loc[sids, "group"].values
+grp = pd.read_csv(chain.P(1) / "covariates.csv").set_index("subject_id").loc[sids, "group"].values
 
 
 def cliff(a, b):
@@ -87,12 +102,13 @@ word = "closely" if np.median(wb_r) >= 0.8 else ("moderately" if np.median(wb_r)
 ke = pd.read_csv(T / "act_key_effects.csv"); num = lambda x: float(str(x).replace("−", "-"))
 same = sum(np.sign(num(r[f"unconstrained: {c}"])) == np.sign(num(r[f"ACT: {c}"])) for _, r in ke.iterrows() for c in ("CN–MCI", "CN–AD"))
 close = sum(abs(num(r[f"unconstrained: {c}"]) - num(r[f"ACT: {c}"])) < 0.15 for _, r in ke.iterrows() for c in ("CN–MCI", "CN–AD"))
+PER_GROUP = "/".join(str(int((grp == g).sum())) for g in ("CN", "MCI", "AD")) if len({int((grp == g).sum()) for g in ("CN", "MCI", "AD")}) > 1 else str(int((grp == "CN").sum()))
 txt = (f"For the {len(units)} re-tracked participants (CN {int((grp == 'CN').sum())}, MCI {int((grp == 'MCI').sum())}, AD {int((grp == 'AD').sum())}), "
        f"ACT changes the connectome's geometry: edge density {dens(main):.2f} → {dens(act):.2f} and median edge length {lenm(main):.0f} → "
        f"{lenm(act):.0f} mm (short/long cut-offs {tm['short_max_mm']:.0f}/{tm['long_min_mm']:.0f} → {ta['short_max_mm']:.0f}/{ta['long_min_mm']:.0f} mm). "
        f"Whole-brain network diffusion values agree {word} between the two settings (median Pearson r by measure "
        f"{', '.join(f'{m} {v:.2f}' for m, v in zip(ag[ag.Edges == 'whole brain'].Measure, wb_r))}; short- and long-range values in the "
        f"table). The exception cores overlap with Dice {dice:.2f} ({len(km)} and {len(ka)} edges). Of the {2 * len(ke)} group effects of "
-       f"the leading measures (second table), {same} keep their sign under ACT and {close} change by less than 0.15 in δ; with 15 "
+       f"the leading measures (second table), {same} keep their sign under ACT and {close} change by less than 0.15 in δ; with {PER_GROUP} "
        "participants per group only the direction and rough size can be compared.")
 open(T / "act_summary.txt", "w").write(txt); print(txt)

@@ -31,6 +31,8 @@ Design (fixed before results were examined):
               MD, core coverage), adjusted for age, sex and education; BH within each group.
 Outputs (IIT_P4): results/models.csv, results/comparisons.csv, results/association.csv, results/oof_*.npz, notes.json
 """
+import sys as _sys; from pathlib import Path as _Path; _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+import iit_chain as chain; chain.boot()      # IIT_ROOT and the chain settings; no effect when IIT_ROOT is unset
 import os
 os.environ.setdefault("OMP_NUM_THREADS", "1"); os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 import json, sys, time, warnings
@@ -107,7 +109,7 @@ def boot_diff(kind, y, pa, pb, strata, rng):
 
 def run(sample, target, group=None):
     kind = TARGETS[target]; rng = np.random.default_rng(7)
-    d = D[(D.adni34 == 1) if sample == "primary" else D.index.notnull()]
+    d = D[(chain.primary(D) == 1) if sample == "primary" else D.index.notnull()]
     if group: d = d[d.group == group]
     d = d[d[target].notna()]
     y = d[target].values.astype(float)
@@ -163,7 +165,7 @@ ASSOC = {"Limbic AxD": "WB|Limbic|AxD", "Limbic MD": "WB|Limbic|MD", "Limbic lon
          "Core coverage": "COV|core|coverage"}
 rows = []
 for sample in ("primary", "pooled"):
-    d0 = D[(D.adni34 == 1) if sample == "primary" else D.index.notnull()].join(FQ[list(ASSOC.values())])
+    d0 = D[(chain.primary(D) == 1) if sample == "primary" else D.index.notnull()].join(FQ[list(ASSOC.values())])
     for g in ("CN", "MCI", "AD"):
         dg = d0[d0.group == g]
         for t in [t for t in TARGETS if TARGETS[t] == "reg"]:
@@ -181,7 +183,7 @@ for (s, g), idx in A.groupby(["sample", "group"]).groups.items():
     for k, i in enumerate(o[::-1]): run_ = min(run_, p[i] * len(p) / (len(p) - k)); q[i] = run_
     A.loc[idx, "q"] = q
 A.to_csv(R / "association.csv", index=False)
-n = {s: {t: {g: int(((D.adni34 == 1) if s == "primary" else D.index.notnull())[D[t].notna() & (D.group == g)].sum()) for g in ("CN", "MCI", "AD")}
+n = {s: {t: {g: int(((chain.primary(D) == 1) if s == "primary" else D.index.notnull())[D[t].notna() & (D.group == g)].sum()) for g in ("CN", "MCI", "AD")}
          for t in TARGETS} for s in ("primary", "pooled")}
 json.dump(dict(n=n, repeats=REPEATS, perms=NPERM, perm_repeats=PERM_REPEATS, boot=BOOT, folds=K,
                lag_median={t: float(D.loc[D[t].notna(), f"{t if t != 'cdr_impaired' else 'cdr_global'}_lag"].median()) for t in TARGETS},
