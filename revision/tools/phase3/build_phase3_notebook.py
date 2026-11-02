@@ -88,6 +88,7 @@ code(r"""
 def cliff(a, b):
     a, b = a[np.isfinite(a)], b[np.isfinite(b)]; r = rankdata(np.concatenate([a, b])); u = r[:len(a)].sum() - len(a) * (len(a) + 1) / 2
     return 2 * u / (len(a) * len(b)) - 1
+import sys
 sys.path.insert(0, "/home/ec2-user/exp/docs/iit_dipanjan/tools")
 import iit_chain as chain
 chain.boot()

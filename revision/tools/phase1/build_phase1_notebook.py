@@ -211,7 +211,7 @@ for sid in cov.index:
 keep = pres / n34 >= 0.90; np.fill_diagonal(keep, False)
 rep = pd.DataFrame({s: networks(*mats[s]) for s in cov.index if mats[s][2] is not None}).T
 con = pd.DataFrame({s: networks(*mats[s], keep=keep) for s in cov.index if mats[s][2] is not None}).T
-diff = (rep - pub.loc[rep.index, rep.columns]).abs()
+diff = (rep - pub.reindex(index=rep.index, columns=rep.columns)).abs()
 print(f"recomputed vs published: max |difference| = {np.nanmax(diff.values):.1e} over {diff.notna().sum().sum()} values")
 print(f"consistent edges: {int(keep.sum() // 2)} of {int((pres > 0).sum() // 2)} ever reconstructed")
 """)
@@ -252,7 +252,7 @@ import sc_cohort_settings as cohort_settings
 K = cohort_settings.n_nodes(); FLOOR = cohort_settings.density_floor(); iu = np.triu_indices(K, 1)
 qc = pd.DataFrame(index=cov.index)
 qc["wb_md_median"] = pub.filter(regex=r"^WB\|.*\|MD$").median(axis=1) * 1e3
-qc["n_wb_tensor_fail"] = sum(tensor_bad(pub, f"WB|{n}|", 0.01).astype(int) for n in NETS)
+qc["n_wb_tensor_fail"] = sum(tensor_bad(pub, f"WB|{n}|", 0.01).astype(int) for n in NETS if f"WB|{n}|FA" in pub)
 pres = {s_: (mats[s_][0] > 0) & (mats[s_][1] > 0) if cohort_settings.get("length_measure") == "per_person" else mats[s_][1] > 0 for s_ in cov.index}
 qc["density"] = [pres[s_][iu].mean() for s_ in cov.index]
 qc["zero_nodes"] = [int((pres[s_][:K, :K].sum(1) == 0).sum()) for s_ in cov.index]
@@ -317,6 +317,7 @@ qc["md_coverage"] = [((mats[s_][2]["md_mean"][iu] > 0) & pres[s_][iu]).sum() / m
 fin = pd.read_csv(EXP / "research_audit/route_attribution_20260919/final.csv")
 fin = fin.assign(subject_id=fin.sid.str.extract(r"^(\d{3}_S_\d{4})")[0]).drop_duplicates("subject_id").set_index("subject_id")
 qc["route"] = fin.s4.reindex(cov.index).str[0].map({"A": "legacy_step7", "B": "legacy_r4", "C": "new", "D": "new", "E": "new", "F": "new"})
+if chain.root() is not None: qc["route"] = "one recipe"     # a chain is one recipe from raw data
 assert np.allclose(qc.md_coverage, ref_qc.md_coverage, equal_nan=True) and (qc.route == ref_qc.route).all()
 for c in ["qc_fail", "md_coverage", "route"]: cov[c] = qc[c]
 cov["route_r4"], cov["route_step7"] = (cov.route == "legacy_r4").astype(float), (cov.route == "legacy_step7").astype(float)
@@ -749,6 +750,8 @@ for tag, idx, X, covs, special in spec:
         k = ((cv.group == "CN") & (cv.amyloid_pos == 0)) | (cv.group.isin(["MCI", "AD"]) & (cv.amyloid_pos == 1)); cv, Xc = cv[k], Xc[k]
     if covs: ok = cv[covs].notna().all(1); cv, Xc = cv[ok], Xc[ok]
     Xc = Xc[eligible(Xc, cv.group)]
+    if Xc.shape[1] == 0:                               # under 5 per group in this condition: nothing to estimate
+        print(f"{tag:36} not estimable, n = {dict(cv.group.value_counts())}"); continue
     if special == "combat": Xc, _ = combat(Xc, cv)
     Xa = adjust(Xc, cv.group, cv[covs]) if covs else Xc
     if special == "coverage":
@@ -983,7 +986,9 @@ fig, axes = plt.subplots(1, 3, figsize=(15, 6), sharey=True)
 y = np.arange(len(KEY))[::-1]
 for ax, (c, title) in zip(axes, pairs):
     for yi, (lab, feat, ct) in zip(y, KEY):
-        ra = OLD[(OLD.c == c) & (OLD.feature == feat) & (OLD.contrast == ct)].iloc[0]; rb = E[(E.c == c) & (E.feature == feat) & (E.contrast == ct)].iloc[0]
+        ra, rb = OLD[(OLD.c == c) & (OLD.feature == feat) & (OLD.contrast == ct)], E[(E.c == c) & (E.feature == feat) & (E.contrast == ct)]
+        if ra.empty or rb.empty: continue                 # not estimable in this sample
+        ra, rb = ra.iloc[0], rb.iloc[0]
         ax.plot([ra.delta, rb.delta], [yi, yi], color="#9ca3af", lw=1.2)
         ax.scatter([ra.delta], [yi], s=40, color="#6b7280" if ra.q < 0.05 else "white", edgecolors="#6b7280", zorder=3)
         ax.scatter([rb.delta], [yi], s=46, color="#2563eb" if rb.q < 0.05 else "white", edgecolors="#2563eb", linewidths=1.4, zorder=4)
@@ -1004,7 +1009,8 @@ tab = {}
 for c in [f"C2 {PL} + age, sex, education"] + [x for x in SENS if not x.startswith("C0q")]:
     col = {}
     for lab, feat, ct in KEY[:10]:
-        r = eff[(eff.condition == c) & (eff.feature == feat) & (eff.contrast == ct)].iloc[0]; col[lab] = f"{r.delta:+.3f}{'*' if r.q < 0.05 else ''}"
+        r = eff[(eff.condition == c) & (eff.feature == feat) & (eff.contrast == ct)]
+        col[lab] = f"{r.delta.iloc[0]:+.3f}{'*' if r.q.iloc[0] < 0.05 else ''}" if len(r) else "not estimable"
     col["FA networks, CN–AD"] = int(((eff.condition == c) & (eff.kind == "WB") & (eff.measure == "FA") & (eff.contrast == "CN-AD") & (eff.q < 0.05)).sum())
     for ct in CT:
         r = srl[(srl.condition == c) & (srl.kind == "TR") & (srl.contrast == ct)].iloc[0]; col[f"SR − LR {ct}"] = f"{r['diff']:+.3f} [{r.ci_lo:+.3f}, {r.ci_hi:+.3f}]"

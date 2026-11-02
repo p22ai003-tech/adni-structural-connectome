@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np, pandas as pd, nibabel as nib
 
 U = Path("/data/derivatives/connectomes_uniform_v3"); W = U / "work"
-OUT_MAP = chain.dkt_map()    # a chain writes its own copy (IIT_DKT_MAP); the unset path is today's file
+OUT_MAP = chain.dkt_map(for_writing=True)    # a chain writes its own copy; with no root this is today's file
 A = Path(os.environ.get("IIT_AROOT", "/data/derivatives/qc/analysis_cohort_uniform"))
 P1 = Path(os.environ.get("IIT_P1", "/home/ec2-user/exp/docs/iit_dipanjan/phase1_uniform"))
 CORT = {2: "caudalanteriorcingulate", 3: "caudalmiddlefrontal", 5: "cuneus", 6: "entorhinal", 7: "fusiform", 8: "inferiorparietal",

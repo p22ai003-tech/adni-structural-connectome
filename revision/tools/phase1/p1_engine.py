@@ -230,6 +230,10 @@ for tag, idx, X, covs, special in conds:
     elig = [c for c in Xc.columns if min(Xc.loc[g == k, c].notna().sum() for k in ("CN", "MCI", "AD")) >= 5]
     notes[tag + " features"] = f"{len(elig)} of {Xc.shape[1]} eligible (>= 5 per group)"
     Xc = Xc[elig]
+    if not elig:                              # this condition leaves under 5 per group: nothing to estimate, and the note says so
+        notes.setdefault(tag + " n", {k: int(v) for k, v in g.value_counts().items()})
+        print(f"not estimable: {tag}  n={dict(g.value_counts())}", flush=True)
+        continue
     if special == "combat":
         Xc, nh, nt = combat(Xc, cv); notes[tag] = f"ComBat harmonised {nh} of {nt} features (vendor batches {cv.vendor.value_counts().to_dict()})"
     Xa = adjust(Xc, g, cv[covs]) if covs else Xc
@@ -253,7 +257,8 @@ for tag, idx, X, covs, special in conds:
     notes.setdefault(tag + " n", {k: int(v) for k, v in g.value_counts().items()})
     print(f"done: {tag}  n={dict(g.value_counts())}", flush=True)
 
-eff = pd.concat(all_eff, ignore_index=True); srlr = pd.DataFrame(all_srlr)
+eff = pd.concat(all_eff, ignore_index=True) if all_eff else pd.DataFrame(columns=["condition", "feature", "contrast", "delta", "p", "n_first", "n_second", "kind", "network", "measure", "q"])
+srlr = pd.DataFrame(all_srlr) if all_srlr else pd.DataFrame(columns=["condition", "kind", "contrast", "n_cells", "sr_mean", "lr_mean", "diff", "ci_lo", "ci_hi", "sr_gt_lr", "n_first", "n_second"])
 eff.to_csv(OUT / f"effects_long{SUFFIX}.csv", index=False); srlr.to_csv(OUT / f"sr_lr_summary{SUFFIX}.csv", index=False)
 json.dump(notes, open(OUT / f"condition_notes{SUFFIX}.json", "w"), indent=1, default=str)
 print("wrote effects_long.csv, sr_lr_summary.csv, condition_notes.json")

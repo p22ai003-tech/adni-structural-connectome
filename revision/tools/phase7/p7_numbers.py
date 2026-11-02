@@ -138,7 +138,9 @@ N["core_sizes_sd"] = {str(r.sd): int(r.core_size) for r in D[(D.condition == "P2
 # ---------------- Phase 4
 M4 = pd.read_csv(P4 / "results/models.csv"); C4 = pd.read_csv(P4 / "results/comparisons.csv")
 m4 = lambda t, mo, g="all": M4[(M4["sample"] == "primary") & (M4.target == t) & (M4.model == mo) & (M4.group == g)].iloc[0]
-c4 = lambda t, a, b, g="all": C4[(C4["sample"] == "primary") & (C4.target == t) & (C4.model == a) & (C4.versus == b) & (C4.group == g)].iloc[0]
+def c4(t, a, b, g="all"):
+    x = C4[(C4["sample"] == "primary") & (C4.target == t) & (C4.model == a) & (C4.versus == b) & (C4.group == g)]
+    return x.iloc[0] if len(x) else pd.Series(dict(diff=np.nan, diff_lo=np.nan, diff_hi=np.nan))     # too few people in this group to model
 TG = ["cdrsb", "adas13", "phc_mem", "phc_exf", "mmse", "faq"]
 N["p4"] = {t: {"n": int(m4(t, "C").n), "C": round(float(m4(t, "C")["mean"]), 3), "Dx": round(float(m4(t, "C+Dx")["mean"]), 3),
                "Conn": round(float(m4(t, "C+F1-4")["mean"]), 3), "ConnBest": round(float(max(m4(t, r)["mean"] for r in ["C+F1", "C+F1-2", "C+F1-3", "C+F1-4"])), 3),

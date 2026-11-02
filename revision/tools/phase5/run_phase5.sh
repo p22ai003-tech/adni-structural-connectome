@@ -14,7 +14,7 @@ if [ -z "${IIT_ROOT:-}" ]; then
 fi
 chain_env run_phase5
 P1=${IIT_P1:-$U/phase1_uniform}; P2=${IIT_P2:-$U/phase2_uniform}; P3=${IIT_P3:-$U/phase3_uniform}; P5=${IIT_P5:-$U/phase5_uniform}
-DKTMAP=${IIT_DKT_MAP:-/data/derivatives/connectomes_uniform_v3/dkt76_network_mapping.csv}
+DKTMAP=$("$APY" -I "$T/iit_chain.py" dkt-map)
 if [ "${IIT_PRINT_PATHS:-0}" = 1 ]; then echo "IIT_AROOT=$IIT_AROOT P1=$P1 P2=$P2 P3=$P3 P5=$P5 DKTMAP=$DKTMAP"; exit 0; fi
 step() { echo; echo "== $(date -u +%FT%TZ)  $*"; }
 mkdir -p "$P5"

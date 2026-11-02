@@ -14,7 +14,9 @@ if os.environ.get("IIT_SRC", "published") != "published":      # rebuilt connect
     s = pd.concat([s0[s0.condition == C0], s[~s.condition.str.startswith("C0 ")]])
 fq = lambda q: (f"{q:.3f}" if q >= 0.001 else f"{q:.1e}") if np.isfinite(q) else ""
 def cell(c, f, ct):
-    r = e[(e.condition == c) & (e.feature == f) & (e.contrast == ct)].iloc[0]; return f"{r.delta:+.3f} (q {fq(r.q)})"
+    r = e[(e.condition == c) & (e.feature == f) & (e.contrast == ct)]
+    if r.empty: return "not estimable"                 # under 5 per group in this sample
+    r = r.iloc[0]; return f"{r.delta:+.3f} (q {fq(r.q)})"
 NICE = {"Salience_VAN": "Salience", "DorsalAttention": "Dorsal attention"}
 def leader(kind, ct):                      # largest |δ| among significant effects of the primary analysis
     x = e[(e.condition == C2) & (e.kind == kind) & (e.contrast == ct) & (e.q < 0.05)]
@@ -46,6 +48,6 @@ for kind, nm in [("TR", "all edges"), ("EX", "exception edges")]:
         g = lambda c: s[(s.condition == c) & (s.kind == kind) & (s.contrast == ct)].iloc[0]
         f = lambda r: f"SR {r.sr_mean:.3f} / LR {r.lr_mean:.3f}; SR−LR {r['diff']:+.3f} [{r.ci_lo:+.3f}, {r.ci_hi:+.3f}]; SR>LR {int(r.sr_gt_lr)}/{int(r.n_cells)}"
         rows.append(("Table 3, Fig. 4", f"Short vs long range, {nm}, {ct.replace('-', '–')}", f(g(C0)), f(g(C2))))
-pd.DataFrame(rows, columns=["Where", "Quantity", "Published (pooled 530)", "Primary (ADNI-3/4 after QC, adjusted)"
+pd.DataFrame(rows, columns=["Where", "Quantity", "Published (pooled 530)", f"Primary ({chain.sample_label()} after QC, adjusted)"
                            + (", rebuilt connectomes" if os.environ.get("IIT_SRC", "published") != "published" else "")]).to_csv(O / "tables/number_changes.csv", index=False)
 print(pd.read_csv(O / "tables/number_changes.csv").to_string(index=False))

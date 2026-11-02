@@ -89,6 +89,9 @@ for s in subs:
     if s in a34: pres += ((L > 0) & (W > 0)); n34 += 1
 keep = (pres / n34) >= 0.90; np.fill_diagonal(keep, False)
 print(f"consistent edges (>=90% of {n34} ADNI-3/4): {int(keep.sum()//2)} of {int(((pres>0).sum())//2)} ever-present")
+if chain.root() is not None:                      # the narrative reads this; the printed line above says ADNI-3/4 whatever the sample
+    import json
+    json.dump(dict(n_primary=n34, consistent=int(keep.sum() // 2), ever=int((pres > 0).sum() // 2)), open(OUT / "consistent_edges.json", "w"))
 rep, con = {}, {}
 for s in subs:
     L, W, mic = cache[s]

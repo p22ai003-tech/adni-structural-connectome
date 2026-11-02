@@ -117,7 +117,8 @@ Phase 1 features and the audit come out byte-identical on the existing data.
   edges each person has, and nodes beyond `SC_N_NODES` at zero. The no-ACT arm takes the ACT arm's ruler with `IIT_LENGTH_REF`. DKT keeps
   per-person length: MNI centres exist only for AAL3.
 - What a recipe run hands over: `SC_AAL166_<unit>_<kind>.csv` and `SC_AAL166_<unit>_qc.json` per session (`iit_chain.py export-matrices`), the
-  qc.json carrying `recipe_sha256`. Under a root, covariates come from each session's `stats/aseg+DKT.stats` in `IIT_FASTSURFER`/`<unit>`: the CPU
+  qc.json carrying `recipe_sha256`; DKT matrices the same, with their own qc.json. `IIT_R4_FIELD`/`IIT_R4_MIN` name the recipe's registration
+  measure (`wm_dice` in recipe v4; its exclusion threshold is not decided yet). Under a root, covariates come from each session's `stats/aseg+DKT.stats` in `IIT_FASTSURFER`/`<unit>`: the CPU
   route runs `--seg_only`, so head size is FastSurfer's mask volume, not eTIV.
 - Documents: builders take a new version name (`--version=NAME`, `IIT_DOC_VERSION`, or the launcher's argument) and never overwrite;
   in-place editors accept only a working copy (`iit_chain.py work-copy`, then `publish`). `p1_docx.py` refuses to run.

@@ -176,7 +176,7 @@ for sample in ("primary", "pooled"):
                 res_ = lambda v: v - Z @ np.linalg.lstsq(Z, v, rcond=None)[0]
                 r_, p_ = stats.pearsonr(res_(rk[t].values), res_(rk[col].values))
                 rows.append(dict(sample=sample, group=g, target=t, feature=lab, n=len(x), rho=r_, p=p_))
-A = pd.DataFrame(rows)
+A = pd.DataFrame(rows, columns=["sample", "group", "target", "feature", "n", "rho", "p"])      # may be empty in a small sample
 A["q"] = np.nan
 for (s, g), idx in A.groupby(["sample", "group"]).groups.items():
     p = A.loc[idx, "p"].values; o = np.argsort(p); q = np.empty(len(p)); run_ = 1.0

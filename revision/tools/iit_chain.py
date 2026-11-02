@@ -149,8 +149,16 @@ def docs_dir() -> Path:
     return Path(os.environ.get("IIT_DOCS", U0))
 
 
-def dkt_map() -> Path:
-    return Path(os.environ.get("IIT_DKT_MAP", "/data/derivatives/connectomes_uniform_v3/dkt76_network_mapping.csv"))
+def dkt_map(for_writing: bool = False) -> Path:
+    """DKT region -> network. A chain reads its own map when it has one, else today's (read only), and writes only under its root."""
+    today = Path("/data/derivatives/connectomes_uniform_v3/dkt76_network_mapping.csv")
+    r = root()
+    own = r / "connectomes/dkt76_network_mapping.csv" if r is not None else None
+    if "IIT_DKT_MAP" in os.environ:
+        return Path(os.environ["IIT_DKT_MAP"])
+    if own is not None and (for_writing or own.is_file()):
+        return own
+    return today
 
 
 # ------------------------------------------------------------------------------------- primary sample
@@ -675,6 +683,8 @@ def main(argv: list[str]) -> int:
         ok, why = recipe_status(Path(args[0]), Path(args[1]))
         print(("OK: " if ok else "REFUSED: ") + why)
         return 0 if ok else EXIT_REFUSED
+    elif cmd == "dkt-map":
+        print(dkt_map())
     elif cmd == "exclusions":
         write_exclusions()
     elif cmd == "views":
