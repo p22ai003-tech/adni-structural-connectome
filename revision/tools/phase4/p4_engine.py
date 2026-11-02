@@ -153,7 +153,7 @@ def run(sample, target, group=None):
 
 t0 = time.time()
 tasks = [(s, t, g) for s in ("primary", "pooled") for t in TARGETS for g in (None, "CN", "MCI", "AD")]
-res = Parallel(n_jobs=min(len(tasks), 60), verbose=0, batch_size=1)(delayed(run)(*x) for x in sorted(tasks, key=lambda x: x[2] is not None))
+res = Parallel(n_jobs=min(len(tasks), 60, int(os.environ.get("IIT_JOBS", 60))), verbose=0, batch_size=1)(delayed(run)(*x) for x in sorted(tasks, key=lambda x: x[2] is not None))   # IIT_JOBS caps the workers; each task seeds itself, so the results do not depend on it
 models = pd.DataFrame([r for x in res for r in x[0]]); comps = pd.DataFrame([r for x in res for r in x[1]])
 models.to_csv(R / "models.csv", index=False); comps.to_csv(R / "comparisons.csv", index=False)
 np.savez_compressed(R / "oof_predictions.npz", **{k: v for x in res for k, v in x[2].items()})
