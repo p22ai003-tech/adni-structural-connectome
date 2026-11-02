@@ -642,7 +642,11 @@ def publish(work: Path, stem: str) -> Path:
 
     doc = Document(work)
     final = docs_dir() / f"{stem}_{doc_version()}.docx"
-    narrative_guard.check_document(doc, final.name)
+    try:
+        narrative_guard.check_document(doc, final.name)
+    except SystemExit:
+        Path(work).unlink(missing_ok=True)      # a refused build leaves no Word file behind; docs/.guard/ keeps the reasons
+        raise
     if rehearsal():
         _rehearsal_banner(doc); doc.save(work)
     _exclusive_move(Path(work), final)
