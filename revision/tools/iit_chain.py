@@ -20,12 +20,14 @@ Layout of a root:
 Guards kept here:
   recipe    launchers refuse when the connectomes' recorded recipe hash differs from SIGNED_RECIPE.json, or that file is
             missing. IIT_REHEARSAL=1 bypasses this, only with a root of its own, and the bypass is written into the outputs.
+            --no-act-base is the one other way through: it covers only the existing no-ACT connectomes (NO_ACT_BASE), which
+            predate any signature, needs a root of its own, and is written into the outputs. Everything else still refuses.
   documents builders take a new version name and never overwrite a Word file (doc_path, save_new, work_copy, publish).
   labels    sc_cohort_settings.py: real diagnoses are joined only with SC_LABELS=real.
   narrative narrative_guard.py: builders stop when computed numbers contradict a fixed sentence.
 
 Command line:
-  iit_chain.py init --connectomes DIR [--dkt DIR] [--rehearsal]   start a chain under IIT_ROOT (settings from the environment)
+  iit_chain.py init --connectomes DIR [--dkt DIR] [--rehearsal | --no-act-base]   start a chain under IIT_ROOT (settings from the environment)
   iit_chain.py paths                                              print the resolved locations
   iit_chain.py shell-env                                          print export lines for a launcher
   iit_chain.py guard NAME                                         exit 3 unless the recipe check passes
@@ -65,6 +67,7 @@ import sc_cohort_settings as S  # noqa: E402
 
 U0 = Path("/home/ec2-user/exp/docs/iit_dipanjan")
 SIGNED_RECIPE = Path("/data/derivatives/recipe_v4/SIGNED_RECIPE.json")
+NO_ACT_BASE = Path("/data/derivatives/connectomes_uniform_v3/matrices")   # the existing unconstrained connectomes: no recipe hash, ever
 SETTINGS_NAME = "chain_settings.json"
 EXIT_REFUSED = 3
 RECIPE_KEY = "recipe_sha256"
@@ -88,6 +91,11 @@ def rehearsal() -> bool:
     if saved:
         return bool(saved.get("rehearsal"))
     return os.environ.get("IIT_REHEARSAL", "") not in ("", "0")
+
+
+def no_act_base() -> bool:
+    """A chain started with --no-act-base. Read from its settings file only, so this cannot be added later or from the environment."""
+    return bool(settings_file().get("no_act_base"))
 
 
 def layout(r: Path) -> dict[str, str]:
@@ -217,6 +225,11 @@ def _require_recipe(who: str) -> str:
                   "today's outputs without the signed-recipe check.", file=sys.stderr)
             raise SystemExit(EXIT_REFUSED)
         return "bypassed: rehearsal"
+    if no_act_base():
+        if _conn_for_guard().resolve() != NO_ACT_BASE.resolve():
+            print(f"RECIPE GUARD ({who}): refusing to run. --no-act-base covers only {NO_ACT_BASE}, not {_conn_for_guard()}.", file=sys.stderr)
+            raise SystemExit(EXIT_REFUSED)
+        return "not signed: the existing no-ACT connectomes, by --no-act-base"
     ok, why = recipe_status(_conn_for_guard())
     dkt = os.environ.get("IIT_CONN_DKT", "")
     if ok and root() is not None and dkt and Path(dkt).is_dir():       # the second parcellation must come from the same recipe
@@ -245,10 +258,15 @@ def _tools_hash() -> str:
     return h.hexdigest()
 
 
-def init(connectomes: str, dkt: str | None, rehearse: bool) -> None:
+def init(connectomes: str, dkt: str | None, rehearse: bool, base: bool = False) -> None:
     r = root()
     if r is None:
         raise SystemExit("init needs IIT_ROOT")
+    if rehearse and base:
+        raise SystemExit("--rehearsal and --no-act-base exclude each other: a chain is one or the other.")
+    if base and Path(connectomes).resolve() != NO_ACT_BASE.resolve():
+        print(f"RECIPE GUARD (init): refusing to run. --no-act-base covers only {NO_ACT_BASE}, not {connectomes}.", file=sys.stderr)
+        raise SystemExit(EXIT_REFUSED)
     if str(r) == str(U0) or str(r).startswith(str(U0) + "/") or "analysis_cohort" in str(r):
         raise SystemExit(f"IIT_ROOT={r}: a chain root must not be inside today's outputs")
     settings = {name: S.get(name) for name in S.ENV}
@@ -263,22 +281,30 @@ def init(connectomes: str, dkt: str | None, rehearse: bool) -> None:
     if file.is_file():
         old = json.loads(file.read_text())
         same = {k: str(v) for k, v in (old.get("settings") or {}).items()} == {k: str(v) for k, v in settings.items()}
-        if not same or bool(old.get("rehearsal")) != bool(rehearse):
+        if not same or bool(old.get("rehearsal")) != bool(rehearse) or bool(old.get("no_act_base")) != bool(base):
             raise SystemExit(f"{file} already holds different settings: a chain keeps one set; use a new root.")
     else:
         S.label_mode(Path(connectomes))                 # stops now when no flag says which labels this chain may join
-        if not rehearse:
+        if not rehearse and not base:
             ok, why = recipe_status(Path(connectomes))
             if not ok:
                 print(f"RECIPE GUARD (init): refusing to run. {why}", file=sys.stderr)
                 raise SystemExit(EXIT_REFUSED)
         record = dict(
             settings=settings, rehearsal=bool(rehearse),
-            signed_recipe_check=("BYPASSED: rehearsal flag" if rehearse else recipe_status(Path(connectomes))[1]),
+            signed_recipe_check=("BYPASSED: rehearsal flag" if rehearse else
+                                 "NOT SIGNED: existing no-ACT connectomes, by --no-act-base" if base else recipe_status(Path(connectomes))[1]),
             connectomes=str(connectomes), dkt=dkt, git_head=_git_head(), tools_sha256=_tools_hash(), started_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         )
+        if base:
+            record["no_act_base"] = True
         r.mkdir(parents=True, exist_ok=True)
         file.write_text(json.dumps(record, indent=1) + "\n")
+        if base:
+            (r / "NO_ACT_BASE_UNSIGNED.txt").write_text(
+                f"This tree reads the existing no-ACT connectomes ({NO_ACT_BASE}), which predate the signed recipe: --no-act-base was set, "
+                "so the signed-recipe check did not apply.\nThese are results under unconstrained tracking, not recipe v4.\n"
+                f"Labels: {settings['labels']}.\n")
         if rehearse:
             (r / "REHEARSAL_UNSIGNED.txt").write_text(
                 "This tree came from a rehearsal: IIT_REHEARSAL bypassed the signed-recipe check. Nothing here is a result.\n"
@@ -290,7 +316,7 @@ def init(connectomes: str, dkt: str | None, rehearse: bool) -> None:
     _link(Path(connectomes), r / "connectomes/matrices")
     if dkt:
         _link(Path(dkt), r / "connectomes/matrices_dkt")
-    print(f"chain at {r}: {json.dumps(settings)} rehearsal={bool(rehearse)}")
+    print(f"chain at {r}: {json.dumps(settings)} rehearsal={bool(rehearse)}" + (" no_act_base=True" if base else ""))
 
 
 def _link(target: Path, link: Path) -> None:
@@ -432,6 +458,7 @@ def build_ruler() -> Path | None:
         given = os.environ.get("IIT_LENGTH_REF")          # the no-ACT arm takes the ACT arm's ruler
         if given:
             shutil.copy2(given, file)
+            (file.parent / f"ruler_{measure}.json").write_text(json.dumps(dict(measure=measure, taken_from=given), indent=1) + "\n")
             return file
         share = float(os.environ.get("IIT_LENGTH_MIN_SHARE", "0.5"))
         value, n = control_median_edges(Path(os.environ["IIT_CONN_RAW"]), Path(os.environ["IIT_AROOT"]) / "00_master/master_cohort.csv", share)
@@ -653,7 +680,7 @@ def main(argv: list[str]) -> int:
             return args[args.index(flag) + 1] if flag in args else None
         if not val("--connectomes"):
             raise SystemExit("init needs --connectomes DIR")
-        init(val("--connectomes"), val("--dkt"), "--rehearsal" in args)
+        init(val("--connectomes"), val("--dkt"), "--rehearsal" in args, "--no-act-base" in args)
     elif cmd == "paths":
         print(json.dumps(_paths_table(), indent=1))
     elif cmd == "shell-env":

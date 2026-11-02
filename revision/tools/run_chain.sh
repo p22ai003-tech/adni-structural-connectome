@@ -3,17 +3,18 @@
 # ledger ($IIT_ROOT/logs/chain_status.tsv); a restart skips what is done. nice 19, at most IIT_JOBS processes (default 8).
 #
 #   IIT_ROOT=<root> SC_DENSITY_FLOOR=.. SC_SMC=.. IIT_PRIMARY_SAMPLE=.. IIT_LENGTH_MEASURE=.. SC_LABELS=.. SC_LABEL_SEED=.. \
-#     run_chain.sh --connectomes DIR --dkt DIR --other-arm EDGES.npz --version NAME [--rehearsal] [--docs-only] [--no-docs] [--no-phase5]
+#     run_chain.sh --connectomes DIR --dkt DIR --other-arm EDGES.npz --version NAME [--rehearsal | --no-act-base] [--docs-only] [--no-docs] [--no-phase5]
 #
 # Without --rehearsal it refuses unless the connectomes carry the signed recipe (exit 3). With --rehearsal the bypass is
 # written into chain_settings.json, REHEARSAL_UNSIGNED.txt and the first line of every document. A rehearsal first runs the
 # document builders strictly (stopping at a contradicted sentence is the expected result on shuffled labels), then again
-# with the contradictions recorded so that the rest of each builder is exercised.
+# with the contradictions recorded so that the rest of each builder is exercised. --no-act-base is for the existing no-ACT
+# connectomes only (iit_chain.NO_ACT_BASE): recorded in chain_settings.json and NO_ACT_BASE_UNSIGNED.txt, guard strict, no banner.
 set -uo pipefail
 renice -n 19 $$ > /dev/null 2>&1 || true
 U=/home/ec2-user/exp/docs/iit_dipanjan; T=$U/tools; PY=$T/.venv/bin/python; APY=/home/ec2-user/exp/.venv_connectome_app/bin/python
 . "$T/chain_lib.sh"
-CONN=""; DKT=""; OTHER=""; VERSION=""; REHEARSE=""; DOCS_ONLY=""; NO_DOCS=""; NO_P5=""
+CONN=""; DKT=""; OTHER=""; VERSION=""; REHEARSE=""; NO_ACT=""; DOCS_ONLY=""; NO_DOCS=""; NO_P5=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --connectomes) CONN=$2; shift 2 ;;
@@ -21,6 +22,7 @@ while [ $# -gt 0 ]; do
     --other-arm) OTHER=$2; shift 2 ;;
     --version) VERSION=$2; shift 2 ;;
     --rehearsal) REHEARSE=1; shift ;;
+    --no-act-base) NO_ACT=1; shift ;;
     --docs-only) DOCS_ONLY=1; shift ;;
     --no-docs) NO_DOCS=1; shift ;;
     --no-phase5) NO_P5=1; shift ;;
@@ -30,7 +32,7 @@ while [ $# -gt 0 ]; do
 done
 [ -n "${IIT_ROOT:-}" ] || { echo "run_chain.sh needs IIT_ROOT" >&2; exit 2; }
 [ -n "$CONN" ] && [ -n "$VERSION" ] || { echo "run_chain.sh needs --connectomes and --version" >&2; exit 2; }
-$APY -I "$T/iit_chain.py" init --connectomes "$CONN" ${DKT:+--dkt "$DKT"} ${REHEARSE:+--rehearsal} || exit $?
+$APY -I "$T/iit_chain.py" init --connectomes "$CONN" ${DKT:+--dkt "$DKT"} ${REHEARSE:+--rehearsal} ${NO_ACT:+--no-act-base} || exit $?
 chain_env run_chain
 export IIT_LEDGER=$IIT_LOGS/chain_status.tsv IIT_DOC_VERSION=$VERSION IIT_JOBS=${IIT_JOBS:-8} IIT_B=${IIT_B:-2000} IIT_R=${IIT_R:-500}
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 LOKY_MAX_CPU_COUNT=$IIT_JOBS MPLBACKEND=Agg

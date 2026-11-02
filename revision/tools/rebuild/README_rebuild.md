@@ -124,3 +124,13 @@ Phase 1 features and the audit come out byte-identical on the existing data.
   in-place editors accept only a working copy (`iit_chain.py work-copy`, then `publish`). `p1_docx.py` refuses to run.
 - Narrative guard (`tools/narrative_guard.py`): a document is saved only if its fixed sentences hold on this chain's numbers.
 - `tools/run_chain.sh` runs everything under a root with a ledger (`logs/chain_status.tsv`). `tools/test_chain_guards.py` tests the guards.
+  The recipe v4 ACT arm, once signed:
+  `IIT_ROOT=<root> SC_DENSITY_FLOOR=none SC_SMC=hold_out IIT_PRIMARY_SAMPLE=adni3 IIT_LENGTH_MEASURE=mni_distance SC_N_NODES=154 SC_LABELS=real
+  IIT_R4_FIELD=wm_dice IIT_R4_MIN=<decided> IIT_FASTSURFER=<folder> tools/run_chain.sh --connectomes <matrices> --dkt <matrices_dkt> --other-arm <no-ACT root>/phase2/edges_uniform_v3.npz --version <name>`.
+  A shuffled-label rehearsal adds `--rehearsal` with `SC_LABELS=shuffled SC_LABEL_SEED=<n>`; on shuffled labels the strict document pass is expected to stop.
+  The existing no-ACT connectomes hold no recipe hash and never will, so the check would always refuse them. `--no-act-base` is the one named way
+  through: only `connectomes_uniform_v3/matrices`, only with its own root, written into `chain_settings.json` and `NO_ACT_BASE_UNSIGNED.txt`, strict guard, no banner:
+  `IIT_ROOT=<root> SC_DENSITY_FLOOR=0.6 SC_SMC=hold_out SC_LABELS=real IIT_PRIMARY_SAMPLE=adni3 IIT_LENGTH_MEASURE=mni_distance SC_N_NODES=166 IIT_R4_FIELD=reg_fa_corr IIT_R4_MIN=0.4
+  tools/run_chain.sh --connectomes /data/derivatives/connectomes_uniform_v3/matrices --dkt <DKT folder> --version <name> --no-act-base --no-docs`.
+  Under that rule 10 of 530 are excluded, the same 10 as `exclusions_uniform.yaml`. Leave out `--other-arm`: `p5_act.py` treats the chain's own connectomes as the ACT arm.
+  `IIT_LENGTH_MEASURE` reaches only the AAL3 matrices: `matrices_dkt` keeps per-person length, so a fixed ruler on DKT needs a DKT folder with `len_mean` replaced.
