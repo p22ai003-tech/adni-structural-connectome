@@ -98,6 +98,13 @@ class Evidence:
         d = self._csv(chain.P(1) / "covariates.csv")
         return None if d is None else len(d)
 
+    def n_before_holdout(self):
+        """Passing QC, plus those held out for no other reason than the analysis's own hold-out (SMC)."""
+        d = self._csv(chain.P(1) / "qc.csv")
+        if d is None:
+            return None
+        return int((~d.qc_fail.astype(bool)).sum()) + int((d.qc_reason == "R0 excluded before the analysis").sum())
+
     def recipe(self):
         conn = Path(os.environ.get("IIT_CONN_RAW") or os.environ.get("IIT_CONN") or "/data/derivatives/connectomes_uniform_v3/matrices")
         for f in sorted(conn.glob("SC_*_qc.json")):
@@ -199,6 +206,8 @@ def t_agreed(sentence, ev):
     if ag is None:
         return NO_EVIDENCE + " (Phase 5 ACT agreement)"
     wb = ag[ag.Edges == "whole brain"]
+    if re.search(r"\b(?:not|never|disagreed?|poorly)\b", sentence):
+        return None                                  # says the two do not agree: the claim this test exists to stop is not made
     rr = {str(m): float(str(v).split(" ")[0]) for m, v in zip(wb["Measure"], wb["Pearson r, median [range]"])}
     low = {k: v for k, v in rr.items() if v < AGREE_R}
     if low:
@@ -310,6 +319,8 @@ def t_every_length(sentence, ev):
 
 
 def t_sample(sentence, ev):
+    if re.search(r"\bsensitivity\b", sentence, re.I):
+        return None                                  # named as a sensitivity analysis, not as the sample
     if chain.sample() != "adni34":
         return f"the sentence names ADNI-3/4 as the sample; this chain's primary sample is {chain.sample_label()}"
     return None
@@ -358,16 +369,21 @@ def t_nan(sentence, ev):
 
 def t_v3_counts(sentence, ev):
     """Counts typed into the sentences for the 25 Oct rebuild; a chain of its own has its own."""
-    if chain.root() is not None:
-        return "a count typed for the 25 Oct rebuild; this chain must compute its own"
-    return None
+    if chain.root() is None:
+        return None
+    if re.search(r"\b519 participants\b", sentence) and re.search(r"\bbefore\b[^.]{0,60}\b(?:hold|held|SMC)", sentence):
+        n = ev.n_before_holdout()
+        if n is None:
+            return NO_EVIDENCE + " (Phase 1 QC)"
+        return None if n == 519 else f"the sentence states 519 before the hold-out; this chain's QC gives {n}"
+    return "a count typed for the 25 Oct rebuild; this chain must compute its own"
 
 
 CLAIMS = [
-    ("no crossover", re.compile(r"\bno crossover\b|\bnot support (?:a|the)\b[^.]{0,60}crossover|crossover[^.]{0,40}\bnot supported\b|\bThere is no crossover\b"), t_no_crossover),
-    ("at every stage", re.compile(r"\bevery stage\b|\bat all stages\b"), t_every_stage),
+    ("no crossover", re.compile(r"\bno crossover\b|\bnot support (?:a|the)\b[^.]{0,60}crossover|crossover[^.]{0,40}\b(?:not supported|not seen|not found|not observed|absent)\b|\b(?:no evidence|no sign|no indication|absence|lack) (?:of|for) (?:a |any )?crossover\b|\bwithout (?:a |any )?crossover\b|\bNo analysis showed larger early effects\b", re.I), t_no_crossover),
+    ("at every stage", re.compile(r"\bevery stage\b|\b(?:at|across) (?:all|each|every)(?: three)? (?:disease )?stages?\b", re.I), t_every_stage),
     ("13 of 14", re.compile(r"\b\d+ of \d+ leading group effects\b|\b13 of 14\b"), t_n_of_m),
-    ("agreed", re.compile(r"\bagreed\b"), t_agreed),
+    ("agreed", re.compile(r"\bagree(?:d|s)?\b|\b(?:in|good|close|strong|high) agreement\b", re.I), t_agreed),
     ("stable", re.compile(r"\bstable\b"), t_stable),
     ("near-perfect", re.compile(r"\bnear-perfect\b"), t_near_perfect),
     ("robust to", re.compile(r"\brobust to\b|\bsimilarly robust\b|\bmost robust\b"), t_robust),

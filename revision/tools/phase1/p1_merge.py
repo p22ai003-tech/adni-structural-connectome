@@ -9,7 +9,7 @@ import pandas as pd
 
 O = Path(os.environ.get("IIT_P1", "/home/ec2-user/exp/docs/iit_dipanjan/phase1")); RUNS = O / "runs"; RUNS.mkdir(exist_ok=True)
 ORDER = ["C0", "C0q", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11"]
-eff, srl, notes = [], [], {}
+eff, srl, notes, failed = [], [], {}, []
 for c in ORDER:
     for src in (O, RUNS):
         f = src / f"effects_long_{c}.csv"
@@ -18,6 +18,10 @@ for c in ORDER:
             notes.update(json.load(open(src / f"condition_notes_{c}.json"))); break
     else:
         print(f"WARNING: no engine output for {c} (condition skipped; see engine_{c}.log)")
+        if os.environ.get("IIT_LEDGER") and not (Path(os.environ["IIT_LOGS"]) / "done" / f"p1_engine_{c}").exists():
+            failed.append(c)                 # a failed engine, not a condition with nothing to estimate
+if failed:                                   # so no done marker: a restart re-runs the condition, then merges, then the tables
+    raise SystemExit(f"p1_merge: the engine failed for {', '.join(failed)}; nothing merged")
 pd.concat(eff, ignore_index=True).to_csv(O / "effects_long.csv", index=False)
 pd.concat(srl, ignore_index=True).to_csv(O / "sr_lr_summary.csv", index=False)
 json.dump(notes, open(O / "condition_notes.json", "w"), indent=1)

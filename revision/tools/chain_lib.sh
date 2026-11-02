@@ -3,7 +3,8 @@ CHAIN_T=/home/ec2-user/exp/docs/iit_dipanjan/tools
 CHAIN_APY=/home/ec2-user/exp/.venv_connectome_app/bin/python
 
 # chain_env <launcher>: under IIT_ROOT, export the chain's locations and settings; then the recipe check, which exits 3 when
-# refused. IIT_PRINT_PATHS=1 stops before the check, for the test that the unset root still means today's paths.
+# refused. IIT_PRINT_PATHS=1 stops before the check, for the test that the unset root still means today's paths; every launcher
+# that sources this must then exit at once, as the next line after its chain_env call does.
 chain_env() {
   if [ -n "${IIT_ROOT:-}" ]; then
     local lines; lines=$("$CHAIN_APY" -I "$CHAIN_T/iit_chain.py" shell-env) || exit 3

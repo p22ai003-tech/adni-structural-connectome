@@ -34,6 +34,7 @@ done
 [ -n "$CONN" ] && [ -n "$VERSION" ] || { echo "run_chain.sh needs --connectomes and --version" >&2; exit 2; }
 $APY -I "$T/iit_chain.py" init --connectomes "$CONN" ${DKT:+--dkt "$DKT"} ${REHEARSE:+--rehearsal} ${NO_ACT:+--no-act-base} || exit $?
 chain_env run_chain
+[ "${IIT_PRINT_PATHS:-0}" = 1 ] && exit 0                 # the guard above was skipped for a path test: nothing runs
 export IIT_LEDGER=$IIT_LOGS/chain_status.tsv IIT_DOC_VERSION=$VERSION IIT_JOBS=${IIT_JOBS:-8} IIT_B=${IIT_B:-2000} IIT_R=${IIT_R:-500}
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 LOKY_MAX_CPU_COUNT=$IIT_JOBS MPLBACKEND=Agg
 export IIT_OTHER_ARM_EDGES=${OTHER:-${IIT_OTHER_ARM_EDGES:-}}

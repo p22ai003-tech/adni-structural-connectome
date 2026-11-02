@@ -68,6 +68,7 @@ import sc_cohort_settings as S  # noqa: E402
 U0 = Path("/home/ec2-user/exp/docs/iit_dipanjan")
 SIGNED_RECIPE = Path("/data/derivatives/recipe_v4/SIGNED_RECIPE.json")
 NO_ACT_BASE = Path("/data/derivatives/connectomes_uniform_v3/matrices")   # the existing unconstrained connectomes: no recipe hash, ever
+NO_ACT_DKT = Path("/data/derivatives/connectomes_uniform_v3/matrices_dkt")
 SETTINGS_NAME = "chain_settings.json"
 EXIT_REFUSED = 3
 RECIPE_KEY = "recipe_sha256"
@@ -86,10 +87,10 @@ def settings_file() -> dict:
 
 
 def rehearsal() -> bool:
-    """A started chain is what its settings file says, whatever the environment says; the bypass cannot be added later."""
-    saved = settings_file()
-    if saved:
-        return bool(saved.get("rehearsal"))
+    """Under a root, only `init --rehearsal` makes a rehearsal: its settings file says so, whatever the environment says, so the
+    bypass cannot be added later or before the chain starts. Without a root the variable only earns the refusal in _require_recipe."""
+    if root() is not None:
+        return bool(settings_file().get("rehearsal"))
     return os.environ.get("IIT_REHEARSAL", "") not in ("", "0")
 
 
@@ -218,7 +219,31 @@ def _conn_for_guard() -> Path:
     return Path(os.environ.get("IIT_CONN_RAW") or os.environ.get("IIT_CONN") or "/data/derivatives/connectomes_uniform_v3/matrices")
 
 
+def _conn_overrides() -> list[str]:
+    """Explicit matrix folders the recipe check would not look at. Under a root every one must lie inside it (spelled so, because its links lead out)."""
+    r = root()
+    raw = os.environ.get("IIT_CONN_RAW")
+    if r is not None:
+        return [f"{k}={os.environ[k]}" for k in ("IIT_CONN_RAW", "IIT_CONN", "IIT_CONN_QC", "IIT_CONN_DKT") if os.environ.get(k) and not Path(os.environ[k]).is_relative_to(r)]
+    return [f"{k}={os.environ[k]}" for k in ("IIT_CONN", "IIT_CONN_QC") if raw and os.environ.get(k) and Path(os.environ[k]).resolve() != Path(raw).resolve()]
+
+
+def _no_act_dkt(dkt: Path) -> list[str]:
+    """Files in a --no-act-base DKT folder from anywhere but the existing no-ACT connectomes. The chain's own length ruler may be a real file."""
+    bad = []
+    for f in sorted(Path(dkt).glob("SC_DKT76_*")):
+        if f.name.endswith("_len_mean.csv") and not f.is_symlink():
+            continue
+        if f.resolve().parent != NO_ACT_DKT.resolve():
+            bad.append(f.name)
+    return bad
+
+
 def _require_recipe(who: str) -> str:
+    over = _conn_overrides()
+    if over and not rehearsal():
+        print(f"RECIPE GUARD ({who}): refusing to run. These matrix folders escape the recipe check: {', '.join(over)}.", file=sys.stderr)
+        raise SystemExit(EXIT_REFUSED)
     if rehearsal():
         if root() is None:
             print("RECIPE GUARD: a rehearsal needs a root of its own (IIT_ROOT), or it would write over "
@@ -266,6 +291,9 @@ def init(connectomes: str, dkt: str | None, rehearse: bool, base: bool = False) 
         raise SystemExit("--rehearsal and --no-act-base exclude each other: a chain is one or the other.")
     if base and Path(connectomes).resolve() != NO_ACT_BASE.resolve():
         print(f"RECIPE GUARD (init): refusing to run. --no-act-base covers only {NO_ACT_BASE}, not {connectomes}.", file=sys.stderr)
+        raise SystemExit(EXIT_REFUSED)
+    if base and dkt and (other := _no_act_dkt(Path(dkt))):
+        print(f"RECIPE GUARD (init): refusing to run. --no-act-base covers only the DKT matrices in {NO_ACT_DKT}; {len(other)} files in {dkt} come from elsewhere.", file=sys.stderr)
         raise SystemExit(EXIT_REFUSED)
     if str(r) == str(U0) or str(r).startswith(str(U0) + "/") or "analysis_cohort" in str(r):
         raise SystemExit(f"IIT_ROOT={r}: a chain root must not be inside today's outputs")

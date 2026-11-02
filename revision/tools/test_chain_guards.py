@@ -109,7 +109,7 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out = run(["guard", "test"], env=na)
     check("no-ACT base: the launcher guard lets this chain through", code == 0 and "not signed" in out, out)
     code, out = run(["guard", "test"], env=dict(na, IIT_CONN_RAW=str(conn)))
-    check("no-ACT base: the guard refuses when the connectomes are repointed", code == 3 and "covers only" in out, out)
+    check("no-ACT base: the guard refuses when the connectomes are repointed", code == 3 and ("covers only" in out or "escape the recipe check" in out), out)
     code, out = run(["init", "--connectomes", NOACT], env=na)
     check("no-ACT base: a restart without the flag refuses", code != 0 and "different settings" in out, out)
     code, out = run(["init", "--connectomes", NOACT, "--no-act-base"], env=na)
@@ -284,10 +284,43 @@ import narrative_guard as g, sys
 d = Document(); r = d.add_paragraph().add_run('There was no crossover.'); r.font.strike = True
 print(g.live_text(d))""", env=guard_env)
     check("guard: struck text is ignored", code == 0 and "[]" in out, out)
+    code, out = guarded("Results on ADNI-3/4 were repeated as a sensitivity analysis.", env=dict(IIT_PRIMARY_SAMPLE="adni3"))
+    check("guard: ADNI-3/4 named as a sensitivity analysis passes", code == 0, out)
+    for words, claim in (("We found no evidence of a crossover.", "no crossover"), ("No analysis showed larger early effects on long connections.", "no crossover"),
+                         ("Effects were larger at each stage.", "at every stage"), ("Whole-brain values agree with the ACT run.", "agreed")):
+        code, out = snippet(f"import narrative_guard as g; print([l for l, p, _ in g.CLAIMS if p.search({words!r})])", env=guard_env)
+        check(f"guard: {words!r} reaches the test for '{claim}'", code == 0 and claim in out, out)
+    code, out = snippet("import narrative_guard as g; print(g.t_agreed('The two recipes did not agree.', g.Evidence()))", env=guard_env)
+    check("guard: saying the recipes do not agree is not the claim 'agreed'", code == 0 and "None" in out, out)
+    (tmp / "guard_root").mkdir(exist_ok=True); (tmp / "guard_root" / "chain_settings.json").write_text(json.dumps(dict(settings={}, no_act_base=True)))
+    pd.DataFrame(dict(qc_fail=[False] * 504 + [True] * 15 + [True] * 11, qc_reason=[None] * 504 + ["R0 excluded before the analysis"] * 15 + ["R3 reconstruction"] * 11)).to_csv(P1 / "qc.csv", index=False)
+    code, out = guarded("The flow ended at 519 participants before SMC were held out.", env=dict(IIT_ROOT=str(tmp / "guard_root")))
+    check("guard: '519 participants before the SMC hold-out' passes when the QC table gives 519", code == 0 and "passed" in out, out)
+    pd.DataFrame(dict(qc_fail=[False] * 500 + [True] * 15, qc_reason=[None] * 500 + ["R0 excluded before the analysis"] * 15)).to_csv(P1 / "qc.csv", index=False)
+    code, out = guarded("The flow ended at 519 participants before SMC were held out.", env=dict(IIT_ROOT=str(tmp / "guard_root")))
+    check("guard: '519 participants' stops when the QC table gives another count", code == 3 and "this chain's QC gives 515" in out, out)
     code, out = guarded("Whole-brain values agreed with the main reconstruction.", env=dict(IIT_NARRATIVE_GUARD="record"))
     tables(good, flat, r=0.5)
     code, out = guarded("Whole-brain values agreed with the main reconstruction.", env=dict(IIT_NARRATIVE_GUARD="record"))
     check("guard: recording instead of stopping is refused outside a rehearsal", code != 0 and "only in a rehearsal" in out, out)
+
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    code, out = run(["guard", "test"], env=dict(IIT_ROOT=str(tmp / "fresh"), IIT_REHEARSAL="1"))
+    check("recipe: IIT_REHEARSAL before a chain starts does not bypass the check", code == 3 and "bypassed" not in out, out)
+    code, out = snippet("import iit_chain as c; print(c.rehearsal())", env=dict(IIT_ROOT=str(tmp / "fresh"), IIT_REHEARSAL="1"))
+    check("recipe: a root without init --rehearsal is no rehearsal", code == 0 and "False" in out, out)
+    code, out = run(["guard", "test"], env=dict(IIT_ROOT=str(tmp / "fresh"), IIT_CONN_RAW=str(tmp / "fresh/connectomes/matrices"), IIT_CONN="/elsewhere/matrices"))
+    check("recipe: an explicit IIT_CONN outside the root refuses", code == 3 and "escape the recipe check" in out, out)
+    code, out = run(["guard", "test"], env=dict(IIT_CONN_RAW="/signed/matrices", IIT_CONN_QC="/elsewhere/matrices_qc"))
+    check("recipe: without a root, an IIT_CONN_QC other than the checked folder refuses", code == 3 and "escape the recipe check" in out, out)
+    dkt = tmp / "dkt"; dkt.mkdir(); (dkt / "SC_DKT76_X_count.csv").write_text("0")
+    code, out = run(["init", "--connectomes", "/data/derivatives/connectomes_uniform_v3/matrices", "--dkt", str(dkt), "--no-act-base"],
+                    env=dict(IIT_ROOT=str(tmp / "base"), SC_DENSITY_FLOOR="0.6", SC_SMC="hold_out", SC_LABELS="real", IIT_PRIMARY_SAMPLE="adni3", IIT_LENGTH_MEASURE="mni_distance", SC_N_NODES="166"))
+    check("no-ACT base: a DKT folder holding other files refuses", code == 3 and "come from elsewhere" in out, out)
+    for launcher in ("phase7/build_ms.sh", "phase7/build_thesis.sh", "rebuild/docs_rebuilt.sh", "run_chain.sh"):
+        text = (HERE / launcher).read_text().splitlines(); k = next(i for i, l in enumerate(text) if l.startswith("chain_env "))
+        check(f"recipe: {launcher} exits after a path test skipped the guard", "IIT_PRINT_PATHS" in text[k + 1] and "exit 0" in text[k + 1])
 
 fails = [n for n, ok in RESULTS if not ok]
 print(f"\n{len(RESULTS) - len(fails)} of {len(RESULTS)} passed")
