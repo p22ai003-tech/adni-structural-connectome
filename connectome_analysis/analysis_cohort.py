@@ -11,6 +11,14 @@ import pandas as pd
 
 from connectome_analysis.analysis_config import GROUP_ORDER, AnalysisPaths
 
+try:
+    import sc_cohort_settings
+except ModuleNotFoundError:  # a script started from another folder: the module sits at the repository root
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    import sc_cohort_settings
+
 
 SID_RE = re.compile(r"(?P<sid>\d{3}_S_\d+(?:_I\d+)?)")
 
@@ -18,6 +26,8 @@ SID_RE = re.compile(r"(?P<sid>\d{3}_S_\d+(?:_I\d+)?)")
 def recode_group(value: str) -> str:
     if pd.isna(value):
         return value
+    if value == "SMC" and sc_cohort_settings.smc_held_out():
+        return value   # subjective memory concern kept out of every group (SC_SMC=hold_out)
     if value in {"EMCI", "LMCI", "SMC"}:
         return "MCI"
     return value
@@ -124,6 +134,7 @@ def _participants_table(paths: AnalysisPaths) -> Path | None:
 
 def build_master_cohort(paths: AnalysisPaths) -> pd.DataFrame:
     paths.ensure()
+    sc_cohort_settings.label_mode(paths.connectomes_dir)   # stops here, before any label is read, if no flag says which
     if not paths.cohort_dti_csv.is_file():
         participants = _participants_table(paths)
         if participants is None:
@@ -206,22 +217,25 @@ def build_master_cohort(paths: AnalysisPaths) -> pd.DataFrame:
     # set (the 530 "good" subjects). The main connectomes/ dir holds only dense matrices (mid/low are
     # quarantined to _midband/_lowband_archive), so this yields the canonical dense cohort. Every
     # downstream analysis + the summary then reflect n=530. See docs/DECISIONS.md.
+    nodes = sc_cohort_settings.n_nodes()   # 166 unless SC_N_NODES leaves out the last ones
+
     def _count_density(sid: str) -> float:
         matches = sorted(paths.connectomes_dir.glob(f"SC_AAL166_{sid}_I*_count.csv"))
         if not matches:
             return float("nan")
         try:
-            m = np.loadtxt(matches[0], delimiter=","); n = m.shape[0]
+            m = np.loadtxt(matches[0], delimiter=",")[:nodes, :nodes]; n = m.shape[0]
             off = m[~np.eye(n, dtype=bool)]
             return float((off > 0).sum() / off.size)
         except Exception:
             return float("nan")
 
+    floor = sc_cohort_settings.density_floor()   # 0.6 unless SC_DENSITY_FLOOR says otherwise
     master["density"] = master["subject_id"].astype(str).map(_count_density)
-    master["is_dense"] = master["density"].apply(lambda d: bool(pd.notna(d) and d >= 0.6))
+    master["is_dense"] = master["density"].apply(lambda d: bool(pd.notna(d) and d >= floor))
     considered = len(master)
     master = master.loc[master["is_dense"]].copy()
-    master["cohort_label"] = "dense"
+    master["cohort_label"] = "dense" if floor == sc_cohort_settings.DEFAULT_FLOOR else f"density_ge_{floor:g}"
 
     if master.empty:
         # An empty cohort used to be written out and every later stage would
@@ -237,6 +251,10 @@ def build_master_cohort(paths: AnalysisPaths) -> pd.DataFrame:
             f"Check that the ids in the cohort table match the ones in the "
             f"published matrix filenames, and that the matrices are published."
         )
+
+    # Labels last: the permutation, when one is asked for, runs over exactly the participants of this cohort.
+    master = sc_cohort_settings.apply_labels(master, paths.connectomes_dir, paths.master_dir)
+    sc_cohort_settings.write_cohort_record(paths.master_dir, considered, len(master))
 
     out_path = paths.master_dir / "master_cohort.csv"
     master.to_csv(out_path, index=False)
@@ -522,7 +540,9 @@ def run_data_completeness(
     # Resolve the full sid (with _I image-id) from the connectome too, so subjects whose biascorr
     # intermediate was cleaned still resolve their stage dirs (the connectome is the source of truth).
     conn_sid_map: dict[str, str] = {}
-    for cc in sorted(paths.deriv_root.joinpath("connectomes").glob("SC_AAL166_*_count.csv")):
+    # A chain with its own root has none of the old pipeline's folders: its connectomes are the ones it was given.
+    conn_source = paths.connectomes_dir if sc_cohort_settings.chain_root() is not None else paths.deriv_root.joinpath("connectomes")
+    for cc in sorted(conn_source.glob("SC_AAL166_*_count.csv")):
         if cc.name.startswith("._") or "_invnodevol" in cc.name:
             continue
         m = re.match(r"SC_AAL166_(\d{3}_S_\d+_I\d+)_count\.csv$", cc.name)
@@ -602,6 +622,9 @@ def run_data_completeness(
             }
         )
     merged = pd.DataFrame(per_subject_rows)
+    for col in ("step7_fod_done", "step7_tracks_done", "step7_sift2_done", "step7_parc_done", "step7_dti_done"):
+        if col not in merged:      # nobody here has the old pipeline's folders
+            merged[col] = 0
     completeness = (
         merged.groupby("group")
         .agg(

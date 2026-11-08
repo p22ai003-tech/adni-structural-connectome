@@ -31,3 +31,15 @@ Production also builds diffusivity 4 (`fa/md/ad/rd_mean`, via `tcksample` tsf + 
 96-thread tckgen = 4.63× of 16 (near-linear). Box is **disk-bound (~128 MB/s)** → loading 10M tracks (~5–8 GB)
 ≈ 10 min each; mass re-assignment is impractical — prefer copy-promote of existing connectomes.
 Numexpr cap: set `NUMEXPR_MAX_THREADS` when running at 96 threads.
+
+## Analysis settings (`sc_cohort_settings.py`)
+Environment variables read by the analysis pipeline and the revision scripts. The defaults reproduce the published cohort byte for byte.
+| Variable | Default | Meaning |
+|---|---|---|
+| `SC_DENSITY_FLOOR` | 0.6 | Minimum count density of a connectome to enter the master cohort; `none` or 0 switches the floor off. |
+| `SC_SMC` | `mci` | `mci` counts subjective memory concern as MCI; `hold_out` keeps those participants out of every group. |
+| `SC_N_NODES` | 166 | Nodes analysed: the first n of the AAL3 nodes. |
+| `SC_LABELS`, `SC_LABEL_SEED` | unset | `shuffled` permutes diagnosis and clinical scores between participants with a recorded seed, for debugging; `real` is the flag that allows real labels under a chain root or on connectomes with a recorded recipe hash. |
+| `IIT_PRIMARY_SAMPLE` | `adni34` | Primary sample of the revision analyses: `adni34`, `adni3` or `pooled`. |
+| `IIT_LENGTH_MEASURE` | `per_person` | Edge length of the revision analyses: `per_person`, `mni_distance` or `control_median_act`. |
+| `IIT_ROOT` | unset | Chain root: everything is read from and written under it (`revision/tools/iit_chain.py`). |

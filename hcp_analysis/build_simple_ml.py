@@ -51,6 +51,7 @@ except ModuleNotFoundError:
     import sys as _sys
     _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     import sc_exclusions
+import sc_cohort_settings
 
 _P = sc_paths.resolve_for_script("ml")
 
@@ -86,6 +87,8 @@ def build_targets() -> pd.DataFrame:
         c = [x for x in d.columns if "subj" in x.lower()][0]
         d = d.rename(columns={c: "sid"})
         d["_d"] = pd.to_datetime(d.get("Study Date"), errors="coerce")
+        # Straight from the cohort exports: with shuffled labels each participant takes their donor's scores.
+        d = sc_cohort_settings.hide_clinical_rows(d, "sid", ANALYSIS)
         visits.append(d[["sid", "_d", "MMSE Total Score", "Global CDR"]])
     mc = master.rename(columns={"subject_id": "sid"})
     mc["_d"] = pd.NaT
