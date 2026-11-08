@@ -21,13 +21,17 @@ No diagnosis, group, CDR or MMSE is read anywhere: the only lists are lists/t1_c
   s6a_tckgen     iFOD2 ACT -backtrack -crop_at_gmwmi, dynamic seeding, cutoff 0.06, angle 45, 10-250 mm, step 1 mm
   s6b_sift2      tcksift2 -act, mu saved
   s6c_sample     per-streamline mean FA/MD/AD/RD, lengths, endpoints
+  s6e_subset     with --subset N: SIFT2 refit on the first N streamlines (weights_<N>M_f32.npy, mu_<N>M.txt)
   s6d_assign     tck2connectome on the tractogram and on the tractogram rebuilt from the saved endpoints; must match; tractogram deleted
   s7_qc          bench/qc/<arm>_<unit>.json
 
 Output: bench/work/<arm>/<unit>/ and bench/qc/<arm>_<unit>.json; what several arms share in bench/work/_shared/<unit>/.
 --tag makes a variant of an existing arm run (10M, second seed): only s6 and s7 run, from the base arm's FOD, tissue map and atlas.
+A tag starting with "noact" tracks without ACT (no -act, -backtrack, -crop_at_gmwmi, tcksift2 -act), everything else as the base run, same random seed.
+--out recipe_v4/cohort or recipe_v4/canary: the frozen recipe (FREEZE.md). Arm C with --crop-zf only, units of lists/cohort_units.csv only, the cohort only on the code
+SIGNED_RECIPE.json names; the FOD, tissue map and MNI warp are deleted once the ACT run and its no-ACT variant have both finished.
 
-Usage: rv4_subject.py <unit> --arm B [--select 1000000] [--seed 1] [--tag seed2] [--threads 8] [--out DIR] [--crop-zf]
+Usage: rv4_subject.py <unit> --arm B [--select 1000000] [--seed 1] [--tag seed2] [--threads 8] [--out DIR] [--crop-zf] [--subset 3000000]
        rv4_subject.py --selftest
 """
 import argparse, fcntl, glob, hashlib, json, os, re, resource, subprocess, sys, threading, time, traceback
@@ -39,6 +43,7 @@ ap = argparse.ArgumentParser(); ap.add_argument("unit", nargs="?"); ap.add_argum
 ap.add_argument("--select", type=int, default=1_000_000); ap.add_argument("--seed", type=int, default=1); ap.add_argument("--tag", default="")
 ap.add_argument("--threads", type=int, default=8); ap.add_argument("--out", default="/data/derivatives/recipe_v4/bench")
 ap.add_argument("--scratch", default="/data/derivatives/recipe_v4/scratch"); ap.add_argument("--selftest", action="store_true"); ap.add_argument("--crop-zf", action="store_true")
+ap.add_argument("--subset", type=int, default=0)        # also keep a SIFT2 fit of the first N streamlines (cohort: 3M of 10M)
 a = ap.parse_args()
 os.nice(19)
 DER = Path("/data/derivatives"); MR = "/home/ec2-user/mrtrix3/bin"; ANTS = "/home/ec2-user/exp/.envs/ants-2.6.5/bin"
@@ -47,9 +52,11 @@ PY = "/home/ec2-user/exp/.venv_connectome_app/bin/python"
 SYN = "/home/ec2-user/synb0disco"; FS_SH = "/home/ec2-user/FastSurfer/run_fastsurfer.sh"; FS_PY = "/home/ec2-user/miniconda3/envs/fastsurfer/bin/python"
 FS_LIC = "/home/ec2-user/freesurfer/license.txt"; FS_LUT = "/home/ec2-user/FastSurfer/FastSurferCNN/config/FreeSurferColorLUT.txt"
 ATLAS = "/home/ec2-user/exp/atlas/AAL/AAL3v1_1mm.nii.gz"; MAP = "/home/ec2-user/exp/atlas/AAL/AAL3_network_mapping.csv"
-MNI = f"{FSLDIR}/data/standard/MNI152_T1_1mm_brain.nii.gz"; LISTS = Path("/data/derivatives/recipe_v4/lists")
+MNI = f"{FSLDIR}/data/standard/MNI152_T1_1mm_brain.nii.gz"; R4 = Path("/data/derivatives/recipe_v4"); LISTS = R4 / "lists"
 VERSIONS = dict(s1_inputs=1, s2_import=1, s2a_denoise=1, s2_eddyin=1, s2b_synb0=1, s2c_topup=1, s2d_mask=1, s2e_eddy=1, s3_model=1, s4a_fastsurfer=3, s4b_align=3,
-                s4c_5tt=1, s5a_syn=2, s5b_atlas=1, s6a_tckgen=1, s6b_sift2=1, s6c_sample=1, s6d_assign=1, s7_qc=1)
+                s4c_5tt=1, s5a_syn=2, s5b_atlas=1, s6a_tckgen=1, s6b_sift2=1, s6c_sample=1, s6e_subset=1, s6d_assign=1, s7_qc=1)
+SINGLE_ARM = Path(a.out).resolve() in (R4 / "cohort", R4 / "canary")   # the frozen recipe: arm C only, its no-ACT variant, pruning once both are done
+NOACT = a.tag.startswith("noact")                       # the labelled sensitivity arm: everything as the base run except ACT (-act, -backtrack, -crop_at_gmwmi, tcksift2 -act)
 ROI = {"orbitofrontal": ["OFCmed", "OFCant", "OFCpost", "OFClat", "Rectus", "Frontal_Med_Orb", "Frontal_Inf_Orb_2"],
        "temporal_pole": ["Temporal_Pole_Sup", "Temporal_Pole_Mid"], "medial_temporal": ["Hippocampus", "ParaHippocampal", "Amygdala"]}
 WM_DICE_LABELS = [2, 41]                                 # the label set of reg_wm_dice (rb_dk.py), on which the .65 bar was calibrated
@@ -142,6 +149,11 @@ def kspace_crop(d, nx, ny):
     return out
 
 
+def cropped_readout(rt, acq_lines, recon_lines):
+    """Seconds such that field (Hz) x readout = displacement in voxels of the cropped grid, whose pixel is the acquired field of view over the acquired lines. A GE sidecar's value is echo spacing x (ReconMatrixPE - 1), sized for the interpolated grid."""
+    return rt * (acq_lines - 1) / (recon_lines - 1)
+
+
 def selftest():
     """No participant data. (1) MRtrix's table on a synthetic label image: ventral DC is WM, hippocampus and amygdala sGM, brain stem WM. (2) endpoint round trip. (3) PE vectors. (4) k-space crop keeps position and scale."""
     S = Path(a.scratch) / f"selftest_{os.getpid()}"; S.mkdir(parents=True); env = dict(os.environ, PATH=f"{MR}:" + os.environ["PATH"], MRTRIX_TMPFILE_DIR=str(S) + "/")
@@ -167,6 +179,7 @@ def selftest():
     gx, gy = np.mgrid[:256, :256]; blob = 1000 * np.exp(-((gx - 101.3) ** 2 + (gy - 140.7) ** 2) / (2 * 14.0 ** 2)); c = kspace_crop(blob[..., None, None].astype(np.float32), 116, 194)[..., 0, 0]; cx, cy = np.mgrid[:116, :194]
     pos = ((c * cx).sum() / c.sum() * 256 / 116, (c * cy).sum() / c.sum() * 256 / 194)
     assert abs(pos[0] - 101.3) < 0.02 and abs(pos[1] - 140.7) < 0.02, f"k-space crop moved the image: {pos}"; assert abs(c.max() / 1000 - 1) < 0.01, f"k-space crop changed the scale: {c.max()}"
+    assert abs(cropped_readout(0.089485, 116, 256) - 0.000350922 * 115) < 1e-6 and abs(cropped_readout(0.0718498, 128, 256) - 0.000281764 * 127) < 1e-6, "cropped readout is not echo spacing x (acquired lines - 1)"
     out = dict(ok=bool(ok), label_to_tissue=res, tck_roundtrip=True, pe_vectors=True, kspace_crop=True, when=time.strftime("%FT%TZ", time.gmtime()))
     Path(a.out).mkdir(parents=True, exist_ok=True); json.dump(out, open(Path(a.out) / "selftest.json", "w"), indent=1)
     for f in S.iterdir(): f.unlink()
@@ -177,6 +190,16 @@ if a.selftest: selftest()
 if a.arm == "D": sys.exit("arm D needs the measured field-map series, which are not on disk; not built")
 UNIT = a.unit; BASE = Path(a.out); ARMTAG = a.arm + (f"_{a.tag}" if a.tag else "")
 row = pd.read_csv(LISTS / "t1_choice.csv", dtype=str).set_index("unit").loc[UNIT]; SUBJ, T1ID = row["subj"], row["t1_iid"]
+RECIPE_SHA = None
+if SINGLE_ARM:
+    if a.arm != "C" or not a.crop_zf: sys.exit("the frozen recipe is arm C with --crop-zf (bench/RULE.md and its change of 3 Nov)")
+    if UNIT not in set(pd.read_csv(LISTS / "cohort_units.csv", dtype=str).unit): sys.exit("not in lists/cohort_units.csv (FREEZE.md: no same-visit T1)")
+    if BASE.resolve() == R4 / "cohort":                  # the canary runs before signing; the cohort only on the signed code
+        sig = R4 / "SIGNED_RECIPE.json"
+        if not sig.is_file(): sys.exit("cohort run refused: recipe_v4/SIGNED_RECIPE.json is missing")
+        if json.load(open(sig)).get("code_sha256", {}).get("rv4_subject.py") != hashlib.sha256(open(__file__, "rb").read()).hexdigest():
+            sys.exit("cohort run refused: rv4_subject.py is not the signed version")
+        RECIPE_SHA = hashlib.sha256(sig.read_bytes()).hexdigest()
 W = BASE / "work" / ARMTAG / UNIT; W.mkdir(parents=True, exist_ok=True); SH = BASE / "work/_shared" / UNIT; SH.mkdir(parents=True, exist_ok=True)
 W0 = BASE / "work" / a.arm / UNIT                        # where FOD, tissue map and atlas live (same as W unless this is a variant)
 QC = BASE / "qc"; QC.mkdir(exist_ok=True); SCR = Path(a.scratch) / f"{ARMTAG}_{UNIT}"; SCR.mkdir(parents=True, exist_ok=True); QCF = QC / f"{ARMTAG}_{UNIT}.json"
@@ -184,11 +207,20 @@ T = str(a.threads); SEED = int(hashlib.md5(f"{UNIT}:{a.seed}".encode()).hexdiges
 env = dict(os.environ, ANTSPATH=ANTS + "/", FSLDIR=FSLDIR, FSLOUTPUTTYPE="NIFTI_GZ", PATH=f"{ANTS}:{MR}:" + os.environ["PATH"], ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=T,
            OMP_NUM_THREADS=T, MKL_NUM_THREADS=T, MRTRIX_NTHREADS=T, MRTRIX_TMPFILE_DIR=str(Path(a.scratch)) + "/", TMPDIR=str(SCR), MRTRIX_RNG_SEED=str(SEED), ANTS_RANDOM_SEED="20261102", PYTHONWARNINGS="ignore")
 log = open(W / "run.log", "a"); qc = dict(unit=UNIT, arm=a.arm, tag=a.tag, armtag=ARMTAG, select=a.select, seed=a.seed, rng_seed=SEED, threads=a.threads, phase=row["phase"], vendor=row["vendor"],
-                                         t1_iid=T1ID, stages={}, versions=VERSIONS, status="running", crop_zf=a.crop_zf, code_sha256=hashlib.sha256(open(__file__, "rb").read()).hexdigest())
+                                         t1_iid=T1ID, stages={}, versions=VERSIONS, status="running", crop_zf=a.crop_zf, code_sha256=hashlib.sha256(open(__file__, "rb").read()).hexdigest(),
+                                         noact=NOACT, subset=a.subset, recipe_sha256=RECIPE_SHA)
 dirty = False
 
 
 def mr(x): return f"{MR}/{x}"
+
+
+def t1_file():
+    """The same-visit corrected T1: the stored one, or one from the 3 Nov IDA download brought to the same form by rv4_t1_ingest.py (dcm2niix, N4 with the stored parameters)."""
+    for d in (DER / "t1_anat", R4 / "t1_anat"):
+        p = d / f"corrected_T1_{SUBJ}_I{T1ID}.nii.gz"
+        if p.exists(): return p
+    raise RuntimeError("same-visit corrected T1 not on disk")
 
 
 def run(cmd, cwd=None, timeout=None, extra=None):
@@ -322,10 +354,12 @@ def crop_to_acquired():
     (c0, m0), (c1, m1) = centre(d[..., 0], im.affine), centre(z[..., 0], af); shift = float(np.linalg.norm(c1 - c0))
     if shift > 1.0: raise RuntimeError(f"the crop moved the brain by {shift:.2f} mm")
     o = nib.Nifti1Image(z, af); o.set_qform(af, code=1); o.set_sform(af, code=1); o.header.set_xyzt_units("mm", "sec"); nib.save(o, SH / "crop_out.nii"); del d, z
-    run([mr("mrconvert"), SH / "crop_out.nii", SH / "raw_crop.mif", "-grad", SH / "crop.b", "-json_import", SH / "raw.json", "-strides", "-1,2,3,4", "-datatype", "float32le", "-force", "-quiet"], cwd=SH)
-    rm(SH / "crop_in.nii", SH / "crop_out.nii", SH / "crop.b")
-    vox = [float(x) for x in o.header.get_zooms()[:3]]; info = dict(matrix_from=list(map(int, im.shape[:2])), matrix_to=n, percent_phase_fov=pct, vox_to=vox, centre_shift_mm=round(shift, 3), brain_mean_ratio=round(m1 / m0, 4))
-    acq.update(dims=list(map(int, o.shape)), vox=vox, affine=af.tolist(), cropped=info); json.dump(acq, open(SH / "acq.json", "w"), indent=1)
+    rt0 = J.get("TotalReadoutTime", J.get("EstimatedTotalReadoutTime")); rt = cropped_readout(rt0, n0, int(J["ReconMatrixPE"]))   # from the sidecar, never from acq.json: a re-run must not scale twice
+    json.dump({**J, "TotalReadoutTime": rt, "ReconMatrixPE": n[pe]}, open(SH / "crop.json", "w"))
+    run([mr("mrconvert"), SH / "crop_out.nii", SH / "raw_crop.mif", "-grad", SH / "crop.b", "-json_import", SH / "crop.json", "-strides", "-1,2,3,4", "-datatype", "float32le", "-force", "-quiet"], cwd=SH)
+    rm(SH / "crop_in.nii", SH / "crop_out.nii", SH / "crop.b", SH / "crop.json")
+    vox = [float(x) for x in o.header.get_zooms()[:3]]; info = dict(matrix_from=list(map(int, im.shape[:2])), matrix_to=n, percent_phase_fov=pct, vox_to=vox, centre_shift_mm=round(shift, 3), brain_mean_ratio=round(m1 / m0, 4), readout_from=rt0, readout_to=rt)
+    acq.update(dims=list(map(int, o.shape)), vox=vox, affine=af.tolist(), readout=rt, readout_source=acq["readout_source"].split(",")[0] + ", scaled to the acquired lines", cropped=info); json.dump(acq, open(SH / "acq.json", "w"), indent=1)
     return info
 
 
@@ -379,8 +413,7 @@ def eddy_inputs():
 
 def s2b_synb0():
     """Native port: same steps and order as ~/synb0disco/synb0_full.sh 1-5, but b0s from the denoised raw series and the T1 of t1_choice."""
-    S = W / "syn"; S.mkdir(exist_ok=True); t1 = DER / f"t1_anat/corrected_T1_{SUBJ}_I{T1ID}.nii.gz"
-    if not t1.exists(): raise RuntimeError("same-visit corrected T1 not on disk")
+    S = W / "syn"; S.mkdir(exist_ok=True); t1 = t1_file()
     run([mr("dwiextract"), SH / "deg.mif", S / "b0s.nii.gz", "-bzero", "-strides", "-1,2,3,4", "-force", "-quiet"]); im = nib.load(S / "b0s.nii.gz")
     if im.ndim == 3 or im.shape[3] == 1: run([mr("mrconvert"), S / "b0s.nii.gz", S / "b0_native.nii.gz", "-axes", "0,1,2", "-force", "-quiet"])
     else:                                                 # motion between b0s would blur the input and move it off eddy's reference: align to the first b0, then mean
@@ -423,8 +456,8 @@ def s2e_eddy():
     for ax, n in pads: crop += ["-coord", ax, f"0:{n - 1}"]
     run([mr("mrconvert"), f"{x}.nii", W / "dwi.mif", "-fslgrad", f"{x}.eddy_rotated_bvecs", W / "dwi_in.bval", *crop, "-force", "-quiet"])
     rm(f"{x}.nii", f"{x}.eddy_outlier_free_data.nii", W / "dwi_in.nii", W / "eddy_mask.nii")
-    if a.arm in "BC" and (BASE / "work/B" / UNIT / ".s2e_eddy.done.json").exists() and (BASE / "work/C" / UNIT / ".s2e_eddy.done.json").exists():
-        rm(SH / "deg.mif")
+    if SINGLE_ARM or (a.arm in "BC" and (BASE / "work/B" / UNIT / ".s2e_eddy.done.json").exists() and (BASE / "work/C" / UNIT / ".s2e_eddy.done.json").exists()):
+        rm(SH / "deg.mif")                                # nothing after eddy reads the denoised series
 
 
 def preprocess():
@@ -479,8 +512,7 @@ def s4a_fastsurfer():
     reuse = bool(used) and all(f"_I{T1ID}." in n for n in used) and all((st / "mri" / n).exists() for n in need)
     if reuse: src = st / "mri"; info.update(fastsurfer="stored, same T1")
     else:
-        t1 = DER / f"t1_anat/corrected_T1_{SUBJ}_I{T1ID}.nii.gz"
-        if not t1.exists(): raise RuntimeError("same-visit corrected T1 not on disk")
+        t1 = t1_file(); info["t1_file"] = str(t1)
         src = SH / "fs" / UNIT / "mri"; dn = SH / "fs_cpu_done.json"
         if not dn.exists() or not all((src / n).exists() for n in need):
             s = time.time(); (SH / "fs").mkdir(exist_ok=True)
@@ -577,8 +609,8 @@ def s5b_atlas():
 # ---------------- s6: tracking, weights, samples; the tractogram does not survive
 def s6a_tckgen():
     cap = max(3, a.select / 1e6 * 1.6) * 3600
-    s = time.time()
-    run([mr("tckgen"), W0 / "wmfod.mif", W / "tracks.tck", "-algorithm", "iFOD2", "-act", W0 / "5tt.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", W0 / "wmfod.mif", "-select", a.select,
+    s = time.time(); act = [] if NOACT else ["-act", W0 / "5tt.mif", "-backtrack", "-crop_at_gmwmi"]
+    run([mr("tckgen"), W0 / "wmfod.mif", W / "tracks.tck", "-algorithm", "iFOD2", *act, "-seed_dynamic", W0 / "wmfod.mif", "-select", a.select,
          "-cutoff", "0.06", "-angle", 45, "-minlength", 10, "-maxlength", 250, "-step", 1, "-nthreads", T, "-force", "-quiet"], timeout=cap)
     kv = dict((l.split(":", 1)[0].strip(), l.split(":", 1)[1].strip()) for l in out([mr("tckinfo"), W / "tracks.tck"]).splitlines() if ":" in l and "command_history" not in l)
     c, tot = int(kv["count"]), int(kv["total_count"])
@@ -587,9 +619,25 @@ def s6a_tckgen():
 
 
 def s6b_sift2():
-    run([mr("tcksift2"), W / "tracks.tck", W0 / "wmfod.mif", W / "weights.txt", "-act", W0 / "5tt.mif", "-out_mu", W / "mu.txt", "-nthreads", T, "-force", "-quiet"])
+    act = [] if NOACT else ["-act", W0 / "5tt.mif"]
+    run([mr("tcksift2"), W / "tracks.tck", W0 / "wmfod.mif", W / "weights.txt", *act, "-out_mu", W / "mu.txt", "-nthreads", T, "-force", "-quiet"])
     np.save(W / "weights_f32.npy", read_vec(W / "weights.txt")); rm(W / "weights.txt")
     return dict(mu=float(open(W / "mu.txt").read().split()[-1]))
+
+
+def s6e_subset():
+    """The first N streamlines (tckgen writes them in random seed order) with their own SIFT2 fit. Every other per-streamline array of the subset is the first N rows of the full one;
+    the check below proves the subset file holds exactly those streamlines."""
+    n = a.subset; sub, ends = W / "tracks_sub.tck", W / "ends_sub.tck"; tag = f"{n // 1_000_000}M"
+    run([mr("tckedit"), W / "tracks.tck", sub, "-number", n, "-nthreads", 0, "-force", "-quiet"])
+    run([mr("tckresample"), sub, "-endpoints", ends, "-force", "-quiet", "-nthreads", 0]); e = endpoints_from_tck(ends)
+    if len(e) != n or not np.array_equal(e, np.load(W / "endpoints_f32.npy", mmap_mode="r")[:n]): raise RuntimeError("the subset is not the first N streamlines of the tractogram")
+    act = [] if NOACT else ["-act", W0 / "5tt.mif"]
+    run([mr("tcksift2"), sub, W0 / "wmfod.mif", W / "weights_sub.txt", *act, "-out_mu", W / f"mu_{tag}.txt", "-nthreads", T, "-force", "-quiet"])
+    w = read_vec(W / "weights_sub.txt")
+    if len(w) != n: raise RuntimeError("subset weights have the wrong length")
+    np.save(W / f"weights_{tag}_f32.npy", w); rm(W / "weights_sub.txt", sub, ends)
+    return dict(subset=n, mu_subset=float(open(W / f"mu_{tag}.txt").read().split()[-1]))
 
 
 def s6c_sample():
@@ -696,6 +744,13 @@ def s7_qc():
 def seconds_total(): return sum(v["sec"] for v in qc["stages"].values() if not v.get("reused"))
 
 
+def prune():
+    """Single-arm runs, once the ACT run and its no-ACT variant have both finished: drop the FOD, tissue map and MNI-to-T1 warp (about 0.7 GB a session), so 703 sessions fit
+    on disk. The tissue map and warp rebuild in minutes; the FOD needs eddy again (about 40 min), which only a re-track would."""
+    if SINGLE_ARM and all(f.is_file() and json.load(open(f)).get("status") == "ok" for f in (QC / f"C_{UNIT}.json", QC / f"C_noact_{UNIT}.json")):
+        rm(BASE / "work/C" / UNIT / "wmfod.mif", BASE / "work/C" / UNIT / "5tt.mif", SH / "mni2t1_1Warp.nii.gz", SH / "deg.mif")
+
+
 try:
     LOCK = W / "running.pid"                             # one worker per arm and session
     if LOCK.is_file():
@@ -720,11 +775,12 @@ try:
     stage("s6a_tckgen", s6a_tckgen, [W / "tracks.tck"] if not (W / "assignments_u8.npy").exists() else [])
     stage("s6b_sift2", s6b_sift2, [W / "weights_f32.npy"])
     stage("s6c_sample", s6c_sample, [W / "endpoints_f32.npy"])
+    if a.subset: stage("s6e_subset", s6e_subset, [W / f"weights_{a.subset // 1_000_000}M_f32.npy"])   # before s6d, which deletes the tractogram
     stage("s6d_assign", s6d_assign, [W / "assignments_u8.npy"])
     rm(marker("s7_qc", False)); _stage("s7_qc", s7_qc, False, [])                   # always recomputed: it fills this run's QC from the saved arrays
     qc.update(status="ok", seconds_total_this_attempt=round(time.time() - t0), work_gb_final=round(dir_bytes(W) / 1e9, 3)); qc.pop("failed_stage", None)
     if a.arm == "A" and not a.tag: rm(W / "wmfod.mif", W / "5tt.mif")      # the reference arm has no variants
-    log.write(f"[{time.strftime('%H:%M:%S')}] done\n"); save_qc(); LOCK.unlink(missing_ok=True); print("ok", ARMTAG, round(time.time() - t0), "s")
+    log.write(f"[{time.strftime('%H:%M:%S')}] done\n"); save_qc(); prune(); LOCK.unlink(missing_ok=True); print("ok", ARMTAG, round(time.time() - t0), "s")
     try: SCR.rmdir()                                     # the per-run scratch folder, if nothing is left in it
     except OSError: pass
 except SystemExit:

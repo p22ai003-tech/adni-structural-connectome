@@ -21,7 +21,7 @@ case "${1:-}" in
 worker)
   # one job: arm unit select seed tag threads. Waits for memory and disk, runs, retries once.
   shift; arm=$1 unit=$2 sel=$3 seed=$4 tag=$5 thr=$6; [ "$tag" = "-" ] && tag=""
-  name=$arm${tag:+_$tag}
+  name=$arm${tag:+_$tag}; crop=""; [ "$arm" != "A" ] && crop="--crop-zf"   # RULE.md, change of 3 Nov: a no-op on scans that were not interpolated
   while :; do
     [ -f "$B/STOP" ] && exit 0
     mem=$(awk '/MemAvailable/{print int($2/1048576)}' /proc/meminfo)
@@ -31,7 +31,7 @@ worker)
     say "wait: mem ${mem}G free ${free}G bench ${used}G"; sleep 120
   done
   for try in 1 2; do
-    if nice -n 19 "$PY" -I "$T/rv4_subject.py" "$unit" --arm "$arm" --select "$sel" --seed "$seed" ${tag:+--tag "$tag"} --threads "$thr" --out "$B" >> "$B/logs/${name}_jobs.log" 2>&1; then break; fi
+    if nice -n 19 "$PY" -I "$T/rv4_subject.py" "$unit" --arm "$arm" --select "$sel" --seed "$seed" ${tag:+--tag "$tag"} --threads "$thr" --out "$B" $crop >> "$B/logs/${name}_jobs.log" 2>&1; then break; fi
     say "run failed, try $try, arm $name (see qc json)"
   done
   exit 0 ;;

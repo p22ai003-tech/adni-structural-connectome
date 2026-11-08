@@ -39,3 +39,34 @@ in the scripts are those of the analysis machine (`/data/derivatives/...`, `/hom
 Environment: Python 3.12 with numpy, pandas, scipy, scikit-learn, statsmodels, neuroCombat, pyreadr, nbformat, matplotlib
 and python-docx; the pipeline environment (`.venv_connectome_app`, with nibabel) for the rebuild, the DKT mapping and the
 figures; MRtrix3, FSL and ANTs for the rebuild.
+
+## Recipe v4 (November 2026): the connectomes of iteration 4
+
+Iteration 4 of the revision re-processed every session from the raw diffusion DICOMs with one recipe that was fixed and
+signed before any result was looked at (`recipe_v4_record/RECIPE.md`). `recipe_v4_record/SIGNED_RECIPE.json` holds the
+SHA-256 of the recipe text and of the four run scripts; the committed `tools/recipe_v4/rv4_subject.py`, `rv4_cohort.sh`,
+`rv4_t1_ingest.py` and `rv4_clone_start.sh` are those exact files (hashes checked at commit time).
+
+| Step | Script |
+|---|---|
+| One session, DICOM to connectome: dcm2niix; GE in-plane interpolation undone; dwidenoise; mrdegibbs; Synb0-DisCo + topup from the same-visit T1; eddy with outlier replacement; N4; single-tissue CSD (b = 1000, lmax 8); FastSurfer on the same-visit T1; 5TT; T1 to b = 0 (ANTs rigid or BBR, better white-matter Dice kept); AAL3 through the T1 (SyN); ACT iFOD2, 10 million streamlines with backtracking and GM–WM-interface cropping; SIFT2; matrices of count, SIFT2 weight, mean length and FA/MD/AD/RD sampled along every streamline; QC file | `tools/recipe_v4/rv4_subject.py` |
+| Same-visit T1 ingest (IDA download to the stored T1 form) | `rv4_t1_ingest.py` |
+| Cohort driver, and the lanes that spread it over several machines | `rv4_cohort.sh`; `rv4_split.py`, `rv4_resplit.py`, `rv4_lanes.sh`, `rv4_clone_start.sh`, `rv4_clone_lanes.sh`, `rv4_pull.sh`, `rv4_overnight.sh` |
+| Matrices to the analysis chain's CSVs, and the DKT76 matrices from the same streamlines (refuses unless it reproduces the run's own matrices) | `rv4_derive.py`, `rv4_derive_all.sh` |
+| The same-visit FastSurfer outputs the covariates read | `rv4_fs_view.py` |
+| Analysis chains (Phases 1–6 under one root, with a ledger): main, and without the flagged sessions | `rv4_chains.sh act10m` and `rv4_chains.sh act10m_noflag`, run with `RV4_SUFFIX=_r2 IIT_FASTSURFER=<root>/derived/fastsurfer_same_visit` for the final roots; `tools/run_chain.sh` |
+| Side-by-side summary of the arms | `rv4_findings.py` |
+
+Not in this folder: the iteration-4 document builders (they contain manuscript, thesis and report text), two
+operational scripts with machine details (the finish check of the extra machines and the S3 backup), and the run log
+(`FREEZE.md`), which names participants; these stay on the analysis machine and its private backup.
+
+Known points about this code, all recorded in the run log:
+- `tools/phase5/run_cap245.sh` removes edges by the edge file's `len`. Under recipe v4 that field is the MNI distance between
+  region centres, which never reaches 245 mm, so this repeat removes no edges; the documents report the share of present
+  edges whose streamlines average 245 mm or more instead (0.07%).
+- The Phase 4 permutation test (`tools/phase4/p4_engine.py`) shuffles the residuals of the connectome features after
+  regressing them on the smaller model's predictors and adds them back to the fitted part: the Smith procedure in the
+  terms of Winkler et al. (2014, NeuroImage 92: 381–397), not the Freedman–Lane test its docstring names. Results unchanged.
+- Propensity matching (condition C4) can pick slightly different neighbours on a different CPU (numerical libraries), and
+  Phase 4 takes one of two equally near visits for a few participants' composite scores (the sort is not stable).

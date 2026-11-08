@@ -172,7 +172,9 @@ add("\n## Facts about the inputs that the rule does not test\n")
 acq = [d["acq"] for u in U.unit for d in [Q["B"][u]] if ok(d)]
 if acq:
     add(f"- Polarity of phase encoding not stored (axis only, + used): {sum(not x['pe_polarity_known'] for x in acq)} of {len(acq)} sessions. Readout time an estimate from the water-fat shift: {sum('Estimated' in x['readout_source'] for x in acq)}.")
-    add(f"- Zero-filled in-plane (reconstruction matrix larger than acquisition matrix, so dwidenoise and mrdegibbs act on interpolated voxels): {sum(bool(x['zero_filled']) for x in acq)} of {len(acq)}.")
+    add(f"- Zero-filled in-plane (reconstruction matrix larger than acquisition matrix): {sum(bool(x['zero_filled']) for x in acq)} of {len(acq)}; returned to the acquired lines before dwidenoise and mrdegibbs (RULE.md, change of 3 Nov): {sum(bool(x.get('cropped')) for x in acq)}.")
+    mixed = sorted({sid_of[u] for k in "BC" for u in U.unit if ok(Q[k][u]) and Q[k][u]["acq"]["zero_filled"] and not Q[k][u]["acq"].get("cropped")})
+    if mixed: add(f"- **Zero-filled sessions with a run that skipped that step, which the rule no longer allows: {', '.join(mixed)}. These results cannot be used as they stand.**")
     add(f"- Partial Fourier recorded in the sidecar (mrdegibbs documents reduced validity): {sum(x['partial_fourier'] is not None for x in acq)} of {len(acq)}.")
     add(f"- Multi-shell in this sample: {sum(bool(x['multishell']) for x in acq)} of {len(acq)}.")
 open(B / "compare.md", "w").write("\n".join(md) + "\n")

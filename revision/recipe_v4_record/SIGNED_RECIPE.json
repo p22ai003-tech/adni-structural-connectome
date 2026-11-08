@@ -1,0 +1,34 @@
+{
+ "signed": "2026-11-03 17:58 IST",
+ "signed_by": "Claude, under the user's freeze decisions of 3 Nov 2026 about 13:20 and 13:30 IST (FREEZE.md decisions 1-7)",
+ "recipe": "RECIPE.md",
+ "recipe_sha256": "16b6e97ca99534f6a65c4de0c55dd511155b4972727625e21baa8840838003f8",
+ "code_sha256": {
+  "rv4_subject.py": "16e1b78f826dd6a12314a0b4bad8055a0dfae98ae852d4687ea3c2aa2640c90c",
+  "rv4_cohort.sh": "4a3e129c6c4d97e277d371ac9dbe8116b72c2fe5677d195db2b148c5e7037e31",
+  "rv4_t1_ingest.py": "e429b4999b0aa52776c545168516f0c41135db1a57d34b8d8ac6fb4246bdcc22",
+  "rv4_clone_start.sh": "b6aa300432062a2b7dd0eb6262ce4d46cd8cacd2298bffe5238fa30eab731c5b"
+ },
+ "cohort_units": {
+  "file": "lists/cohort_units.csv",
+  "sha256": "a94cd695677e46be5d9d3b5b5c04d36fa13d50d389ce43c49886417db5709a16",
+  "n": 702,
+  "by_phase_vendor": {
+   "ADNI 2/GE": 56,
+   "ADNI 2/SIEMENS": 1,
+   "ADNI 3/GE": 127,
+   "ADNI 3/PHILIPS": 101,
+   "ADNI 3/SIEMENS": 403,
+   "ADNI 4/GE": 3,
+   "ADNI 4/SIEMENS": 11
+  }
+ },
+ "chosen_by": {
+  "rule": "bench/RULE.md",
+  "rule_sha256": "708a0d3805aa1dc7e330e5cc08358312dfb6c6cb0e66449f4bef11fd103a59d4",
+  "comparison": "bench/compare.md",
+  "comparison_sha256": "312083ef601544a60685bb75dba7f0d9ed0a568b43fc45201f1c845498b0a717",
+  "verdict": "GO, arm C"
+ },
+ "canary": "2 of 5 sessions finished end to end (ADNI-4 GE interpolated, ADNI-2 Siemens): 10M ACT, 3M subset with its check, no-ACT 3M, CPU FastSurfer on a downloaded T1, pruning; WM Dice .747 and .669. The other 3 are past their scanner-specific steps (phase encoding along i and j-: at tracking; multi-shell: eddy done, b=1000 shell extracted). The MPTRONIC session failed at s1_inputs and is left out (FREEZE.md)."
+}
